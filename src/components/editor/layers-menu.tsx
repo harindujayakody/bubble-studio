@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { IconAction } from "./controls";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { fontStack } from "@/lib/editor/fonts";
-import { stackOrder } from "@/lib/editor/layers";
+import { layerName, stackOrder } from "@/lib/editor/layers";
 import { EMOJI_FONT, STICKER_ICONS } from "@/lib/editor/stickers";
 import type { Assets } from "@/lib/editor/render";
 import type { PostState } from "@/lib/editor/types";
@@ -58,17 +58,7 @@ export function LayersMenu({
                   setOpen(false);
                 }}
                 thumb={<Thumb item={item} assets={assets} />}
-                name={
-                  item.kind === "text"
-                    ? item.layer.text.trim() || "Empty text"
-                    : item.layer.kind === "emoji"
-                      ? "Emoji"
-                      : item.layer.kind === "icon"
-                        ? `${item.layer.value.replace(/([a-z])([A-Z0-9])/g, "$1 $2")} icon`
-                        : item.layer.value.startsWith("custom:")
-                          ? "Sticker"
-                          : "Image"
-                }
+                name={layerName(item)}
                 nameStyle={item.kind === "text" ? { fontFamily: fontStack(item.layer.fontFamily) } : undefined}
                 actions={
                   <>

@@ -32,7 +32,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { CanvasStage, type RegionDefaults } from "./canvas-stage";
 import { SizePreview, StartScreen } from "./start-screen";
 import { LayersMenu } from "./layers-menu";
-import { VideoBar, VideoPanel } from "./reel";
+import { Timeline, VideoBar, VideoPanel } from "./reel";
 import { createFrameCanvas, exportReel, formatTime, loadVideo, onEachFrame, paintFrame, reelFormat } from "@/lib/editor/video";
 import type { LibrarySticker } from "@/lib/editor/stickers";
 import { BlurPanel, ElementsPanel, type NewSticker } from "./panels-extra";
@@ -119,6 +119,9 @@ export function Editor({ stickers }: { stickers: LibrarySticker[] }) {
     [video, rotation, flipX, flipY],
   );
   const source = state.media === "video" ? frame : photoSource;
+  /** The reel's playback time, read by the stage on every frame. */
+  const getTime = useCallback(() => video?.currentTime ?? 0, [video]);
+
   /** New text and icons default to white with a shadow when they sit on a photo or video. */
   const hasPicture = !!source;
 
@@ -544,6 +547,7 @@ export function Editor({ stickers }: { stickers: LibrarySticker[] }) {
             fontsVersion={fontsVersion}
             showEmpty={showEmpty}
             clock={clock}
+            getTime={state.media === "video" && video ? getTime : undefined}
             regionDefaults={regionDefaults}
             onSelect={selectLayer}
             onTextChange={(id, patch, key) =>
@@ -561,7 +565,28 @@ export function Editor({ stickers }: { stickers: LibrarySticker[] }) {
             }}
             onDropFile={loadFile}
           />
-          {video && state.video && <VideoBar video={video} clip={state.video} />}
+          {video && state.video && (
+            <>
+              <VideoBar video={video} clip={state.video} />
+              <Timeline
+                state={state}
+                video={video}
+                clip={state.video}
+                selectedId={selected}
+                onSelect={selectLayer}
+                onTiming={(id, timing) =>
+                  update(
+                    (s) => ({
+                      ...s,
+                      texts: s.texts.map((t) => (t.id === id ? { ...t, ...timing } : t)),
+                      stickers: s.stickers.map((t) => (t.id === id ? { ...t, ...timing } : t)),
+                    }),
+                    `timing:${id}`,
+                  )
+                }
+              />
+            </>
+          )}
         </main>
 
         <aside
@@ -927,7 +952,7 @@ function ReelExportButton({
   };
 
   const saveFrame = async () => {
-    const blob = await exportPost(frame, assets, state, "jpeg", 92);
+    const blob = await exportPost(frame, assets, state, "jpeg", 92, video?.currentTime);
     save(blob, `${fileBase()}-frame.jpg`);
     toast.success("Frame saved", { description: formatBytes(blob.size) });
   };

@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { clampCrop, defaultCrop, postDims, renderPost, type Assets, type Source, type TextBox } from "@/lib/editor/render";
 import { fontStack, nearestWeight } from "@/lib/editor/fonts";
+import { autoOutline } from "@/lib/editor/color";
 import {
   type Crop,
   type PostState,
@@ -29,6 +30,8 @@ type Props = {
   showEmpty: boolean;
   /** Fires on every new video frame, so the sheet redraws while a reel plays. */
   clock?: EventTarget;
+  /** Current playback time in a reel, so layers show only inside their timing. */
+  getTime?: () => number;
   regionDefaults: RegionDefaults;
   onSelect: (id: string | null) => void;
   onTextChange: (id: string, patch: Partial<TextLayer>, key: string) => void;
@@ -45,7 +48,7 @@ const GUTTER = 36;
 const SNAP = 0.012;
 
 export function CanvasStage(props: Props) {
-  const { source, assets, state, tool, selectedId, fontsVersion, showEmpty, clock } = props;
+  const { source, assets, state, tool, selectedId, fontsVersion, showEmpty, clock, getTime } = props;
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   /** Room available for the sheet, before the gutter. */
@@ -90,7 +93,7 @@ export function CanvasStage(props: Props) {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     const draw = () => {
-      const next = renderPost(ctx, { source, assets, state, width: post.w, hideTextId: editing });
+      const next = renderPost(ctx, { source, assets, state, width: post.w, hideTextId: editing, time: getTime?.() });
       // Video frames redraw ~30 times a second; only touch React state when a box actually moved.
       setBoxes((prev) => (sameBoxes(prev, next) ? prev : next));
     };
@@ -100,7 +103,7 @@ export function CanvasStage(props: Props) {
       cancelAnimationFrame(raf);
       clock?.removeEventListener("frame", draw);
     };
-  }, [source, assets, state, cropping, fontsVersion, mounted, editing, post.w, clock]);
+  }, [source, assets, state, cropping, fontsVersion, mounted, editing, post.w, clock, getTime]);
 
   useEffect(() => {
     if (!panning) return;
@@ -600,6 +603,10 @@ function InlineTextEditor({
         color: layer.color,
         caretColor: layer.color,
         textShadow: layer.shadow ? `0 ${fontSize * 0.05}px ${fontSize * 0.18}px rgba(0,0,0,0.45)` : undefined,
+        WebkitTextStroke: layer.outline?.on
+          ? `${(layer.outline.width / 100) * fontSize * 0.32}px ${layer.outline.color === "auto" ? autoOutline(layer.color) : layer.outline.color}`
+          : undefined,
+        paintOrder: "stroke fill",
         background:
           fill.mode === "none" ? "transparent" : `color-mix(in srgb, ${fill.color} ${fill.opacity}%, transparent)`,
         borderRadius: fill.mode === "none" ? 0 : (fill.radius / 100) * fontSize * 0.6,

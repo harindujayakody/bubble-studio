@@ -1,14 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Film, Pause, Play, Trash2, Volume2, VolumeX } from "lucide-react";
+import { Film, ImageIcon, Pause, Play, Smile, Trash2, Type, Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Toggle } from "@/components/ui/toggle";
 import { PanelSection } from "./controls";
 import { formatTime, seekVideo, setVideoMuted } from "@/lib/editor/video";
-import type { PostState, VideoClip } from "@/lib/editor/types";
+import { layerName, stackOrder } from "@/lib/editor/layers";
+import type { PostState, Timing, VideoClip } from "@/lib/editor/types";
 
 type Update = (fn: (s: PostState) => PostState, key?: string) => void;
 
@@ -168,6 +169,109 @@ export function VideoBar({ video, clip }: { video: HTMLVideoElement; clip: Video
       >
         {muted ? <VolumeX /> : <Volume2 />}
       </Button>
+    </div>
+  );
+}
+
+/** Re-renders a few times a second with the clip's playback time. */
+function useVideoTime(video: HTMLVideoElement) {
+  const [time, setTime] = useState(video.currentTime);
+  useEffect(() => {
+    const sync = () => setTime(video.currentTime);
+    const events = ["timeupdate", "seeked"] as const;
+    events.forEach((e) => video.addEventListener(e, sync));
+    return () => events.forEach((e) => video.removeEventListener(e, sync));
+  }, [video]);
+  return time;
+}
+
+/** One row per text or sticker: drag the bar's ends to set when it shows in the reel. */
+export function Timeline({
+  state,
+  video,
+  clip,
+  selectedId,
+  onSelect,
+  onTiming,
+}: {
+  state: PostState;
+  video: HTMLVideoElement;
+  clip: VideoClip;
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+  onTiming: (id: string, timing: Timing) => void;
+}) {
+  const time = useVideoTime(video);
+  const rows = stackOrder(state).reverse();
+  if (rows.length === 0) return null;
+
+  const span = Math.max(0.1, clip.trimEnd - clip.trimStart);
+  const playhead = Math.min(1, Math.max(0, (time - clip.trimStart) / span)) * 100;
+
+  return (
+    <div className="mx-auto w-full max-w-xl px-4 pt-1 pb-2">
+      <div className="mb-1 flex items-baseline justify-between gap-3">
+        <span className="slug text-[11px] text-ink-soft">Timeline</span>
+        <span className="truncate text-[11px] text-ink-soft">Drag the ends of a bar to set when it shows</span>
+      </div>
+      <ul className="max-h-40 overflow-y-auto rounded-md border border-rule bg-sheet py-1" aria-label="Timeline">
+        {rows.map((item) => {
+          const start = Math.max(clip.trimStart, item.layer.start ?? clip.trimStart);
+          const end = Math.min(clip.trimEnd, item.layer.end ?? clip.trimEnd);
+          const active = item.id === selectedId;
+          const showing = start <= time && time < end;
+          const Icon = item.kind === "text" ? Type : item.layer.kind === "image" ? ImageIcon : Smile;
+          return (
+            <li
+              key={item.id}
+              className={cn(
+                "grid grid-cols-[7.5rem_1fr_3.5rem] items-center gap-3 px-2 py-1",
+                active && "bg-cyan-wash",
+              )}
+            >
+              <button
+                type="button"
+                onClick={() => onSelect(item.id)}
+                className={cn(
+                  "flex min-w-0 items-center gap-1.5 rounded px-1 py-0.5 text-left text-xs outline-none focus-visible:ring-2 focus-visible:ring-cyan",
+                  showing ? "text-ink" : "text-ink-soft",
+                )}
+                title={layerName(item)}
+              >
+                <Icon className={cn("size-3.5 shrink-0", item.kind === "text" ? "text-magenta" : "text-ink-soft")} />
+                <span className="truncate">{layerName(item)}</span>
+              </button>
+              <div className="relative">
+                <Slider
+                  aria-label={`When ${layerName(item)} shows`}
+                  min={clip.trimStart}
+                  max={clip.trimEnd}
+                  step={0.1}
+                  minStepsBetweenValues={2}
+                  value={[start, end]}
+                  onValueChange={(v) => {
+                    const [a, b] = v as number[];
+                    onSelect(item.id);
+                    // Snap to "whole clip" at the ends so trimming the video later keeps it showing throughout.
+                    onTiming(item.id, {
+                      start: a <= clip.trimStart + 0.05 ? undefined : a,
+                      end: b >= clip.trimEnd - 0.05 ? undefined : b,
+                    });
+                  }}
+                />
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute -inset-y-1.5 w-px bg-magenta"
+                  style={{ left: `${playhead}%` }}
+                />
+              </div>
+              <span className="text-right font-mono text-[10px] whitespace-nowrap text-ink-soft tabular">
+                {formatTime(end - start)}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
     </div>
   );
 }

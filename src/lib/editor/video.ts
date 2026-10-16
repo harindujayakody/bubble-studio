@@ -152,7 +152,7 @@ export async function exportReel(opts: {
   const ctx = out.getContext("2d")!;
   const draw = () => {
     paintFrame(frame, video, orientation);
-    renderPost(ctx, { source: frame, assets, state, width: w });
+    renderPost(ctx, { source: frame, assets, state, width: w, time: video.currentTime });
   };
 
   const stream = out.captureStream(30);

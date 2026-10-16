@@ -1,6 +1,7 @@
 import { fontString } from "./fonts";
 import { resolveLook } from "./filters";
-import { stackOrder } from "./layers";
+import { autoOutline } from "./color";
+import { stackOrder, visibleAt } from "./layers";
 import { drawSticker, stickerSize } from "./stickers";
 import {
   POST_SIZES,
@@ -183,6 +184,18 @@ function drawText(
     ctx.shadowBlur = fontSize * 0.18;
     ctx.shadowOffsetY = fontSize * 0.05;
   }
+  const outline = layer.outline;
+  if (outline?.on && outline.width > 0) {
+    // Stroke first (it carries the shadow), then fill on top so the outline sits outside the letters.
+    ctx.strokeStyle = outline.color === "auto" ? autoOutline(layer.color) : outline.color;
+    ctx.lineWidth = (outline.width / 100) * fontSize * 0.32;
+    ctx.lineJoin = "round";
+    ctx.miterLimit = 2;
+    lines.forEach((line, i) => {
+      ctx.strokeText(line.text, lineX(line.width), top + (i + 0.5) * lineHeight);
+    });
+    ctx.shadowColor = "transparent";
+  }
   ctx.fillStyle = layer.color;
   lines.forEach((line, i) => {
     ctx.fillText(line.text, lineX(line.width), top + (i + 0.5) * lineHeight);
@@ -202,6 +215,8 @@ type RenderOptions = {
   withText?: boolean;
   /** Lay out but don't paint this layer, e.g. while it is edited in place. */
   hideTextId?: string | null;
+  /** Playback time in a reel; layers outside their timing are skipped. */
+  time?: number;
   /** Override the look, e.g. to preview a preset in a thumbnail. */
   lookOverride?: { filter: string; strength: number; neutralAdjust?: boolean };
 };
@@ -316,7 +331,7 @@ function applyRegions(
 
 /** Draw the finished post. Used for the live canvas, thumbnails and export alike. */
 export function renderPost(ctx: CanvasRenderingContext2D, opts: RenderOptions): TextBox[] {
-  const { source, assets = {}, state, width, withText = true, hideTextId, lookOverride } = opts;
+  const { source, assets = {}, state, width, withText = true, hideTextId, lookOverride, time } = opts;
   const post = postDims(state);
   const scale = width / post.w;
   const height = Math.round(width / post.aspect);
@@ -349,6 +364,7 @@ export function renderPost(ctx: CanvasRenderingContext2D, opts: RenderOptions): 
   const boxes: TextBox[] = [];
   if (withText) {
     for (const item of stackOrder(state)) {
+      if (time !== undefined && !visibleAt(item.layer, time)) continue;
       if (item.kind === "sticker") {
         const s = item.layer;
         if (s.kind === "image" && !assets[s.value]) continue;
@@ -385,6 +401,7 @@ export async function exportPost(
   state: PostState,
   format: "png" | "jpeg",
   quality: number,
+  time?: number,
 ): Promise<Blob> {
   await ensureFonts(state);
   const canvas = document.createElement("canvas");
@@ -392,7 +409,7 @@ export async function exportPost(
   canvas.width = w;
   canvas.height = h;
   const ctx = canvas.getContext("2d")!;
-  renderPost(ctx, { source, assets, state, width: w });
+  renderPost(ctx, { source, assets, state, width: w, time });
   return new Promise((resolve, reject) =>
     canvas.toBlob(
       (blob) => (blob ? resolve(blob) : reject(new Error("The browser could not encode the image."))),

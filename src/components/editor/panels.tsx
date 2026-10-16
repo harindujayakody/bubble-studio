@@ -37,8 +37,10 @@ import { FILTER_PRESETS } from "@/lib/editor/filters";
 import { POSTER_FONTS, fontStack, getFont, nearestWeight } from "@/lib/editor/fonts";
 import { defaultCrop, postDims, renderPost, type Source } from "@/lib/editor/render";
 import { nextZ, restack } from "@/lib/editor/layers";
+import { autoOutline } from "@/lib/editor/color";
 import {
   DEFAULT_ADJUSTMENTS,
+  DEFAULT_OUTLINE,
   TEXT_STYLES,
   type Adjustments,
   type Background,
@@ -46,6 +48,7 @@ import {
   type Orientation,
   type PostState,
   type TextFill,
+  type TextOutline,
   type TextLayer,
   type TextStyleId,
 } from "@/lib/editor/types";
@@ -581,6 +584,77 @@ export function TextPanel({
                 </Toggle>
               </div>
             </div>
+          </PanelSection>
+
+          <PanelSection title="Outline">
+            {(() => {
+              const outline = layer.outline ?? DEFAULT_OUTLINE;
+              const auto = autoOutline(layer.color);
+              const setOutline = (p: Partial<TextOutline>, key?: string) =>
+                patch({ outline: { ...outline, ...p } }, key);
+              return (
+                <div className="grid gap-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-[13px] text-pretty text-ink-soft">
+                      A border around the letters so they stand out on any photo.
+                    </span>
+                    <Toggle
+                      variant="outline"
+                      size="sm"
+                      pressed={outline.on}
+                      onPressedChange={(v) => setOutline({ on: v })}
+                      className="min-w-14"
+                      aria-label="Text outline"
+                    >
+                      {outline.on ? "On" : "Off"}
+                    </Toggle>
+                  </div>
+                  {outline.on && (
+                    <>
+                      <RangeField
+                        label="Thickness"
+                        value={outline.width}
+                        min={5}
+                        max={100}
+                        format={(v) => `${v}%`}
+                        onChange={(v) => setOutline({ width: v }, `outline:w:${layer.id}`)}
+                      />
+                      <div className="grid gap-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[13px] text-ink-soft">Colour</span>
+                          <Toggle
+                            variant="outline"
+                            size="sm"
+                            pressed={outline.color === "auto"}
+                            onPressedChange={(v) => setOutline({ color: v ? "auto" : auto })}
+                            className="gap-2 px-2.5"
+                          >
+                            <span
+                              aria-hidden
+                              className="size-3.5 rounded-[3px] ring-1 ring-ink/20"
+                              style={{ background: auto }}
+                            />
+                            Auto
+                          </Toggle>
+                        </div>
+                        <p className="text-xs text-pretty text-ink-soft">
+                          {outline.color === "auto"
+                            ? `Auto picks ${auto === "#000000" ? "black" : "white"}, the stronger contrast for this text colour.`
+                            : "Using your own colour. Turn Auto back on to match the text colour."}
+                        </p>
+                        {outline.color !== "auto" && (
+                          <ColorField
+                            label="Outline colour"
+                            value={outline.color}
+                            onChange={(c) => setOutline({ color: c }, `outline:c:${layer.id}`)}
+                          />
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })()}
           </PanelSection>
 
           <PanelSection title="Background fill">

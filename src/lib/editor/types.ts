@@ -54,6 +54,14 @@ export type TextFill = {
 
 export const DEFAULT_FILL: TextFill = { mode: "none", color: "#e6007e", opacity: 100, radius: 30, padding: 40 };
 
+/** A stroke around the letters. `color: "auto"` picks black or white for contrast with the text. */
+export type TextOutline = { on: boolean; width: number; color: "auto" | string };
+
+export const DEFAULT_OUTLINE: TextOutline = { on: false, width: 30, color: "auto" };
+
+/** When a layer shows in a reel, in seconds of the source video. Unset means the whole clip. */
+export type Timing = { start?: number; end?: number };
+
 export type TextLayer = {
   id: string;
   text: string;
@@ -72,10 +80,11 @@ export type TextLayer = {
   width: number;
   shadow: boolean;
   fill: TextFill;
+  outline?: TextOutline;
   rotation: number; // degrees
   /** Stacking order shared with stickers; higher draws on top. */
   z: number;
-};
+} & Timing;
 
 export type StickerKind = "emoji" | "icon" | "image";
 
@@ -92,7 +101,7 @@ export type Sticker = {
   opacity: number; // 0..100
   /** Stacking order shared with text layers; higher draws on top. */
   z: number;
-};
+} & Timing;
 
 /** An area of the photo to blur or pixelate, e.g. a face, number plate or price. */
 export type Region = {
