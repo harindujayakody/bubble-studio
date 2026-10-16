@@ -33,6 +33,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ColorField, IconAction, PanelSection, RangeField } from "./controls";
+import { SavedPhrases } from "./phrase-panel";
 import { FILTER_PRESETS } from "@/lib/editor/filters";
 import { POSTER_FONTS, fontStack, getFont, nearestWeight } from "@/lib/editor/fonts";
 import { defaultCrop, postDims, renderPost, type Source } from "@/lib/editor/render";
@@ -429,21 +430,7 @@ export function TextPanel({
         </div>
       </PanelSection>
 
-      <PanelSection title="Sinhala phrases">
-        <div className="flex flex-wrap gap-1.5" lang="si">
-          {SINHALA_PHRASES.map((phrase) => (
-            <button
-              key={phrase}
-              type="button"
-              onClick={() => onAdd("sinhala", phrase)}
-              className="rounded-full border border-rule bg-sheet px-3 py-1.5 text-[13px] text-ink outline-none transition-colors hover:border-brand/50 hover:bg-brand-wash focus-visible:ring-2 focus-visible:ring-aqua"
-              style={{ fontFamily: fontStack("Noto Sans Sinhala") }}
-            >
-              {phrase}
-            </button>
-          ))}
-        </div>
-      </PanelSection>
+      <SavedPhrases onAdd={onAdd} />
 
       {state.texts.length > 0 && (
         <PanelSection title="Text on this post">
@@ -705,17 +692,6 @@ export function TextPanel({
     </>
   );
 }
-
-/** Ready-made Sinhala lines, added in the Sinhala text style. */
-const SINHALA_PHRASES = [
-  "හායි කොහොමද",
-  "ඔයා කොහෙද",
-  "අද මගේ උපන්දිනේ",
-  "කතා කරමුද",
-  "හම්බෙමුද",
-  "ඩිවෝස් කෙනෙක් කියන්න",
-  "මම ඩිවෝස් කෙනෙක්",
-];
 
 const WEIGHT_NAMES: Record<number, string> = {
   400: "Regular",

@@ -45,3 +45,6 @@ next-env.d.ts
 /.codex/
 /.gemini/
 /.impeccable/hook.cache.json
+
+# local phrase lists for bulk import (kept off GitHub)
+/phrases/
