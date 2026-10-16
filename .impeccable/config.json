@@ -1,0 +1,41 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "design-system-font",
+        "value": "anton",
+        "createdAt": "2026-10-16T19:09:28.023Z",
+        "reason": "agent: poster content typeface for user text on the canvas (src/lib/editor/fonts.ts), not a UI font; DESIGN.md records poster fonts as user content"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "montserrat",
+        "createdAt": "2026-10-16T19:09:28.260Z",
+        "reason": "agent: poster content typeface for user text on the canvas (src/lib/editor/fonts.ts), not a UI font; DESIGN.md records poster fonts as user content"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "poppins",
+        "createdAt": "2026-10-16T19:09:28.498Z",
+        "reason": "agent: poster content typeface for user text on the canvas (src/lib/editor/fonts.ts), not a UI font; DESIGN.md records poster fonts as user content"
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "src/components/editor/canvas-stage.tsx"
+        ],
+        "createdAt": "2026-10-16T19:09:28.765Z",
+        "reason": "agent: L-shaped two-sided yellow crop-frame corner handles (border-t+border-l etc.), the print crop-mark signature in DESIGN.md, not a one-sided card accent"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "noto sans sinhala",
+        "createdAt": "2026-10-16T20:04:56.153Z",
+        "reason": "agent: user-requested Sinhala poster content typeface (src/lib/editor/fonts.ts) for post text on the canvas, not a UI font"
+      }
+    ]
+  }
+}

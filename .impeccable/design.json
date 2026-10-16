@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-17T00:00:00Z",
+  "title": "Design System: Bubble UX",
+  "extensions": {
+    "colorMeta": {
+      "make-ready-table": { "role": "neutral", "displayName": "Make-Ready Table", "canonical": "oklch(0.905 0.006 250)", "tonalRamp": ["oklch(0.15 0.006 250)", "oklch(0.27 0.006 250)", "oklch(0.39 0.006 250)", "oklch(0.51 0.006 250)", "oklch(0.63 0.006 250)", "oklch(0.75 0.006 250)", "oklch(0.86 0.006 250)", "oklch(0.95 0.006 250)"] },
+      "proof-sheet": { "role": "neutral", "displayName": "Proof Sheet", "canonical": "oklch(0.993 0.002 250)", "tonalRamp": ["oklch(0.15 0.002 250)", "oklch(0.27 0.002 250)", "oklch(0.39 0.002 250)", "oklch(0.51 0.002 250)", "oklch(0.63 0.002 250)", "oklch(0.75 0.002 250)", "oklch(0.87 0.002 250)", "oklch(0.993 0.002 250)"] },
+      "hairline-rule": { "role": "neutral", "displayName": "Hairline Rule", "canonical": "oklch(0.86 0.006 250)", "tonalRamp": ["oklch(0.15 0.006 250)", "oklch(0.27 0.006 250)", "oklch(0.39 0.006 250)", "oklch(0.51 0.006 250)", "oklch(0.63 0.006 250)", "oklch(0.75 0.006 250)", "oklch(0.86 0.006 250)", "oklch(0.95 0.006 250)"] },
+      "input-rule": { "role": "neutral", "displayName": "Input Rule", "canonical": "oklch(0.83 0.008 250)", "tonalRamp": ["oklch(0.15 0.008 250)", "oklch(0.27 0.008 250)", "oklch(0.39 0.008 250)", "oklch(0.51 0.008 250)", "oklch(0.63 0.008 250)", "oklch(0.75 0.008 250)", "oklch(0.83 0.008 250)", "oklch(0.95 0.008 250)"] },
+      "press-ink": { "role": "neutral", "displayName": "Press Ink", "canonical": "oklch(0.2 0.012 260)", "tonalRamp": ["oklch(0.15 0.012 260)", "oklch(0.2 0.012 260)", "oklch(0.35 0.012 260)", "oklch(0.47 0.012 260)", "oklch(0.6 0.012 260)", "oklch(0.72 0.012 260)", "oklch(0.84 0.012 260)", "oklch(0.95 0.012 260)"] },
+      "soft-ink": { "role": "neutral", "displayName": "Soft Ink", "canonical": "oklch(0.47 0.012 260)", "tonalRamp": ["oklch(0.15 0.012 260)", "oklch(0.27 0.012 260)", "oklch(0.37 0.012 260)", "oklch(0.47 0.012 260)", "oklch(0.6 0.012 260)", "oklch(0.72 0.012 260)", "oklch(0.84 0.012 260)", "oklch(0.95 0.012 260)"] },
+      "muted-sheet": { "role": "neutral", "displayName": "Muted Sheet", "canonical": "oklch(0.945 0.005 250)", "tonalRamp": ["oklch(0.15 0.005 250)", "oklch(0.27 0.005 250)", "oklch(0.39 0.005 250)", "oklch(0.51 0.005 250)", "oklch(0.63 0.005 250)", "oklch(0.75 0.005 250)", "oklch(0.87 0.005 250)", "oklch(0.945 0.005 250)"] },
+      "process-cyan": { "role": "secondary", "displayName": "Process Cyan", "canonical": "oklch(0.7 0.14 228)", "tonalRamp": ["oklch(0.15 0.06 228)", "oklch(0.27 0.1 228)", "oklch(0.39 0.12 228)", "oklch(0.5 0.13 235)", "oklch(0.7 0.14 228)", "oklch(0.8 0.1 228)", "oklch(0.88 0.06 228)", "oklch(0.95 0.03 228)"] },
+      "cyan-ink": { "role": "secondary", "displayName": "Cyan Ink", "canonical": "oklch(0.5 0.13 235)" },
+      "cyan-wash": { "role": "secondary", "displayName": "Cyan Wash", "canonical": "oklch(0.95 0.03 228)" },
+      "process-magenta": { "role": "primary", "displayName": "Process Magenta", "canonical": "oklch(0.56 0.235 357)", "tonalRamp": ["oklch(0.15 0.08 357)", "oklch(0.27 0.13 357)", "oklch(0.39 0.18 357)", "oklch(0.5 0.22 357)", "oklch(0.56 0.235 357)", "oklch(0.72 0.15 357)", "oklch(0.86 0.07 357)", "oklch(0.955 0.03 357)"] },
+      "magenta-ink": { "role": "primary", "displayName": "Magenta Ink", "canonical": "oklch(0.5 0.22 357)" },
+      "magenta-wash": { "role": "primary", "displayName": "Magenta Wash", "canonical": "oklch(0.955 0.03 357)" },
+      "process-yellow": { "role": "tertiary", "displayName": "Process Yellow", "canonical": "oklch(0.89 0.17 98)", "tonalRamp": ["oklch(0.15 0.04 98)", "oklch(0.27 0.06 98)", "oklch(0.39 0.09 98)", "oklch(0.51 0.11 98)", "oklch(0.63 0.13 98)", "oklch(0.76 0.15 98)", "oklch(0.89 0.17 98)", "oklch(0.97 0.06 98)"] },
+      "destructive-red": { "role": "neutral", "displayName": "Destructive Red", "canonical": "oklch(0.55 0.21 27)" }
+    },
+    "typographyMeta": {
+      "title": { "displayName": "Title", "purpose": "Product name in the top bar." },
+      "section": { "displayName": "Section", "purpose": "Panel section headings and popover titles." },
+      "body": { "displayName": "Body", "purpose": "Helper text and layer names." },
+      "label": { "displayName": "Label", "purpose": "Field labels above controls, in Soft Ink." },
+      "readout": { "displayName": "Readout", "purpose": "Every live number: slider values, hex, size, zoom. Mono, tabular." },
+      "slug": { "displayName": "Slug", "purpose": "Condensed-caps status-strip label." }
+    },
+    "shadows": [
+      { "name": "sheet-lift", "value": "0 1px 2px oklch(0.2 0.02 260 / 0.12), 0 12px 32px -12px oklch(0.2 0.02 260 / 0.28)", "purpose": "The canvas proof sheet only." },
+      { "name": "crop-keyline", "value": "0 0 0 1px oklch(0.2 0.012 260 / 0.5)", "purpose": "Dark keyline under the yellow crop frame so it reads on light photos." }
+    ],
+    "motion": [
+      { "name": "state-colors", "value": "transition-colors (150ms ease)", "purpose": "Hover/active fills on rail items, list rows and tiles." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Magenta primary action: Export, Download, empty-state photo pick.",
+      "html": "<button class=\"ds-btn-primary\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4\"/><path d=\"M7 10l5 5 5-5\"/><path d=\"M12 15V3\"/></svg>Export</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; background: var(--magenta, oklch(0.56 0.235 357)); color: #fff; border: 1px solid transparent; border-radius: 6px; font: 500 14px Geist, ui-sans-serif, system-ui, sans-serif; cursor: pointer; transition: background 0.15s; } .ds-btn-primary:hover { background: var(--magenta-ink, oklch(0.5 0.22 357)); } .ds-btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 3px oklch(0.7 0.14 228 / 0.5); } .ds-btn-primary:active { transform: translateY(1px); }"
+    },
+    {
+      "name": "Ghost Icon Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Undo / redo in the top bar.",
+      "html": "<button class=\"ds-btn-ghost\" aria-label=\"Undo\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M9 14 4 9l5-5\"/><path d=\"M4 9h10.5a5.5 5.5 0 0 1 0 11H11\"/></svg></button>",
+      "css": ".ds-btn-ghost { display: inline-grid; place-items: center; width: 32px; height: 32px; background: transparent; color: var(--ink, oklch(0.2 0.012 260)); border: 1px solid transparent; border-radius: 6px; cursor: pointer; transition: background 0.15s; } .ds-btn-ghost:hover { background: var(--muted, oklch(0.945 0.005 250)); } .ds-btn-ghost:focus-visible { outline: none; box-shadow: 0 0 0 3px oklch(0.7 0.14 228 / 0.5); } .ds-btn-ghost:disabled { opacity: 0.5; pointer-events: none; }"
+    },
+    {
+      "name": "Tool Rail",
+      "kind": "nav",
+      "refersTo": "tool-rail-item",
+      "description": "Left rail of tools; active tool in cyan wash.",
+      "html": "<nav class=\"ds-rail\"><button class=\"ds-rail-item\" aria-current=\"page\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.1\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6 2v14a2 2 0 0 0 2 2h14\"/><path d=\"M18 22V8a2 2 0 0 0-2-2H2\"/></svg>Crop</button><button class=\"ds-rail-item\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 7V4h16v3\"/><path d=\"M9 20h6\"/><path d=\"M12 4v16\"/></svg>Text</button></nav>",
+      "css": ".ds-rail { display: flex; flex-direction: column; gap: 4px; width: 76px; padding: 12px 8px; background: var(--sheet, oklch(0.993 0.002 250)); border-right: 1px solid var(--rule, oklch(0.86 0.006 250)); } .ds-rail-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; height: 56px; min-width: 56px; border: 0; border-radius: 4.8px; background: transparent; color: var(--ink-soft, oklch(0.47 0.012 260)); font: 500 11px Geist, ui-sans-serif, sans-serif; cursor: pointer; transition: background 0.15s, color 0.15s; } .ds-rail-item:hover { background: var(--muted, oklch(0.945 0.005 250)); color: var(--ink, oklch(0.2 0.012 260)); } .ds-rail-item[aria-current] { background: var(--cyan-wash, oklch(0.95 0.03 228)); color: var(--cyan-ink, oklch(0.5 0.13 235)); } .ds-rail-item:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--cyan, oklch(0.7 0.14 228)); }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Sheet-backed field with input-rule stroke, magenta caret, cyan focus.",
+      "html": "<input class=\"ds-input\" value=\"facebook-post\" aria-label=\"File name\">",
+      "css": ".ds-input { height: 32px; width: 220px; padding: 4px 10px; background: var(--sheet, oklch(0.993 0.002 250)); color: var(--ink, oklch(0.2 0.012 260)); border: 1px solid var(--input, oklch(0.83 0.008 250)); border-radius: 6px; font: 400 14px Geist, ui-sans-serif, sans-serif; caret-color: var(--magenta, oklch(0.56 0.235 357)); transition: border-color 0.15s; } .ds-input:focus-visible { outline: none; border-color: var(--cyan, oklch(0.7 0.14 228)); box-shadow: 0 0 0 3px oklch(0.7 0.14 228 / 0.5); }"
+    },
+    {
+      "name": "Range Field",
+      "kind": "input",
+      "description": "Label, tabular mono readout (cyan ink when changed), ink-filled slider with cyan-ringed thumb.",
+      "html": "<div class=\"ds-range\"><div class=\"ds-range-head\"><span class=\"ds-range-label\">Brightness</span><span class=\"ds-range-value\">+12</span></div><div class=\"ds-range-track\"><span class=\"ds-range-fill\"></span><span class=\"ds-range-thumb\" tabindex=\"0\"></span></div></div>",
+      "css": ".ds-range { display: grid; gap: 8px; width: 260px; } .ds-range-head { display: flex; justify-content: space-between; align-items: baseline; } .ds-range-label { font: 400 13px Geist, ui-sans-serif, sans-serif; color: var(--ink-soft, oklch(0.47 0.012 260)); } .ds-range-value { font: 400 12px 'Geist Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; color: var(--cyan-ink, oklch(0.5 0.13 235)); } .ds-range-track { position: relative; height: 4px; border-radius: 999px; background: var(--muted, oklch(0.945 0.005 250)); } .ds-range-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 56%; border-radius: 999px; background: var(--ink, oklch(0.2 0.012 260)); } .ds-range-thumb { position: absolute; left: 56%; top: 50%; width: 12px; height: 12px; transform: translate(-50%, -50%); border-radius: 999px; background: #fff; border: 1px solid var(--cyan, oklch(0.7 0.14 228)); transition: box-shadow 0.15s; } .ds-range-thumb:hover, .ds-range-thumb:focus-visible { outline: none; box-shadow: 0 0 0 3px oklch(0.7 0.14 228 / 0.5); }"
+    },
+    {
+      "name": "Panel Section",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "Properties-panel section: sheet, 13px semibold heading, hairline bottom rule.",
+      "html": "<section class=\"ds-panel\"><h3 class=\"ds-panel-title\">Layers</h3><p class=\"ds-panel-body\">Click a text on the post to edit it.</p></section>",
+      "css": ".ds-panel { width: 320px; padding: 16px 16px 20px; background: var(--sheet, oklch(0.993 0.002 250)); border-bottom: 1px solid var(--rule, oklch(0.86 0.006 250)); } .ds-panel-title { margin: 0 0 12px; font: 600 13px Geist, ui-sans-serif, sans-serif; color: var(--ink, oklch(0.2 0.012 260)); } .ds-panel-body { margin: 0; font: 400 13px Geist, ui-sans-serif, sans-serif; color: var(--ink-soft, oklch(0.47 0.012 260)); }"
+    },
+    {
+      "name": "Proof Sheet With Marks",
+      "kind": "custom",
+      "description": "Signature: lifted sheet on the table, corner crop marks and registration targets.",
+      "html": "<div class=\"ds-table\"><div class=\"ds-sheet\"><svg class=\"ds-marks\" viewBox=\"-36 -36 192 192\" aria-hidden=\"true\"><g stroke=\"oklch(0.2 0.012 260)\" stroke-width=\"1\"><path d=\"M-8 0h-18M0 -8v-18M128 0h18M120 -8v-18M-8 120h-18M0 128v18M128 120h18M120 128v18\"/></g><g stroke=\"oklch(0.2 0.012 260)\" stroke-opacity=\"0.5\" fill=\"none\"><circle cx=\"60\" cy=\"-22\" r=\"6\"/><path d=\"M50 -22h20M60 -32v20\"/></g></svg></div></div>",
+      "css": ".ds-table { display: grid; place-items: center; width: 240px; height: 240px; background: var(--table, oklch(0.905 0.006 250)); } .ds-sheet { position: relative; width: 120px; height: 120px; background: var(--sheet, oklch(0.993 0.002 250)); box-shadow: 0 1px 2px oklch(0.2 0.02 260 / 0.12), 0 12px 32px -12px oklch(0.2 0.02 260 / 0.28); } .ds-marks { position: absolute; left: -36px; top: -36px; width: 192px; height: 192px; overflow: visible; pointer-events: none; }"
+    },
+    {
+      "name": "Status Strip",
+      "kind": "custom",
+      "description": "Signature: CMYK colour bar, condensed-caps slug, tabular readouts.",
+      "html": "<div class=\"ds-status\"><span class=\"ds-cmyk\"><i style=\"background:oklch(0.7 0.14 228)\"></i><i style=\"background:oklch(0.56 0.235 357)\"></i><i style=\"background:oklch(0.89 0.17 98)\"></i><i style=\"background:oklch(0.2 0.012 260)\"></i></span><span class=\"ds-slug\">Facebook post</span><span class=\"ds-readout\">1080 × 1080 px</span><span class=\"ds-readout\">48%</span></div>",
+      "css": ".ds-status { display: flex; align-items: center; justify-content: center; gap: 16px; height: 36px; padding: 0 16px; color: var(--ink-soft, oklch(0.47 0.012 260)); } .ds-cmyk { display: flex; } .ds-cmyk i { display: block; width: 12px; height: 12px; } .ds-slug { font: 600 12px 'Barlow Condensed', Geist, sans-serif; text-transform: uppercase; letter-spacing: 0.06em; } .ds-readout { font: 400 11px 'Geist Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Press Proof on the Make-Ready Table",
+    "overview": "The editor is a print shop's proofing bench. The post sits as a cool paper-white sheet on a light grey make-ready ground, framed by crop marks and registration targets, and the chrome around it (top bar, tool rail, properties panel) is the same paper, divided by hairline rules. Type is press ink. Colour is reserved: the three process inks each carry one job, so colour in the UI always means something.\n\nDensity is calm and tool-like: 13px labels, tabular readouts, generous panel padding, no decoration that competes with the photo. The world rejects the generic grey editor with a single purple accent; its identity comes from prepress material (marks, ink roles, the CMYK colour bar), while every label stays in plain English.",
+    "keyCharacteristics": [
+      "Paper sheet on grey table; chrome is flat paper separated by 1px rules.",
+      "Cyan = selection and active tool; magenta = text layers and the primary action; yellow = crop.",
+      "Crop marks and registration targets frame the canvas; a CMYK colour bar leads the status strip.",
+      "Numbers are tabular mono readouts; the status label is a condensed-caps slug."
+    ],
+    "rules": [
+      { "name": "The One Ink, One Job Rule", "body": "Each process ink has exactly one meaning. Never use cyan for an action, magenta for selection, or yellow outside crop. Nothing else in the chrome is coloured.", "section": "colors" },
+      { "name": "The Ink Is Not Brand Paint Rule", "body": "The process inks are signals, not decoration: no ink-coloured panels, headers, gradients, or illustration fills.", "section": "colors" },
+      { "name": "The Tabular Gauge Rule", "body": "Any number that changes as the user works is mono with tabular numerals, so it never jitters.", "section": "typography" },
+      { "name": "The Plain English Slug Rule", "body": "Condensed caps carry prepress tone, but the words stay ordinary. No prepress jargon in labels.", "section": "typography" },
+      { "name": "The One Sheet Rule", "body": "Only the proof sheet casts a shadow. Popovers and tooltips use the shadcn defaults; no new shadows on chrome.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep chrome on Proof Sheet against the Make-Ready Table, divided by 1px Hairline Rules.",
+      "Do use cyan for every selection and focus state, magenta for the one primary action and text layers, yellow only for crop.",
+      "Do set every live number in Geist Mono with tabular numerals.",
+      "Do frame the canvas with crop marks and registration targets and keep the 36px gutter for them.",
+      "Do keep labels in plain English even where the visual vocabulary is prepress."
+    ],
+    "donts": [
+      "Don't add a brand accent colour outside the three process inks; the purple-accent grey editor is the rejected world.",
+      "Don't give one ink two jobs (for example a cyan button or a magenta selection ring).",
+      "Don't add shadows to bars, rails, panels or cards; only the proof sheet lifts.",
+      "Don't use poster typefaces from `src/lib/editor/fonts.ts` in the interface.",
+      "Don't round the canvas sheet or crop frame."
+    ]
+  }
+}

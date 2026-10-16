@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# agent tooling (local installs, binaries)
+/.claude/
+/.codex/
+/.gemini/
+/.impeccable/hook.cache.json
