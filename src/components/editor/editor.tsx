@@ -7,6 +7,7 @@ import {
   Crop,
   Download,
   Droplets,
+  Film,
   ImageIcon,
   Redo2,
   Shapes,
@@ -31,6 +32,9 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { CanvasStage, type RegionDefaults } from "./canvas-stage";
 import { SizePreview, StartScreen } from "./start-screen";
 import { LayersMenu } from "./layers-menu";
+import { VideoBar, VideoPanel } from "./reel";
+import { createFrameCanvas, exportReel, formatTime, loadVideo, onEachFrame, paintFrame, reelFormat } from "@/lib/editor/video";
+import type { LibrarySticker } from "@/lib/editor/stickers";
 import { BlurPanel, ElementsPanel, type NewSticker } from "./panels-extra";
 import { AdjustPanel, CropPanel, FiltersPanel, PhotoPanel, TextPanel } from "./panels";
 import { RangeField } from "./controls";
@@ -78,8 +82,9 @@ const DEFAULT_TEXT: Record<TextStyleId, string> = {
 };
 
 const ACCEPT = "image/jpeg,image/png,image/webp,image/gif,image/avif";
+const ACCEPT_VIDEO = "video/mp4,video/webm,video/quicktime,video/x-m4v,video/*";
 
-export function Editor() {
+export function Editor({ stickers }: { stickers: LibrarySticker[] }) {
   const { state, update, reset, undo, redo, canUndo, canRedo } = useHistory(DEFAULT_STATE);
   /** False until a size is picked on the start screen. */
   const [started, setStarted] = useState(false);
@@ -89,6 +94,11 @@ export function Editor() {
   const [photos, setPhotos] = useState<Assets>({});
   const [regionDefaults, setRegionDefaults] = useState<RegionDefaults>({ kind: "blur", shape: "rect", strength: 60 });
   const stickerFileRef = useRef<HTMLInputElement>(null);
+  const videoFileRef = useRef<HTMLInputElement>(null);
+  /** Loaded clips, keyed by id like photos. */
+  const [videos, setVideos] = useState<Record<string, HTMLVideoElement>>({});
+  /** Fires once per video frame so the canvas can redraw without re-rendering React. */
+  const clock = useMemo(() => new EventTarget(), []);
   const [startedBlank, setStartedBlank] = useState(false);
   const [fontsVersion, setFontsVersion] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -97,11 +107,50 @@ export function Editor() {
   const pendingFocus = useRef<"focus" | "select" | null>(null);
 
   const photo = state.photoId ? photos[state.photoId] : undefined;
+  const video = state.media === "video" && state.video ? videos[state.video.id] : undefined;
   const { rotation, flipX, flipY } = state.orientation;
-  const source = useMemo(
+  const photoSource = useMemo(
     () => (photo ? orientImage(photo, { rotation, flipX, flipY }) : null),
     [photo, rotation, flipX, flipY],
   );
+  // For reels the "photo" is a canvas holding the current video frame, so every tool works unchanged.
+  const frame = useMemo(
+    () => (video ? createFrameCanvas(video, { rotation, flipX, flipY }) : null),
+    [video, rotation, flipX, flipY],
+  );
+  const source = state.media === "video" ? frame : photoSource;
+  /** New text and icons default to white with a shadow when they sit on a photo or video. */
+  const hasPicture = !!source;
+
+  // Copy each new video frame into the frame canvas and tell the stage to redraw.
+  const trim = useRef({ start: 0, end: 0 });
+  useEffect(() => {
+    trim.current = { start: state.video?.trimStart ?? 0, end: state.video?.trimEnd ?? 0 };
+  });
+  useEffect(() => {
+    if (!video || !frame) return;
+    const o = { rotation, flipX, flipY };
+    const tick = () => {
+      paintFrame(frame, video, o);
+      clock.dispatchEvent(new Event("frame"));
+    };
+    // Preview loops inside the trim. Export turns looping off, which also switches this off.
+    const keepInTrim = () => {
+      if (video.loop && video.currentTime >= trim.current.end) video.currentTime = trim.current.start;
+    };
+    const stop = onEachFrame(video, () => {
+      keepInTrim();
+      tick();
+    });
+    video.addEventListener("seeked", tick);
+    video.addEventListener("timeupdate", keepInTrim);
+    tick();
+    return () => {
+      stop();
+      video.removeEventListener("seeked", tick);
+      video.removeEventListener("timeupdate", keepInTrim);
+    };
+  }, [video, frame, clock, rotation, flipX, flipY]);
 
   // Selection can point at a layer that undo just removed.
   const selectedKind = state.texts.some((t) => t.id === selectedId)
@@ -125,38 +174,29 @@ export function Editor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fontKey]);
 
-  const loadFile = useCallback(
-    (file: File) => {
-      if (!file.type.startsWith("image/")) {
-        toast.error("That file isn't an image", { description: "Choose a JPG, PNG or WebP photo." });
-        return;
-      }
-      const url = URL.createObjectURL(file);
-      const img = new Image();
-      img.onload = () => {
+  const loadVideoFile = useCallback(
+    async (file: File) => {
+      try {
+        const v = await loadVideo(file);
         const id = crypto.randomUUID();
-        setPhotos((p) => ({ ...p, [id]: img }));
+        setVideos((m) => ({ ...m, [id]: v }));
         update((s) => ({
           ...s,
-          photoId: id,
-          photoName: file.name,
+          video: { id, name: file.name, duration: v.duration, trimStart: 0, trimEnd: Math.min(v.duration, 90), audio: true },
           crop: null,
           orientation: { rotation: 0, flipX: false, flipY: false },
         }));
-        setTool((t) => (t === "photo" ? "filters" : t));
-      };
-      img.onerror = () => {
-        URL.revokeObjectURL(url);
-        toast.error("This photo couldn't be opened", {
-          description: "Your browser may not support this format. Try saving it as JPG or PNG.",
-        });
-      };
-      img.src = url;
+        if (v.duration > 90) {
+          toast("Trimmed to the first 90 seconds", { description: "Facebook reels can be up to 90 seconds. Adjust it under Video." });
+        }
+      } catch (err) {
+        toast.error("This video couldn't be opened", { description: err instanceof Error ? err.message : undefined });
+      }
     },
     [update],
   );
 
-  const pickPhoto = () => fileRef.current?.click();
+  const pickPhoto = () => (state.media === "video" ? videoFileRef : fileRef).current?.click();
 
   const addSticker = (n: NewSticker, assets: Assets = photos) => {
     const count = state.stickers.length;
@@ -171,7 +211,7 @@ export function Editor() {
       y: SPOTS[count % SPOTS.length][1],
       size,
       rotation: 0,
-      color: state.photoId ? "#ffffff" : "#111111",
+      color: hasPicture ? "#ffffff" : "#111111",
       opacity: 100,
       z: nextZ(state),
       ...n,
@@ -199,6 +239,7 @@ export function Editor() {
     img.src = URL.createObjectURL(file);
   };
 
+
   /** Stickers from /public/custom_icons load on first use and are then kept with the other images. */
   const addCustomSticker = (id: string, src: string) => {
     if (photos[id]) {
@@ -215,6 +256,46 @@ export function Editor() {
     img.src = src;
   };
 
+  const loadFile = (file: File) => {
+    if (state.media === "video") {
+      if (file.type.startsWith("video/")) return void loadVideoFile(file);
+      // Dropped images in a reel become stickers.
+      if (file.type.startsWith("image/")) return void loadSticker(file);
+      toast.error("That file isn't a video", { description: "Choose an MP4 or WebM clip." });
+      return;
+    }
+    if (file.type.startsWith("video/")) {
+      toast.error("Videos go in a reel", { description: "Start a new reel from the home screen (click the Bubble UX logo)." });
+      return;
+    }
+    if (!file.type.startsWith("image/")) {
+      toast.error("That file isn't an image", { description: "Choose a JPG, PNG or WebP photo." });
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const id = crypto.randomUUID();
+      setPhotos((p) => ({ ...p, [id]: img }));
+      update((s) => ({
+        ...s,
+        photoId: id,
+        photoName: file.name,
+        crop: null,
+        orientation: { rotation: 0, flipX: false, flipY: false },
+      }));
+      setTool((t) => (t === "photo" ? "filters" : t));
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      toast.error("This photo couldn't be opened", {
+        description: "Your browser may not support this format. Try saving it as JPG or PNG.",
+      });
+    };
+    img.src = url;
+  };
+
+
   const setOrientation = (o: Orientation) =>
     update((s) => ({ ...s, orientation: o, crop: null }));
 
@@ -229,13 +310,13 @@ export function Editor() {
       fontFamily: st.fontFamily,
       fontWeight: st.fontWeight,
       fontSize: st.fontSize,
-      color: state.photoId ? "#ffffff" : "#111111",
+      color: hasPicture ? "#ffffff" : "#111111",
       align: "center",
       uppercase: st.uppercase,
       letterSpacing: st.letterSpacing,
       lineHeight: st.lineHeight,
       width: st.width,
-      shadow: !!state.photoId,
+      shadow: hasPicture,
       fill: DEFAULT_FILL,
       rotation: 0,
       z: nextZ(state),
@@ -352,7 +433,24 @@ export function Editor() {
     return () => window.removeEventListener("keydown", onKey);
   }, [selected, selectedKind, undo, redo, update]);
 
-  const showEmpty = !state.photoId && state.texts.length === 0 && state.stickers.length === 0 && !startedBlank;
+  const showEmpty =
+    state.media === "video"
+      ? !state.video
+      : !state.photoId && state.texts.length === 0 && state.stickers.length === 0 && !startedBlank;
+
+  const goHome = () => {
+    const hasWork = state.photoId || state.video || state.texts.length || state.stickers.length;
+    if (hasWork && !window.confirm("Start something new? This post will be cleared.")) return;
+    for (const v of Object.values(videos)) {
+      v.pause();
+      v.remove();
+    }
+    setVideos({});
+    setSelectedId(null);
+    setTool("photo");
+    setStartedBlank(false);
+    setStarted(false);
+  };
 
   // The photo keeps its framing relative to the new shape only roughly, so reset the crop.
   const setSize = (size: PostSizeId) =>
@@ -386,8 +484,8 @@ export function Editor() {
           <span className="font-heading text-[15px] font-semibold tracking-[-0.01em] text-ink">Bubble UX</span>
         </header>
         <StartScreen
-          onPick={(size) => {
-            reset({ ...DEFAULT_STATE, size });
+          onPick={(media, size) => {
+            reset({ ...DEFAULT_STATE, media, size });
             setStarted(true);
           }}
         />
@@ -406,6 +504,9 @@ export function Editor() {
         assets={photos}
         state={state}
         onSize={setSize}
+        onHome={goHome}
+        video={video}
+        frame={frame}
         layers={
           <LayersMenu
             state={state}
@@ -431,7 +532,7 @@ export function Editor() {
       />
 
       <div className="flex min-h-0 flex-1 flex-col md:flex-row">
-        <ToolRail tool={tool} onTool={setTool} />
+        <ToolRail tool={tool} onTool={setTool} media={state.media} />
 
         <main className="flex h-[min(56vh,460px)] min-w-0 shrink-0 flex-col pt-3 md:h-auto md:min-h-0 md:flex-1 md:pt-4" aria-label="Canvas">
           <CanvasStage
@@ -442,6 +543,7 @@ export function Editor() {
             selectedId={selected}
             fontsVersion={fontsVersion}
             showEmpty={showEmpty}
+            clock={clock}
             regionDefaults={regionDefaults}
             onSelect={selectLayer}
             onTextChange={(id, patch, key) =>
@@ -459,13 +561,26 @@ export function Editor() {
             }}
             onDropFile={loadFile}
           />
+          {video && state.video && <VideoBar video={video} clip={state.video} />}
         </main>
 
         <aside
           className="min-h-0 flex-1 overflow-y-auto border-t border-rule bg-sheet md:w-[320px] md:flex-none md:shrink-0 md:border-t-0 md:border-l"
           aria-label={`${TOOLS.find((t) => t.id === tool)?.label} settings`}
         >
-          {tool === "photo" && (
+          {tool === "photo" && state.media === "video" && (
+            <VideoPanel
+              state={state}
+              update={update}
+              video={video}
+              onPickVideo={pickPhoto}
+              onRemoveVideo={() => {
+                video?.pause();
+                update((s) => ({ ...s, video: null, crop: null }));
+              }}
+            />
+          )}
+          {tool === "photo" && state.media === "photo" && (
             <PhotoPanel
               state={state}
               update={update}
@@ -495,6 +610,7 @@ export function Editor() {
               onSelect={setSelectedId}
               onAdd={addSticker}
               onAddCustom={addCustomSticker}
+              library={stickers}
               onUpload={() => stickerFileRef.current?.click()}
             />
           )}
@@ -525,6 +641,19 @@ export function Editor() {
         }}
       />
       <input
+        ref={videoFileRef}
+        type="file"
+        accept={ACCEPT_VIDEO}
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) void loadVideoFile(f);
+          e.target.value = "";
+        }}
+      />
+      <input
         ref={stickerFileRef}
         type="file"
         accept={ACCEPT}
@@ -541,13 +670,15 @@ export function Editor() {
   );
 }
 
-function ToolRail({ tool, onTool }: { tool: ToolId; onTool: (t: ToolId) => void }) {
+function ToolRail({ tool, onTool, media }: { tool: ToolId; onTool: (t: ToolId) => void; media: "photo" | "video" }) {
   return (
     <nav
       aria-label="Tools"
       className="order-last flex shrink-0 justify-around border-t border-rule bg-sheet px-1 py-1 md:order-first md:w-[76px] md:flex-col md:justify-start md:gap-1 md:border-t-0 md:border-r md:px-2 md:py-3"
     >
-      {TOOLS.map((t) => {
+      {TOOLS.map((tool_) => {
+        // In a reel the first tool holds the video instead of a photo.
+        const t = media === "video" && tool_.id === "photo" ? { ...tool_, label: "Video", icon: Film } : tool_;
         const active = t.id === tool;
         const Icon = t.icon;
         return (
@@ -587,6 +718,9 @@ function TopBar({
   assets,
   state,
   onSize,
+  onHome,
+  video,
+  frame,
   layers,
 }: {
   canUndo: boolean;
@@ -597,16 +731,32 @@ function TopBar({
   assets: Assets;
   state: typeof DEFAULT_STATE;
   onSize: (size: PostSizeId) => void;
+  onHome: () => void;
+  video: HTMLVideoElement | undefined;
+  frame: HTMLCanvasElement | null;
   layers: React.ReactNode;
 }) {
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 border-b border-rule bg-sheet px-3 md:px-4">
-      <div className="flex items-center gap-2.5">
+      <button
+        type="button"
+        onClick={onHome}
+        title="Start something new"
+        className="flex items-center gap-2.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-cyan"
+      >
         <BrandMark />
         <span className="font-heading text-[15px] font-semibold tracking-[-0.01em] text-ink">Bubble UX</span>
-      </div>
+      </button>
       <span className="hidden h-5 w-px bg-rule sm:block" aria-hidden />
-      <SizeMenu value={state.size} onChange={onSize} />
+      {state.media === "video" ? (
+        <span className="flex items-center gap-2 px-2 text-sm text-ink">
+          <Film className="size-4 text-ink-soft" />
+          <span className="hidden sm:inline">Reel</span>
+          <span className="font-mono text-xs text-ink-soft tabular">9:16</span>
+        </span>
+      ) : (
+        <SizeMenu value={state.size} onChange={onSize} />
+      )}
 
       <div className="ml-auto flex items-center gap-1">
         {layers}
@@ -624,7 +774,11 @@ function TopBar({
           <TooltipContent>Redo <kbd className="font-mono text-[10px] opacity-70">Ctrl Shift Z</kbd></TooltipContent>
         </Tooltip>
         <span className="mx-1.5 h-5 w-px bg-rule" aria-hidden />
-        <ExportButton source={source} assets={assets} state={state} />
+        {state.media === "video" ? (
+          <ReelExportButton video={video} frame={frame} assets={assets} state={state} />
+        ) : (
+          <ExportButton source={source} assets={assets} state={state} />
+        )}
       </div>
     </header>
   );
@@ -710,6 +864,131 @@ function ExportButton({
             <Download /> {busy ? "Preparing…" : `Download ${format === "jpeg" ? "JPG" : "PNG"}`}
           </Button>
         </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function ReelExportButton({
+  video,
+  frame,
+  assets,
+  state,
+}: {
+  video: HTMLVideoElement | undefined;
+  frame: HTMLCanvasElement | null;
+  assets: Assets;
+  state: typeof DEFAULT_STATE;
+}) {
+  const [name, setName] = useState("facebook-reel");
+  const [open, setOpen] = useState(false);
+  const [progress, setProgress] = useState<number | null>(null);
+  const abort = useRef<AbortController | null>(null);
+  const format = useMemo(() => (typeof window === "undefined" ? null : reelFormat()), []);
+  const clip = state.video;
+  const busy = progress !== null;
+  const length = clip ? clip.trimEnd - clip.trimStart : 0;
+
+  const fileBase = () => name.trim().replace(/[\\/:*?"<>|]+/g, "-") || "facebook-reel";
+  const save = (blob: Blob, filename: string) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  };
+
+  const record = async () => {
+    if (!video || !frame || !clip) return;
+    abort.current = new AbortController();
+    setProgress(0);
+    try {
+      const { blob, ext } = await exportReel({
+        video,
+        frame,
+        orientation: state.orientation,
+        assets,
+        state,
+        onProgress: setProgress,
+        signal: abort.current.signal,
+      });
+      const filename = `${fileBase()}.${ext}`;
+      save(blob, filename);
+      setOpen(false);
+      toast.success("Reel downloaded", { description: `${filename} · ${formatBytes(blob.size)}` });
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") toast("Export cancelled");
+      else toast.error("Export failed", { description: err instanceof Error ? err.message : "Please try again." });
+    } finally {
+      setProgress(null);
+      abort.current = null;
+    }
+  };
+
+  const saveFrame = async () => {
+    const blob = await exportPost(frame, assets, state, "jpeg", 92);
+    save(blob, `${fileBase()}-frame.jpg`);
+    toast.success("Frame saved", { description: formatBytes(blob.size) });
+  };
+
+  return (
+    <Popover open={open} onOpenChange={(o) => !busy && setOpen(o)}>
+      <PopoverTrigger render={<Button className="bg-magenta px-3 text-white hover:bg-magenta-ink" />}>
+        <Download /> Export
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-80 gap-0 p-0">
+        <div className="border-b border-rule px-4 py-3">
+          <h2 className="text-sm font-semibold text-ink">Export reel</h2>
+          <p className="mt-0.5 font-mono text-xs text-ink-soft tabular">
+            1080 × 1920 · {formatTime(length)} · {format?.label ?? "video"}
+          </p>
+        </div>
+        {!clip ? (
+          <p className="px-4 py-4 text-sm text-pretty text-ink-soft">Add a video first, then come back to export.</p>
+        ) : !format ? (
+          <p className="px-4 py-4 text-sm text-pretty text-ink-soft">
+            This browser can&apos;t record video. Open Bubble UX in the latest Chrome, Edge or Safari to export reels.
+          </p>
+        ) : (
+          <div className="grid gap-4 px-4 py-4">
+            <p className="text-xs text-pretty text-ink-soft">
+              Recording plays your clip once in real time, so it takes about {Math.ceil(length)} seconds. Keep this tab
+              open. {clip.audio ? "The original sound is included." : "Sound is off for this reel."}
+              {format.ext === "webm" && " This browser saves WebM; Facebook accepts it."}
+            </p>
+            <div className="grid gap-2">
+              <label htmlFor="reel-name" className="text-[13px] text-ink-soft">File name</label>
+              <div className="flex items-center gap-1.5">
+                <Input id="reel-name" value={name} disabled={busy} onChange={(e) => setName(e.target.value)} className="bg-sheet" />
+                <span className="font-mono text-xs text-ink-soft">.{format.ext}</span>
+              </div>
+            </div>
+            {busy ? (
+              <div className="grid gap-2" role="status" aria-live="polite">
+                <div className="flex items-baseline justify-between text-[13px]">
+                  <span className="text-ink">Recording…</span>
+                  <span className="font-mono text-xs text-ink-soft tabular">{Math.round((progress ?? 0) * 100)}%</span>
+                </div>
+                <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                  <div className="h-full bg-magenta transition-[width] duration-200" style={{ width: `${(progress ?? 0) * 100}%` }} />
+                </div>
+                <Button variant="outline" onClick={() => abort.current?.abort()}>
+                  Cancel
+                </Button>
+              </div>
+            ) : (
+              <div className="grid gap-2">
+                <Button onClick={record} className="h-9 bg-magenta text-white hover:bg-magenta-ink">
+                  <Film /> Export {format.label}
+                </Button>
+                <Button variant="ghost" size="sm" onClick={saveFrame}>
+                  Save this frame as JPG
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
       </PopoverContent>
     </Popover>
   );

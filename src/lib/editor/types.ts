@@ -113,8 +113,22 @@ export type Background = {
   to: string;
 };
 
+/** A video clip for reels. The element itself lives outside history, keyed by `id`. */
+export type VideoClip = {
+  id: string;
+  name: string;
+  duration: number; // seconds
+  trimStart: number;
+  trimEnd: number;
+  /** Keep the clip's own sound in the export. */
+  audio: boolean;
+};
+
 export type PostState = {
+  /** A photo post or a video reel; chosen on the start screen. */
+  media: "photo" | "video";
   size: PostSizeId;
+  video: VideoClip | null;
   /** Present when a photo is loaded. The pixels themselves live outside history. */
   photoId: string | null;
   photoName: string | null;
@@ -130,7 +144,9 @@ export type PostState = {
 };
 
 export const DEFAULT_STATE: PostState = {
+  media: "photo",
   size: "square",
+  video: null,
   photoId: null,
   photoName: null,
   filter: "original",

@@ -68,11 +68,8 @@ export const STICKER_EMOJI = [
   "⏰", "🚚", "💄", "👗", "👟", "📸", "🎵", "🪔",
 ];
 
-/** Illustrated stickers shipped in /public/custom_icons (transparent PNGs). */
-export const CUSTOM_STICKERS = [
-  ...Array.from({ length: 30 }, (_, i) => String(i + 1)),
-  ...Array.from({ length: 10 }, (_, i) => `${String(i + 1).padStart(2, "0")}b`),
-].map((name) => ({ id: `custom:${name}`, src: `/custom_icons/${name}.png` }));
+/** An illustrated sticker from /public/custom_icons. The list is read from the folder on the server. */
+export type LibrarySticker = { id: string; src: string };
 
 export const EMOJI_FONT = `"Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif`;
 

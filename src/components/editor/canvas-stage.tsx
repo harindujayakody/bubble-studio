@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { ImagePlus, Move, Palette } from "lucide-react";
+import { Film, ImagePlus, Move, Palette } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { clampCrop, defaultCrop, postDims, renderPost, type Assets, type Source, type TextBox } from "@/lib/editor/render";
@@ -27,6 +27,8 @@ type Props = {
   selectedId: string | null;
   fontsVersion: number;
   showEmpty: boolean;
+  /** Fires on every new video frame, so the sheet redraws while a reel plays. */
+  clock?: EventTarget;
   regionDefaults: RegionDefaults;
   onSelect: (id: string | null) => void;
   onTextChange: (id: string, patch: Partial<TextLayer>, key: string) => void;
@@ -43,7 +45,7 @@ const GUTTER = 36;
 const SNAP = 0.012;
 
 export function CanvasStage(props: Props) {
-  const { source, assets, state, tool, selectedId, fontsVersion, showEmpty } = props;
+  const { source, assets, state, tool, selectedId, fontsVersion, showEmpty, clock } = props;
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   /** Room available for the sheet, before the gutter. */
@@ -87,11 +89,18 @@ export function CanvasStage(props: Props) {
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
-    const raf = requestAnimationFrame(() => {
-      setBoxes(renderPost(ctx, { source, assets, state, width: post.w, hideTextId: editing }));
-    });
-    return () => cancelAnimationFrame(raf);
-  }, [source, assets, state, cropping, fontsVersion, mounted, editing, post.w]);
+    const draw = () => {
+      const next = renderPost(ctx, { source, assets, state, width: post.w, hideTextId: editing });
+      // Video frames redraw ~30 times a second; only touch React state when a box actually moved.
+      setBoxes((prev) => (sameBoxes(prev, next) ? prev : next));
+    };
+    const raf = requestAnimationFrame(draw);
+    clock?.addEventListener("frame", draw);
+    return () => {
+      cancelAnimationFrame(raf);
+      clock?.removeEventListener("frame", draw);
+    };
+  }, [source, assets, state, cropping, fontsVersion, mounted, editing, post.w, clock]);
 
   useEffect(() => {
     if (!panning) return;
@@ -257,13 +266,21 @@ export function CanvasStage(props: Props) {
                   />
                 )}
 
-                {showEmpty && <EmptySheet onPickPhoto={props.onPickPhoto} onStartBlank={props.onStartBlank} />}
+                {showEmpty && (
+                  <EmptySheet
+                    video={state.media === "video"}
+                    onPickPhoto={props.onPickPhoto}
+                    onStartBlank={props.onStartBlank}
+                  />
+                )}
               </div>
             )}
 
             {dragOver && (
               <div className="pointer-events-none absolute inset-0 grid place-items-center bg-cyan-wash/85 ring-2 ring-cyan ring-inset">
-                <p className="text-sm font-semibold text-cyan-ink">Drop to use this photo</p>
+                <p className="text-sm font-semibold text-cyan-ink">
+                  {state.media === "video" ? "Drop a video, or an image to add as a sticker" : "Drop to use this photo"}
+                </p>
               </div>
             )}
           </div>
@@ -281,7 +298,9 @@ export function CanvasStage(props: Props) {
               : blurring
                 ? "Blur · drag over the photo"
                 : source
-                  ? `${POST_SIZES[state.size].label} · double-click photo to move it`
+                  ? state.media === "video"
+                    ? "Reel · double-click the video to move it"
+                    : `${POST_SIZES[state.size].label} · double-click photo to move it`
                   : POST_SIZES[state.size].label
         }
       />
@@ -717,6 +736,14 @@ function LayerHandle({
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
 
+function sameBoxes(a: TextBox[], b: TextBox[]) {
+  if (a.length !== b.length) return false;
+  return a.every((x, i) => {
+    const y = b[i];
+    return x.id === y.id && x.cx === y.cx && x.cy === y.cy && x.w === y.w && x.h === y.h && x.rotation === y.rotation;
+  });
+}
+
 /** Corner crop marks and registration targets, as on a press proof. */
 function ProofMarks({ active, w, h }: { active: boolean; w: number; h: number }) {
   // In crop mode the marks thicken to echo the live crop frame.
@@ -769,24 +796,37 @@ function ColourBar({ zoom, label, dims }: { zoom: number; label: string; dims: s
   );
 }
 
-function EmptySheet({ onPickPhoto, onStartBlank }: { onPickPhoto: () => void; onStartBlank: () => void }) {
+function EmptySheet({
+  video,
+  onPickPhoto,
+  onStartBlank,
+}: {
+  video: boolean;
+  onPickPhoto: () => void;
+  onStartBlank: () => void;
+}) {
+  const Icon = video ? Film : ImagePlus;
   return (
     <div className="absolute inset-0 grid place-items-center p-6">
       <div className="flex max-w-xs flex-col items-center text-center">
         <span className="mb-4 grid size-12 place-items-center rounded-full bg-sheet text-magenta ring-1 ring-ink/10">
-          <ImagePlus className="size-5" />
+          <Icon className="size-5" />
         </span>
-        <h2 className="text-lg font-semibold text-balance text-ink">Start with a photo</h2>
+        <h2 className="text-lg font-semibold text-balance text-ink">{video ? "Start with a video" : "Start with a photo"}</h2>
         <p className="mt-1.5 text-sm text-pretty text-ink-soft">
-          Drop an image here, or pick one from your computer. JPG, PNG and WebP work. Nothing is uploaded.
+          {video
+            ? "Drop a clip here, or pick one from your computer. MP4 and WebM work best. Nothing is uploaded."
+            : "Drop an image here, or pick one from your computer. JPG, PNG and WebP work. Nothing is uploaded."}
         </p>
         <div className="mt-5 flex flex-wrap justify-center gap-2">
           <Button onClick={onPickPhoto} className="bg-magenta text-white hover:bg-magenta-ink">
-            <ImagePlus /> Choose photo
+            <Icon /> {video ? "Choose video" : "Choose photo"}
           </Button>
-          <Button variant="outline" onClick={onStartBlank}>
-            <Palette /> Use a colour
-          </Button>
+          {!video && (
+            <Button variant="outline" onClick={onStartBlank}>
+              <Palette /> Use a colour
+            </Button>
+          )}
         </div>
       </div>
     </div>

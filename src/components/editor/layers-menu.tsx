@@ -121,7 +121,13 @@ export function LayersMenu({
                 <Palette className="size-4 text-ink-soft" />
               )
             }
-            name={state.photoId ? (state.photoName ?? "Photo") : "Background colour"}
+            name={
+              state.media === "video"
+                ? (state.video?.name ?? "No video yet")
+                : state.photoId
+                  ? (state.photoName ?? "Photo")
+                  : "Background colour"
+            }
             hint="Bottom"
           />
         </ul>

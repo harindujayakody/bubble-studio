@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ColorField, IconAction, PanelSection, RangeField } from "./controls";
 import type { RegionDefaults } from "./canvas-stage";
-import { CUSTOM_STICKERS, EMOJI_FONT, STICKER_EMOJI, STICKER_ICONS } from "@/lib/editor/stickers";
+import { EMOJI_FONT, STICKER_EMOJI, STICKER_ICONS, type LibrarySticker } from "@/lib/editor/stickers";
 import { nextZ, restack } from "@/lib/editor/layers";
 import type { Assets } from "@/lib/editor/render";
 import type { PostState, Region, Sticker } from "@/lib/editor/types";
@@ -27,6 +27,7 @@ export function ElementsPanel({
   onAdd,
   onAddCustom,
   onUpload,
+  library,
 }: {
   state: PostState;
   update: Update;
@@ -36,6 +37,7 @@ export function ElementsPanel({
   onAdd: (s: NewSticker) => void;
   onAddCustom: (id: string, src: string) => void;
   onUpload: () => void;
+  library: LibrarySticker[];
 }) {
   const sticker = state.stickers.find((s) => s.id === selectedId) ?? null;
 
@@ -56,7 +58,7 @@ export function ElementsPanel({
 
           <TabsContent value="stickers">
             <div className="grid grid-cols-3 gap-2">
-              {CUSTOM_STICKERS.map((c, i) => (
+              {library.map((c, i) => (
                 <button
                   key={c.id}
                   type="button"
