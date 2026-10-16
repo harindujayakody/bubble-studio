@@ -1,5 +1,5 @@
 import { ensureFonts, postDims, renderPost, type Assets } from "./render";
-import type { Orientation, PostState } from "./types";
+import type { MusicTrack, Orientation, PostState, VideoClip } from "./types";
 
 /** Load a video file into a detached element ready for drawing. */
 export function loadVideo(file: File): Promise<HTMLVideoElement> {
@@ -83,26 +83,81 @@ export function onEachFrame(video: HTMLVideoElement, cb: () => void) {
 }
 
 /*
- * Audio. A media element can feed Web Audio only once, so each video gets one
- * graph for its lifetime: the element plays to the speakers through a gain we
- * can silence, and to a stream destination the recorder listens to.
+ * Audio. A media element can feed Web Audio only once, so every element gets
+ * one source node for its lifetime, all in one shared context. Each plays to
+ * the speakers through a gain we can silence while recording, and into one
+ * shared stream the recorder listens to, where the video and music mix.
  */
-type AudioGraph = { ctx: AudioContext; speakers: GainNode; record: MediaStreamAudioDestinationNode };
-const graphs = new WeakMap<HTMLVideoElement, AudioGraph>();
+type Mixer = { ctx: AudioContext; record: MediaStreamAudioDestinationNode };
+let mixer: Mixer | null = null;
+const speakerGains = new WeakMap<HTMLMediaElement, GainNode>();
 
-function audioGraph(video: HTMLVideoElement): AudioGraph {
-  let g = graphs.get(video);
-  if (!g) {
+function getMixer(): Mixer {
+  if (!mixer) {
     const ctx = new AudioContext();
-    const src = ctx.createMediaElementSource(video);
-    const speakers = ctx.createGain();
-    const record = ctx.createMediaStreamDestination();
+    mixer = { ctx, record: ctx.createMediaStreamDestination() };
+  }
+  return mixer;
+}
+
+/** Route an element through the mixer (once) and return its speaker gain. */
+function route(el: HTMLMediaElement): GainNode {
+  let speakers = speakerGains.get(el);
+  if (!speakers) {
+    const { ctx, record } = getMixer();
+    const src = ctx.createMediaElementSource(el);
+    speakers = ctx.createGain();
     src.connect(speakers).connect(ctx.destination);
     src.connect(record);
-    g = { ctx, speakers, record };
-    graphs.set(video, g);
+    speakerGains.set(el, speakers);
   }
-  return g;
+  return speakers;
+}
+
+/** Load an audio file or library URL, ready to play. */
+export function loadAudio(src: string): Promise<HTMLAudioElement> {
+  return new Promise((resolve, reject) => {
+    const audio = new Audio();
+    audio.preload = "auto";
+    audio.onloadedmetadata = () => resolve(audio);
+    audio.onerror = () => reject(new Error("This audio couldn't be opened. Try an MP3, M4A or WAV file."));
+    audio.src = src;
+  });
+}
+
+/**
+ * Where the music should be when the video is at `videoTime`. The music starts
+ * at `offset` when the reel starts and is cut to the reel's length; shorter
+ * tracks loop when `loop` is on, otherwise they stop. Null means silence.
+ */
+export function musicTimeAt(music: MusicTrack, clip: VideoClip, videoTime: number): number | null {
+  const elapsed = Math.max(0, videoTime - clip.trimStart);
+  const playable = Math.max(0.1, music.duration - music.offset);
+  if (elapsed < playable) return music.offset + elapsed;
+  return music.loop ? music.offset + (elapsed % playable) : null;
+}
+
+/** Volume (0..1) for the music at this point of the reel, including the fade-out. */
+export function musicVolumeAt(music: MusicTrack, clip: VideoClip, videoTime: number): number {
+  if (!music.on) return 0;
+  const base = music.volume / 100;
+  if (!music.fade) return base;
+  const remaining = clip.trimEnd - videoTime;
+  const FADE = 1.5;
+  return remaining < FADE ? base * Math.max(0, remaining / FADE) : base;
+}
+
+/** Keep a music element in step with the video. Small drift is left alone to avoid audible skips. */
+export function syncMusic(audio: HTMLAudioElement, music: MusicTrack, clip: VideoClip, video: HTMLVideoElement) {
+  const t = musicTimeAt(music, clip, video.currentTime);
+  audio.volume = Math.min(1, musicVolumeAt(music, clip, video.currentTime));
+  if (t === null || video.paused) {
+    if (!audio.paused) audio.pause();
+    if (t !== null && Math.abs(audio.currentTime - t) > 0.05) audio.currentTime = t;
+    return;
+  }
+  if (Math.abs(audio.currentTime - t) > 0.25) audio.currentTime = t;
+  if (audio.paused) void audio.play().catch(() => {});
 }
 
 /** The best format this browser can record, MP4 first since Facebook and phones prefer it. */
@@ -119,16 +174,17 @@ export function reelFormat(): { mime: string; ext: "mp4" | "webm"; label: string
   return options.find((o) => MediaRecorder.isTypeSupported(o.mime)) ?? null;
 }
 
-const nextSeek = (video: HTMLVideoElement, t: number) =>
+const nextSeek = (media: HTMLMediaElement, t: number) =>
   new Promise<void>((resolve) => {
-    if (Math.abs(video.currentTime - t) < 0.01) return resolve();
-    video.addEventListener("seeked", () => resolve(), { once: true });
-    video.currentTime = t;
+    if (Math.abs(media.currentTime - t) < 0.01) return resolve();
+    media.addEventListener("seeked", () => resolve(), { once: true });
+    media.currentTime = t;
   });
 
 /**
  * Record the reel in real time: play the trimmed range, composite every frame
- * with the post's look, text and stickers, and capture canvas plus sound.
+ * with the post's look, text and stickers, and capture the canvas plus the
+ * mixed sound (original audio and background music at their volumes).
  */
 export async function exportReel(opts: {
   video: HTMLVideoElement;
@@ -136,11 +192,13 @@ export async function exportReel(opts: {
   orientation: Orientation;
   assets: Assets;
   state: PostState;
+  music?: HTMLAudioElement;
   onProgress: (fraction: number) => void;
   signal: AbortSignal;
 }): Promise<{ blob: Blob; ext: string }> {
-  const { video, frame, orientation, assets, state, onProgress, signal } = opts;
+  const { video, frame, orientation, assets, state, music, onProgress, signal } = opts;
   const clip = state.video;
+  const track = music && state.music?.on ? state.music : null;
   const format = reelFormat();
   if (!clip || !format) throw new Error("This browser can't record video. Try the latest Chrome, Edge or Safari.");
 
@@ -156,23 +214,40 @@ export async function exportReel(opts: {
   };
 
   const stream = out.captureStream(30);
-  let graph: AudioGraph | null = null;
-  if (clip.audio) {
-    graph = audioGraph(video);
-    await graph.ctx.resume();
-    graph.record.stream.getAudioTracks().forEach((t) => stream.addTrack(t));
+  const withVideoSound = clip.audio && clip.volume > 0;
+  const routed: { el: HTMLMediaElement; speakers: GainNode; muted: boolean; volume: number }[] = [];
+  if (withVideoSound || track) {
+    const m = getMixer();
+    await m.ctx.resume();
+    m.record.stream.getAudioTracks().forEach((t) => stream.addTrack(t));
+    // Elements must be audible for Web Audio to hear them; their speaker branch is silenced instead.
+    for (const el of [withVideoSound ? video : null, track ? music! : null]) {
+      if (!el) continue;
+      const speakers = route(el);
+      routed.push({ el, speakers, muted: el.muted, volume: el.volume });
+      speakers.gain.value = 0;
+      el.muted = false;
+    }
+  }
+  if (!withVideoSound) {
+    // Keep the original sound out with volume 0, but unmute the element: the preview copies the
+    // video's mute state onto the music, so a muted video would silence the music too.
+    routed.push({ el: video, speakers: route(video), muted: video.muted, volume: video.volume });
+    video.volume = 0;
+    video.muted = false;
+  } else {
+    video.volume = Math.min(1, clip.volume / 100);
   }
 
   const wasLoop = video.loop;
-  const wasMuted = video.muted;
   video.pause();
+  music?.pause();
   video.loop = false;
-  // The element must be audible for Web Audio to hear it; the speaker branch is silenced instead.
-  if (graph) {
-    video.muted = false;
-    graph.speakers.gain.value = 0;
-  }
   await nextSeek(video, clip.trimStart);
+  if (track && music) {
+    const t = musicTimeAt(track, clip, clip.trimStart);
+    if (t !== null) await nextSeek(music, t);
+  }
   draw();
 
   const recorder = new MediaRecorder(stream, { mimeType: format.mime, videoBitsPerSecond: 8_000_000 });
@@ -182,9 +257,13 @@ export async function exportReel(opts: {
 
   const restore = () => {
     video.pause();
+    music?.pause();
     video.loop = wasLoop;
-    video.muted = wasMuted;
-    if (graph) graph.speakers.gain.value = 1;
+    for (const r of routed) {
+      r.el.muted = r.muted;
+      r.el.volume = r.volume;
+      r.speakers.gain.value = 1;
+    }
     stream.getVideoTracks().forEach((t) => t.stop());
   };
 
@@ -192,10 +271,12 @@ export async function exportReel(opts: {
     recorder.start(250);
     draw();
     await video.play();
+    if (track && music) syncMusic(music, track, clip, video);
     await new Promise<void>((resolve, reject) => {
       const length = Math.max(0.1, clip.trimEnd - clip.trimStart);
       const step = () => {
         draw();
+        if (track && music) syncMusic(music, track, clip, video);
         onProgress(Math.min(1, (video.currentTime - clip.trimStart) / length));
         if (video.currentTime >= clip.trimEnd || video.ended) finish();
       };
@@ -236,6 +317,16 @@ export function seekVideo(video: HTMLVideoElement, t: number) {
 
 export function setVideoMuted(video: HTMLVideoElement, muted: boolean) {
   video.muted = muted;
+}
+
+/** Apply the clip's original-sound setting to the preview. */
+export function applyClipVolume(video: HTMLVideoElement, clip: VideoClip) {
+  video.volume = clip.audio ? Math.min(1, clip.volume / 100) : 0;
+}
+
+/** The music follows the preview's mute button. */
+export function setMediaMuted(el: HTMLMediaElement, muted: boolean) {
+  el.muted = muted;
 }
 
 export function formatTime(t: number) {

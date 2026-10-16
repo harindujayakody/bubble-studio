@@ -5,8 +5,9 @@ import { Film, ImageIcon, Pause, Play, Smile, Trash2, Type, Volume2, VolumeX } f
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import { Toggle } from "@/components/ui/toggle";
 import { PanelSection } from "./controls";
+import { MusicSection, OriginalSound } from "./music-panel";
+import type { LibraryTrack } from "@/lib/editor/sticker-library";
 import { formatTime, seekVideo, setVideoMuted } from "@/lib/editor/video";
 import { layerName, stackOrder } from "@/lib/editor/layers";
 import type { PostState, Timing, VideoClip } from "@/lib/editor/types";
@@ -20,12 +21,18 @@ export function VideoPanel({
   video,
   onPickVideo,
   onRemoveVideo,
+  musicLibrary,
+  onPickMusic,
+  onUploadMusic,
 }: {
   state: PostState;
   update: Update;
   video: HTMLVideoElement | undefined;
   onPickVideo: () => void;
   onRemoveVideo: () => void;
+  musicLibrary: LibraryTrack[];
+  onPickMusic: (track: LibraryTrack) => void;
+  onUploadMusic: () => void;
 }) {
   const clip = state.video;
   const setClip = (p: Partial<VideoClip>, key?: string) =>
@@ -93,20 +100,8 @@ export function VideoPanel({
         )}
       </PanelSection>
 
-      <PanelSection title="Sound">
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-[13px] text-pretty text-ink-soft">Keep the video&apos;s own sound in the export</span>
-          <Toggle
-            variant="outline"
-            size="sm"
-            pressed={clip.audio}
-            onPressedChange={(v) => setClip({ audio: v })}
-            className="min-w-14"
-          >
-            {clip.audio ? "On" : "Off"}
-          </Toggle>
-        </div>
-      </PanelSection>
+      <OriginalSound clip={clip} update={update} />
+      <MusicSection state={state} update={update} library={musicLibrary} onPick={onPickMusic} onUpload={onUploadMusic} />
     </>
   );
 }

@@ -131,6 +131,27 @@ export type VideoClip = {
   trimEnd: number;
   /** Keep the clip's own sound in the export. */
   audio: boolean;
+  /** Original sound level, 0..100. */
+  volume: number;
+};
+
+/**
+ * Background music for a reel. It always fits the reel: playback starts at
+ * `offset` seconds into the track and is cut at the reel's end; a track shorter
+ * than the reel loops when `loop` is on.
+ */
+export type MusicTrack = {
+  /** Key for the loaded audio element (library tracks use their URL). */
+  id: string;
+  name: string;
+  src: string;
+  duration: number;
+  offset: number;
+  volume: number; // 0..100
+  on: boolean;
+  loop: boolean;
+  /** Fade out over the last 1.5 seconds. */
+  fade: boolean;
 };
 
 export type PostState = {
@@ -138,6 +159,7 @@ export type PostState = {
   media: "photo" | "video";
   size: PostSizeId;
   video: VideoClip | null;
+  music: MusicTrack | null;
   /** Present when a photo is loaded. The pixels themselves live outside history. */
   photoId: string | null;
   photoName: string | null;
@@ -156,6 +178,7 @@ export const DEFAULT_STATE: PostState = {
   media: "photo",
   size: "square",
   video: null,
+  music: null,
   photoId: null,
   photoName: null,
   filter: "original",

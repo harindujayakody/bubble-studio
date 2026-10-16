@@ -33,8 +33,21 @@ import { CanvasStage, type RegionDefaults } from "./canvas-stage";
 import { SizePreview, StartScreen } from "./start-screen";
 import { LayersMenu } from "./layers-menu";
 import { Timeline, VideoBar, VideoPanel } from "./reel";
-import { createFrameCanvas, exportReel, formatTime, loadVideo, onEachFrame, paintFrame, reelFormat } from "@/lib/editor/video";
+import {
+  applyClipVolume,
+  createFrameCanvas,
+  exportReel,
+  formatTime,
+  loadAudio,
+  loadVideo,
+  onEachFrame,
+  paintFrame,
+  reelFormat,
+  setMediaMuted,
+  syncMusic,
+} from "@/lib/editor/video";
 import type { LibrarySticker } from "@/lib/editor/stickers";
+import type { LibraryTrack } from "@/lib/editor/sticker-library";
 import { BlurPanel, ElementsPanel, type NewSticker } from "./panels-extra";
 import { AdjustPanel, CropPanel, FiltersPanel, PhotoPanel, TextPanel } from "./panels";
 import { RangeField } from "./controls";
@@ -85,7 +98,7 @@ const DEFAULT_TEXT: Record<TextStyleId, string> = {
 const ACCEPT = "image/jpeg,image/png,image/webp,image/gif,image/avif";
 const ACCEPT_VIDEO = "video/mp4,video/webm,video/quicktime,video/x-m4v,video/*";
 
-export function Editor({ stickers }: { stickers: LibrarySticker[] }) {
+export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySticker[]; music: LibraryTrack[] }) {
   const { state, update, reset, undo, redo, canUndo, canRedo } = useHistory(DEFAULT_STATE);
   /** False until a size is picked on the start screen. */
   const [started, setStarted] = useState(false);
@@ -96,6 +109,9 @@ export function Editor({ stickers }: { stickers: LibrarySticker[] }) {
   const [regionDefaults, setRegionDefaults] = useState<RegionDefaults>({ kind: "blur", shape: "rect", strength: 60 });
   const stickerFileRef = useRef<HTMLInputElement>(null);
   const videoFileRef = useRef<HTMLInputElement>(null);
+  const musicFileRef = useRef<HTMLInputElement>(null);
+  /** Loaded music, keyed by track id (library URL or upload id). */
+  const [tracks, setTracks] = useState<Record<string, HTMLAudioElement>>({});
   /** Loaded clips, keyed by id like photos. */
   const [videos, setVideos] = useState<Record<string, HTMLVideoElement>>({});
   /** Fires once per video frame so the canvas can redraw without re-rendering React. */
@@ -109,6 +125,7 @@ export function Editor({ stickers }: { stickers: LibrarySticker[] }) {
 
   const photo = state.photoId ? photos[state.photoId] : undefined;
   const video = state.media === "video" && state.video ? videos[state.video.id] : undefined;
+  const musicEl = state.media === "video" && state.music ? tracks[state.music.id] : undefined;
   const { rotation, flipX, flipY } = state.orientation;
   const photoSource = useMemo(
     () => (photo ? orientImage(photo, { rotation, flipX, flipY }) : null),
@@ -181,6 +198,57 @@ export function Editor({ stickers }: { stickers: LibrarySticker[] }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fontKey]);
 
+  // Preview sound: the clip's volume, and background music kept in step with the video.
+  useEffect(() => {
+    if (!video || !state.video) return;
+    applyClipVolume(video, state.video);
+    if (!musicEl || !state.music) return;
+    const clip = state.video;
+    const track = state.music;
+    const sync = () => {
+      setMediaMuted(musicEl, video.muted);
+      syncMusic(musicEl, track, clip, video);
+    };
+    const events = ["play", "pause", "seeked", "timeupdate", "volumechange"] as const;
+    events.forEach((e) => video.addEventListener(e, sync));
+    sync();
+    return () => {
+      events.forEach((e) => video.removeEventListener(e, sync));
+      musicEl.pause();
+    };
+  }, [video, musicEl, state.video, state.music]);
+
+  /** Add a track and fit it to the reel. */
+  const addTrack = async (id: string, name: string, src: string) => {
+    try {
+      const el = tracks[id] ?? (await loadAudio(src));
+      if (!tracks[id]) setTracks((m) => ({ ...m, [id]: el }));
+      update((s) => ({
+        ...s,
+        music: { id, name, src, duration: el.duration, offset: 0, volume: 80, on: true, loop: true, fade: true },
+      }));
+      const reel = state.video ? state.video.trimEnd - state.video.trimStart : 0;
+      if (reel) {
+        toast.success(`${name} added`, {
+          description:
+            el.duration >= reel
+              ? `Cut to your ${formatTime(reel)} reel.`
+              : `It's ${formatTime(el.duration)} long, so it loops to fill your ${formatTime(reel)} reel.`,
+        });
+      }
+    } catch (err) {
+      toast.error("This music couldn't be loaded", { description: err instanceof Error ? err.message : undefined });
+    }
+  };
+
+  const loadMusicFile = (file: File) => {
+    if (!file.type.startsWith("audio/")) {
+      toast.error("That file isn't audio", { description: "Choose an MP3, M4A or WAV file." });
+      return;
+    }
+    void addTrack(crypto.randomUUID(), file.name.replace(/\.[^.]+$/, ""), URL.createObjectURL(file));
+  };
+
   const loadVideoFile = useCallback(
     async (file: File) => {
       try {
@@ -189,7 +257,15 @@ export function Editor({ stickers }: { stickers: LibrarySticker[] }) {
         setVideos((m) => ({ ...m, [id]: v }));
         update((s) => ({
           ...s,
-          video: { id, name: file.name, duration: v.duration, trimStart: 0, trimEnd: Math.min(v.duration, 90), audio: true },
+          video: {
+            id,
+            name: file.name,
+            duration: v.duration,
+            trimStart: 0,
+            trimEnd: Math.min(v.duration, 90),
+            audio: true,
+            volume: 100,
+          },
           crop: null,
           orientation: { rotation: 0, flipX: false, flipY: false },
         }));
@@ -514,6 +590,7 @@ export function Editor({ stickers }: { stickers: LibrarySticker[] }) {
         onHome={goHome}
         video={video}
         frame={frame}
+        music={musicEl}
         layers={
           <LayersMenu
             state={state}
@@ -607,6 +684,9 @@ export function Editor({ stickers }: { stickers: LibrarySticker[] }) {
                 video?.pause();
                 update((s) => ({ ...s, video: null, crop: null }));
               }}
+              musicLibrary={musicLibrary}
+              onPickMusic={(t) => void addTrack(t.id, t.name, t.src)}
+              onUploadMusic={() => musicFileRef.current?.click()}
             />
           )}
           {tool === "photo" && state.media === "photo" && (
@@ -666,6 +746,19 @@ export function Editor({ stickers }: { stickers: LibrarySticker[] }) {
         onChange={(e) => {
           const f = e.target.files?.[0];
           if (f) loadFile(f);
+          e.target.value = "";
+        }}
+      />
+      <input
+        ref={musicFileRef}
+        type="file"
+        accept="audio/*"
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) loadMusicFile(f);
           e.target.value = "";
         }}
       />
@@ -750,6 +843,7 @@ function TopBar({
   onHome,
   video,
   frame,
+  music,
   layers,
 }: {
   canUndo: boolean;
@@ -763,6 +857,7 @@ function TopBar({
   onHome: () => void;
   video: HTMLVideoElement | undefined;
   frame: HTMLCanvasElement | null;
+  music: HTMLAudioElement | undefined;
   layers: React.ReactNode;
 }) {
   return (
@@ -804,7 +899,7 @@ function TopBar({
         </Tooltip>
         <span className="mx-1.5 h-5 w-px bg-rule" aria-hidden />
         {state.media === "video" ? (
-          <ReelExportButton video={video} frame={frame} assets={assets} state={state} />
+          <ReelExportButton video={video} frame={frame} music={music} assets={assets} state={state} />
         ) : (
           <ExportButton source={source} assets={assets} state={state} />
         )}
@@ -901,11 +996,13 @@ function ExportButton({
 function ReelExportButton({
   video,
   frame,
+  music,
   assets,
   state,
 }: {
   video: HTMLVideoElement | undefined;
   frame: HTMLCanvasElement | null;
+  music: HTMLAudioElement | undefined;
   assets: Assets;
   state: typeof DEFAULT_STATE;
 }) {
@@ -939,6 +1036,7 @@ function ReelExportButton({
         orientation: state.orientation,
         assets,
         state,
+        music,
         onProgress: setProgress,
         signal: abort.current.signal,
       });
@@ -983,7 +1081,7 @@ function ReelExportButton({
           <div className="grid gap-4 px-4 py-4">
             <p className="text-xs text-pretty text-ink-soft">
               Recording plays your clip once in real time, so it takes about {Math.ceil(length)} seconds. Keep this tab
-              open. {clip.audio ? "The original sound is included." : "Sound is off for this reel."}
+              open. {soundSummary(state)}
               {format.ext === "webm" && " This browser saves WebM; Facebook accepts it."}
             </p>
             <div className="grid gap-2">
@@ -1021,6 +1119,15 @@ function ReelExportButton({
       </PopoverContent>
     </Popover>
   );
+}
+
+function soundSummary(state: typeof DEFAULT_STATE) {
+  const original = state.video?.audio && (state.video?.volume ?? 0) > 0;
+  const music = state.music?.on && state.music.volume > 0 ? state.music : null;
+  if (original && music) return `Sound: the original audio at ${state.video!.volume}% plus ${music.name} at ${music.volume}%.`;
+  if (music) return `Sound: ${music.name} at ${music.volume}%, original audio muted.`;
+  if (original) return `Sound: the original audio at ${state.video!.volume}%.`;
+  return "This reel will be silent.";
 }
 
 function SizeMenu({ value, onChange }: { value: PostSizeId; onChange: (size: PostSizeId) => void }) {
