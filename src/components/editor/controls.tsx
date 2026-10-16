@@ -133,7 +133,7 @@ const SWATCHES = [
   "#ffe600",
   "#ff5a1f",
   "#16a34a",
-  "#7c3aed",
+  "#ec4899",
   "#f4efe6",
   "#1e3a5f",
 ];

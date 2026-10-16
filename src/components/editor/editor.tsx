@@ -41,6 +41,7 @@ import { RangeField } from "./controls";
 import { useHistory } from "@/lib/editor/use-history";
 import { SINHALA_RE } from "@/lib/editor/fonts";
 import { nextZ, restack } from "@/lib/editor/layers";
+import { inkFor, mix } from "@/lib/editor/color";
 import { defaultCrop, ensureFonts, exportPost, orientImage, postDims, type Assets } from "@/lib/editor/render";
 import {
   DEFAULT_FILL,
@@ -124,6 +125,9 @@ export function Editor({ stickers }: { stickers: LibrarySticker[] }) {
 
   /** New text and icons default to white with a shadow when they sit on a photo or video. */
   const hasPicture = !!source;
+  // On a plain background, pick dark or light so new items are visible straight away.
+  const bgMid = state.background.kind === "gradient" ? mix(state.background.from, state.background.to) : state.background.from;
+  const defaultInk = hasPicture || inkFor(bgMid) === "light" ? "#ffffff" : "#111111";
 
   // Copy each new video frame into the frame canvas and tell the stage to redraw.
   const trim = useRef({ start: 0, end: 0 });
@@ -214,7 +218,7 @@ export function Editor({ stickers }: { stickers: LibrarySticker[] }) {
       y: SPOTS[count % SPOTS.length][1],
       size,
       rotation: 0,
-      color: hasPicture ? "#ffffff" : "#111111",
+      color: defaultInk,
       opacity: 100,
       z: nextZ(state),
       ...n,
@@ -313,7 +317,7 @@ export function Editor({ stickers }: { stickers: LibrarySticker[] }) {
       fontFamily: st.fontFamily,
       fontWeight: st.fontWeight,
       fontSize: st.fontSize,
-      color: hasPicture ? "#ffffff" : "#111111",
+      color: defaultInk,
       align: "center",
       uppercase: st.uppercase,
       letterSpacing: st.letterSpacing,

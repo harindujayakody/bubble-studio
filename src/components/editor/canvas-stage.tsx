@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { clampCrop, defaultCrop, postDims, renderPost, type Assets, type Source, type TextBox } from "@/lib/editor/render";
 import { fontStack, nearestWeight } from "@/lib/editor/fonts";
-import { autoOutline } from "@/lib/editor/color";
+import { autoOutline, inkFor, mix } from "@/lib/editor/color";
 import {
   type Crop,
   type PostState,
@@ -272,6 +272,11 @@ export function CanvasStage(props: Props) {
                 {showEmpty && (
                   <EmptySheet
                     video={state.media === "video"}
+                    tone={inkFor(
+                      state.background.kind === "gradient"
+                        ? mix(state.background.from, state.background.to)
+                        : state.background.from,
+                    )}
                     onPickPhoto={props.onPickPhoto}
                     onStartBlank={props.onStartBlank}
                   />
@@ -805,10 +810,13 @@ function ColourBar({ zoom, label, dims }: { zoom: number; label: string; dims: s
 
 function EmptySheet({
   video,
+  tone,
   onPickPhoto,
   onStartBlank,
 }: {
   video: boolean;
+  /** Type colour that reads on the current background. */
+  tone: "dark" | "light";
   onPickPhoto: () => void;
   onStartBlank: () => void;
 }) {
@@ -819,8 +827,10 @@ function EmptySheet({
         <span className="mb-4 grid size-12 place-items-center rounded-full bg-sheet text-brand ring-1 ring-ink/10">
           <Icon className="size-5" />
         </span>
-        <h2 className="text-lg font-semibold text-balance text-ink">{video ? "Start with a video" : "Start with a photo"}</h2>
-        <p className="mt-1.5 text-sm text-pretty text-ink-soft">
+        <h2 className={cn("text-lg font-semibold text-balance", tone === "dark" ? "text-ink" : "text-white")}>
+          {video ? "Start with a video" : "Start with a photo"}
+        </h2>
+        <p className={cn("mt-1.5 text-sm text-pretty", tone === "dark" ? "text-ink-soft" : "text-white/80")}>
           {video
             ? "Drop a clip here, or pick one from your computer. MP4 and WebM work best. Nothing is uploaded."
             : "Drop an image here, or pick one from your computer. JPG, PNG and WebP work. Nothing is uploaded."}
