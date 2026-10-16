@@ -26,7 +26,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Bubble UX — Facebook post creator",
   description:
-    "Turn a photo into a Facebook post: filters, adjustments, crop, text, and export to JPG or PNG. Runs entirely in your browser.",
+    "Turn a photo or video into a Facebook post or reel: filters, crop, text, stickers, and export to JPG, PNG or MP4. Runs entirely in your browser.",
+  icons: {
+    icon: [{ url: "/favicon.png", type: "image/png", sizes: "512x512" }],
+    apple: "/favicon.png",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

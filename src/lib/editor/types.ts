@@ -52,7 +52,7 @@ export type TextFill = {
   padding: number; // 0..100
 };
 
-export const DEFAULT_FILL: TextFill = { mode: "none", color: "#e6007e", opacity: 100, radius: 30, padding: 40 };
+export const DEFAULT_FILL: TextFill = { mode: "none", color: "#7d2ae8", opacity: 100, radius: 30, padding: 40 };
 
 /** A stroke around the letters. `color: "auto"` picks black or white for contrast with the text. */
 export type TextOutline = { on: boolean; width: number; color: "auto" | string };

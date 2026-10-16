@@ -37,7 +37,7 @@ export function VideoPanel({
         <p className="mb-3 text-sm text-pretty text-ink-soft">
           Add a clip from your phone or computer. MP4 and WebM work best. It stays on your computer.
         </p>
-        <Button onClick={onPickVideo} className="bg-magenta text-white hover:bg-magenta-ink">
+        <Button onClick={onPickVideo} className="bg-brand text-white hover:bg-brand-ink">
           <Film /> Choose video
         </Button>
       </PanelSection>
@@ -83,7 +83,7 @@ export function VideoPanel({
         />
         <div className="mt-2 flex justify-between font-mono text-xs text-ink-soft tabular">
           <span>{formatTime(clip.trimStart)}</span>
-          <span className={cn(length > 90 ? "text-destructive" : "text-cyan-ink")}>{formatTime(length)} long</span>
+          <span className={cn(length > 90 ? "text-destructive" : "text-aqua-ink")}>{formatTime(length)} long</span>
           <span>{formatTime(clip.trimEnd)}</span>
         </div>
         {length > 90 && (
@@ -226,19 +226,19 @@ export function Timeline({
               key={item.id}
               className={cn(
                 "grid grid-cols-[7.5rem_1fr_3.5rem] items-center gap-3 px-2 py-1",
-                active && "bg-cyan-wash",
+                active && "bg-aqua-wash",
               )}
             >
               <button
                 type="button"
                 onClick={() => onSelect(item.id)}
                 className={cn(
-                  "flex min-w-0 items-center gap-1.5 rounded px-1 py-0.5 text-left text-xs outline-none focus-visible:ring-2 focus-visible:ring-cyan",
+                  "flex min-w-0 items-center gap-1.5 rounded px-1 py-0.5 text-left text-xs outline-none focus-visible:ring-2 focus-visible:ring-aqua",
                   showing ? "text-ink" : "text-ink-soft",
                 )}
                 title={layerName(item)}
               >
-                <Icon className={cn("size-3.5 shrink-0", item.kind === "text" ? "text-magenta" : "text-ink-soft")} />
+                <Icon className={cn("size-3.5 shrink-0", item.kind === "text" ? "text-brand" : "text-ink-soft")} />
                 <span className="truncate">{layerName(item)}</span>
               </button>
               <div className="relative">
@@ -261,7 +261,7 @@ export function Timeline({
                 />
                 <span
                   aria-hidden
-                  className="pointer-events-none absolute -inset-y-1.5 w-px bg-magenta"
+                  className="pointer-events-none absolute -inset-y-1.5 w-px bg-brand"
                   style={{ left: `${playhead}%` }}
                 />
               </div>

@@ -149,12 +149,12 @@ function Row({
   actions?: React.ReactNode;
 }) {
   return (
-    <li className={cn("group flex items-center gap-1 rounded-md pr-1", active ? "bg-cyan-wash" : "hover:bg-muted")}>
+    <li className={cn("group flex items-center gap-1 rounded-md pr-1", active ? "bg-aqua-wash" : "hover:bg-muted")}>
       <button
         type="button"
         onClick={onClick}
         aria-current={active || undefined}
-        className="flex min-w-0 flex-1 items-center gap-3 rounded-md px-2 py-1.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-cyan"
+        className="flex min-w-0 flex-1 items-center gap-3 rounded-md px-2 py-1.5 text-left outline-none focus-visible:ring-2 focus-visible:ring-aqua"
       >
         <span className="checker grid size-9 shrink-0 place-items-center overflow-hidden rounded-[4px] ring-1 ring-rule">
           {thumb}
@@ -176,7 +176,7 @@ function Row({
 
 function Thumb({ item, assets }: { item: ReturnType<typeof stackOrder>[number]; assets: Assets }) {
   if (item.kind === "text") {
-    return <Type className="size-4 text-magenta" />;
+    return <Type className="size-4 text-brand" />;
   }
   const s = item.layer;
   if (s.kind === "emoji") {

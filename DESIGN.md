@@ -1,20 +1,20 @@
 ---
 name: Bubble UX
-description: A Facebook post editor framed as a press proof on the make-ready table.
+description: A Facebook post and reel editor in a Canva-style palette, framed as a proof on the workbench.
 colors:
-  make-ready-table: "oklch(0.905 0.006 250)"
-  proof-sheet: "oklch(0.993 0.002 250)"
-  hairline-rule: "oklch(0.86 0.006 250)"
+  make-ready-table: "#ebecf0"
+  proof-sheet: "#ffffff"
+  hairline-rule: "#dcdee4"
   input-rule: "oklch(0.83 0.008 250)"
-  press-ink: "oklch(0.2 0.012 260)"
-  soft-ink: "oklch(0.47 0.012 260)"
+  press-ink: "#0e1318"
+  soft-ink: "#5e6573"
   muted-sheet: "oklch(0.945 0.005 250)"
-  process-cyan: "oklch(0.7 0.14 228)"
-  cyan-ink: "oklch(0.5 0.13 235)"
-  cyan-wash: "oklch(0.95 0.03 228)"
-  process-magenta: "oklch(0.56 0.235 357)"
-  magenta-ink: "oklch(0.5 0.22 357)"
-  magenta-wash: "oklch(0.955 0.03 357)"
+  aqua: "#00c4cc"
+  aqua-ink: "#00737a"
+  aqua-wash: "#e3f8f9"
+  brand: "#7d2ae8"
+  brand-ink: "#6420c7"
+  brand-wash: "#f1e9fd"
   process-yellow: "oklch(0.89 0.17 98)"
   destructive-red: "oklch(0.55 0.21 27)"
 typography:
@@ -58,13 +58,13 @@ spacing:
   gutter: "36px"
 components:
   button-primary:
-    backgroundColor: "{colors.process-magenta}"
+    backgroundColor: "{colors.brand}"
     textColor: "#ffffff"
     rounded: "{rounded.lg}"
     height: "32px"
     padding: "0 12px"
   button-primary-hover:
-    backgroundColor: "{colors.magenta-ink}"
+    backgroundColor: "{colors.brand-ink}"
   button-ghost:
     backgroundColor: "transparent"
     textColor: "{colors.press-ink}"
@@ -76,8 +76,8 @@ components:
     rounded: "{rounded.md}"
     size: "56px"
   tool-rail-item-active:
-    backgroundColor: "{colors.cyan-wash}"
-    textColor: "{colors.cyan-ink}"
+    backgroundColor: "{colors.aqua-wash}"
+    textColor: "{colors.aqua-ink}"
   input:
     backgroundColor: "{colors.proof-sheet}"
     textColor: "{colors.press-ink}"
@@ -96,25 +96,25 @@ components:
 
 **Creative North Star: "The Press Proof on the Make-Ready Table"**
 
-The editor is a print shop's proofing bench. The post sits as a cool paper-white sheet on a light grey make-ready ground, framed by crop marks and registration targets, and the chrome around it (top bar, tool rail, properties panel) is the same paper, divided by hairline rules. Type is press ink. Colour is reserved: the three process inks each carry one job, so colour in the UI always means something.
+The editor is a print shop's proofing bench. The post sits as a cool paper-white sheet on a light grey make-ready ground, framed by crop marks and registration targets, and the chrome around it (top bar, tool rail, properties panel) is the same paper, divided by hairline rules. Type is press ink. Colour follows the Canva palette (turquoise, purple, near-black on a light grey workspace, chosen by the user) and is reserved: each accent carries one job, so colour in the UI always means something.
 
 Density is calm and tool-like: 13px labels, tabular readouts, generous panel padding, no decoration that competes with the photo. The world rejects the generic grey editor with a single purple accent; its identity comes from prepress material (marks, ink roles, the CMYK colour bar), while every label stays in plain English.
 
 **Key Characteristics:**
 - Paper sheet on grey table; chrome is flat paper separated by 1px rules.
-- Cyan = selection and active tool; magenta = text layers and the primary action; yellow = crop.
+- Aqua (Canva turquoise) = selection and active tool; Brand (Canva purple) = text layers and the primary action; yellow = crop.
 - Crop marks and registration targets frame the canvas; a CMYK colour bar leads the status strip.
 - Numbers are tabular mono readouts; the status label is a condensed-caps slug.
 
 ## Colors
 
-A near-neutral cool paper-and-ink base with three process inks used strictly as functional signals.
+A near-neutral base (Canva's #ebecf0 workspace, white panels, #0e1318 text) with Canva turquoise and purple, plus a crop yellow, used strictly as functional signals. 
 
 ### Primary
-- **Process Magenta** (`process-magenta`): the Export button, the Download button, the empty-state "Choose a photo" action, the text-layer glyph in the layer list, centre snap guides while dragging text, and the input caret. Hovers deepen to **Magenta Ink**; **Magenta Wash** is the hover fill on text-style tiles.
+- **Brand Purple** (`brand`): the Export button, the Download button, the empty-state "Choose a photo" action, the text-layer glyph in the layer list, centre snap guides while dragging text, and the input caret. Hovers deepen to **Brand Ink**; **Brand Wash** is the hover fill on text-style tiles.
 
 ### Secondary
-- **Process Cyan** (`process-cyan`): selection and focus. Selected text-layer ring, focus rings, slider thumb border, selected swatch/filter ring, drop-target outline. **Cyan Wash** fills the active tool and selected list row; **Cyan Ink** is the active-tool label, selected filter name, and a slider value that differs from its default.
+- **Aqua** (`aqua`, Canva turquoise): selection and focus. Selected text-layer ring, focus rings, slider thumb border, selected swatch/filter ring, drop-target outline. **Aqua Wash** fills the active tool and selected list row; **Aqua Ink** is the active-tool label, selected filter name, and a slider value that differs from its default.
 
 ### Tertiary
 - **Process Yellow** (`process-yellow`): crop only. The crop frame border and its four corner handles.
@@ -129,9 +129,9 @@ A near-neutral cool paper-and-ink base with three process inks used strictly as 
 - **Destructive Red** (`destructive-red`): remove/delete actions only.
 
 ### Named Rules
-**The One Ink, One Job Rule.** Each process ink has exactly one meaning. Never use cyan for an action, magenta for selection, or yellow outside crop. Nothing else in the chrome is coloured.
+**The One Accent, One Job Rule.** Each accent has exactly one meaning. Never use aqua for an action, purple for selection, or yellow outside crop. Nothing else in the chrome is coloured.
 
-**The Ink Is Not Brand Paint Rule.** The process inks are signals, not decoration: no ink-coloured panels, headers, gradients, or illustration fills.
+**The Accent Is Not Paint Rule.** Accents are signals, not decoration: no accent-coloured panels, headers or gradients.
 
 ## Typography
 
@@ -181,43 +181,43 @@ Small, square-ish corners: 6px on buttons and inputs, 4.8px on rail items and li
 
 ### Buttons
 - **Shape:** gently squared (6px), 32px tall; the dialog download button is 36px.
-- **Primary:** Process Magenta with white text, 12px sides, Download/Export icon leading. Hover to Magenta Ink. Used for Export and the first action of an empty state, nothing else.
+- **Primary:** Brand Purple with white text, 12px sides, Download/Export icon leading. Hover to Brand Ink. Used for Export and the first action of an empty state, nothing else.
 - **Ghost / icon:** transparent 32px squares for undo and redo; hover to Muted Sheet. Disabled at 50% opacity.
 - **Outline:** sheet background with hairline border, for secondary actions and toggle groups (JPG/PNG).
 
 ### Tool Rail
-- 56px square items, icon over an 11px label, Soft Ink at rest, Muted Sheet on hover. Active is Cyan Wash with Cyan Ink and a heavier icon stroke. Tooltips show the single-key shortcut in mono.
+- 56px square items, icon over an 11px label, Soft Ink at rest, Muted Sheet on hover. Active is Aqua Wash with Aqua Ink and a heavier icon stroke. Tooltips show the single-key shortcut in mono.
 
 ### Inputs / Fields
-- **Style:** 32px, 6px corners, Input Rule stroke on Proof Sheet, magenta caret.
-- **Focus:** cyan ring.
-- **Range field:** label left in Soft Ink, mono readout right (turns Cyan Ink when changed from default), Muted Sheet track with Press Ink fill and a white thumb ringed cyan; bipolar sliders show a centre tick; double-click the label resets.
-- **Colour field:** row of 24px swatches (3px corners, faint ink keyline), selected gets a cyan ring offset from the sheet; the last swatch is a CMY conic wheel for a custom colour.
+- **Style:** 32px, 6px corners, Input Rule stroke on Proof Sheet, purple caret.
+- **Focus:** aqua ring.
+- **Range field:** label left in Soft Ink, mono readout right (turns Aqua Ink when changed from default), Muted Sheet track with Press Ink fill and a white thumb ringed aqua; bipolar sliders show a centre tick; double-click the label resets.
+- **Colour field:** row of 24px swatches (3px corners, faint ink keyline), selected gets a aqua ring offset from the sheet; the last swatch is a turquoise-purple-yellow conic wheel for a custom colour.
 
 ### Filter Thumbnails
-- Square live-rendered previews of the photo, 3px corners, three to a row; selected shows an offset cyan ring and a Cyan Ink semibold name.
+- Square live-rendered previews of the photo, 3px corners, three to a row; selected shows an offset aqua ring and a Aqua Ink semibold name.
 
 ### Proof Marks (signature)
-- Corner crop marks (18px strokes offset 8px from the sheet, Press Ink, 1px; 2px in crop mode) and registration targets at the top, left and right midpoints (Press Ink at 50%). The brand mark is the same registration target with a magenta centre.
+- Corner crop marks (18px strokes offset 8px from the sheet, Press Ink, 1px; 2px in crop mode) and registration targets at the top, left and right midpoints (Press Ink at 50%). The brand mark is the Bubble UX "B" app icon (/public/favicon.png: white B on a purple rounded square), shown at 28px with 7px corners; it is also the favicon.
 
 ### Crop Frame (signature)
 - In crop mode the full photo is shown with a 2px Process Yellow frame, dark keyline, rule-of-thirds lines in white at 40%, and four L-shaped yellow corner handles.
 
 ### Status Strip (signature)
-- 36px strip under the canvas: a four-chip CMYK colour bar (12px squares: cyan, magenta, yellow, ink), the slug label, then size and zoom readouts in mono.
+- 36px strip under the canvas: a four-chip colour bar (12px squares: aqua, brand purple, yellow, ink), the slug label, then size and zoom readouts in mono.
 
 ## Do's and Don'ts
 
 ### Do:
 - **Do** keep chrome on Proof Sheet against the Make-Ready Table, divided by 1px Hairline Rules.
-- **Do** use cyan for every selection and focus state, magenta for the one primary action and text layers, yellow only for crop.
+- **Do** use aqua for every selection and focus state, brand purple for the one primary action and text layers, yellow only for crop.
 - **Do** set every live number in Geist Mono with tabular numerals.
 - **Do** frame the canvas with crop marks and registration targets and keep the 36px gutter for them.
 - **Do** keep labels in plain English even where the visual vocabulary is prepress.
 
 ### Don't:
-- **Don't** add a brand accent colour outside the three process inks; the purple-accent grey editor is the rejected world.
-- **Don't** give one ink two jobs (for example a cyan button or a magenta selection ring).
+- **Don't** add accent colours beyond aqua, brand purple and crop yellow.
+- **Don't** give one accent two jobs (for example an aqua button or a purple selection ring).
 - **Don't** add shadows to bars, rails, panels or cards; only the proof sheet lifts.
 - **Don't** use poster typefaces from `src/lib/editor/fonts.ts` in the interface.
 - **Don't** round the canvas sheet or crop frame.

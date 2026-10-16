@@ -64,7 +64,7 @@ export function ElementsPanel({
                   type="button"
                   aria-label={`Add sticker ${i + 1}`}
                   onClick={() => onAddCustom(c.id, c.src)}
-                  className="grid aspect-square place-items-center rounded-md bg-[oklch(0.96_0.004_250)] p-2 outline-none hover:bg-magenta-wash focus-visible:ring-2 focus-visible:ring-cyan"
+                  className="grid aspect-square place-items-center rounded-md bg-[oklch(0.96_0.004_250)] p-2 outline-none hover:bg-brand-wash focus-visible:ring-2 focus-visible:ring-aqua"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={c.src} alt="" loading="lazy" className="max-h-full max-w-full object-contain" />
@@ -81,7 +81,7 @@ export function ElementsPanel({
                   type="button"
                   aria-label={`Add ${e}`}
                   onClick={() => onAdd({ kind: "emoji", value: e })}
-                  className="grid aspect-square place-items-center rounded-md text-[26px] leading-none outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-cyan"
+                  className="grid aspect-square place-items-center rounded-md text-[26px] leading-none outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-aqua"
                   style={{ fontFamily: EMOJI_FONT }}
                 >
                   {e}
@@ -98,7 +98,7 @@ export function ElementsPanel({
                   type="button"
                   aria-label={`Add ${name.replace(/([a-z])([A-Z0-9])/g, "$1 $2").toLowerCase()} icon`}
                   onClick={() => onAdd({ kind: "icon", value: name })}
-                  className="grid aspect-square place-items-center rounded-md text-ink outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-cyan"
+                  className="grid aspect-square place-items-center rounded-md text-ink outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-aqua"
                 >
                   <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                     {node.map(([tag, attrs], i) => createElement(tag, { key: i, ...attrs }))}
@@ -128,7 +128,7 @@ export function ElementsPanel({
                       type="button"
                       aria-label="Add this image again"
                       onClick={() => onAdd({ kind: "image", value: id })}
-                      className="checker grid aspect-square place-items-center overflow-hidden rounded-md ring-1 ring-rule outline-none hover:ring-magenta/60 focus-visible:ring-2 focus-visible:ring-cyan"
+                      className="checker grid aspect-square place-items-center overflow-hidden rounded-md ring-1 ring-rule outline-none hover:ring-brand/60 focus-visible:ring-2 focus-visible:ring-aqua"
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={assets[id].src} alt="" className="max-h-full max-w-full object-contain" />
@@ -172,7 +172,7 @@ function StickerEditor({
   return (
     <PanelSection
       title={`Edit ${title.toLowerCase()}`}
-      className="bg-cyan-wash/40"
+      className="bg-aqua-wash/40"
       action={
         <div className="flex gap-0.5">
           <IconAction label="Bring forward" onClick={() => move(1)}><ArrowUp /></IconAction>
@@ -282,8 +282,8 @@ export function BlurPanel({
                   onClick={() => onSelect(r.id)}
                   aria-current={r.id === selectedId}
                   className={cn(
-                    "flex flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm outline-none focus-visible:ring-2 focus-visible:ring-cyan",
-                    r.id === selectedId ? "bg-cyan-wash text-ink" : "text-ink-soft hover:bg-muted hover:text-ink",
+                    "flex flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm outline-none focus-visible:ring-2 focus-visible:ring-aqua",
+                    r.id === selectedId ? "bg-aqua-wash text-ink" : "text-ink-soft hover:bg-muted hover:text-ink",
                   )}
                 >
                   {r.kind === "blur" ? <Droplets className="size-3.5" /> : <Grid3x3 className="size-3.5" />}

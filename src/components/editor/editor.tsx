@@ -715,8 +715,8 @@ function ToolRail({ tool, onTool, media }: { tool: ToolId; onTool: (t: ToolId) =
                   aria-current={active ? "page" : undefined}
                   onClick={() => onTool(t.id)}
                   className={cn(
-                    "group relative flex h-14 min-w-11 flex-col md:min-w-14 items-center justify-center gap-1 rounded-md text-[11px] font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-cyan",
-                    active ? "bg-cyan-wash text-cyan-ink" : "text-ink-soft hover:bg-muted hover:text-ink",
+                    "group relative flex h-14 min-w-11 flex-col md:min-w-14 items-center justify-center gap-1 rounded-md text-[11px] font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-aqua",
+                    active ? "bg-aqua-wash text-aqua-ink" : "text-ink-soft hover:bg-muted hover:text-ink",
                   )}
                 />
               }
@@ -767,7 +767,7 @@ function TopBar({
         type="button"
         onClick={onHome}
         title="Start something new"
-        className="flex items-center gap-2.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-cyan"
+        className="flex items-center gap-2.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-aqua"
       >
         <BrandMark />
         <span className="font-heading text-[15px] font-semibold tracking-[-0.01em] text-ink">Bubble UX</span>
@@ -846,7 +846,7 @@ function ExportButton({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger render={<Button className="bg-magenta px-3 text-white hover:bg-magenta-ink" />}>
+      <PopoverTrigger render={<Button className="bg-brand px-3 text-white hover:bg-brand-ink" />}>
         <Download /> Export
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 gap-0 p-0">
@@ -885,7 +885,7 @@ function ExportButton({
               <span className="font-mono text-xs text-ink-soft">.{format === "jpeg" ? "jpg" : "png"}</span>
             </div>
           </div>
-          <Button onClick={download} disabled={busy} className="h-9 bg-magenta text-white hover:bg-magenta-ink">
+          <Button onClick={download} disabled={busy} className="h-9 bg-brand text-white hover:bg-brand-ink">
             <Download /> {busy ? "Preparing…" : `Download ${format === "jpeg" ? "JPG" : "PNG"}`}
           </Button>
         </div>
@@ -959,7 +959,7 @@ function ReelExportButton({
 
   return (
     <Popover open={open} onOpenChange={(o) => !busy && setOpen(o)}>
-      <PopoverTrigger render={<Button className="bg-magenta px-3 text-white hover:bg-magenta-ink" />}>
+      <PopoverTrigger render={<Button className="bg-brand px-3 text-white hover:bg-brand-ink" />}>
         <Download /> Export
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 gap-0 p-0">
@@ -996,7 +996,7 @@ function ReelExportButton({
                   <span className="font-mono text-xs text-ink-soft tabular">{Math.round((progress ?? 0) * 100)}%</span>
                 </div>
                 <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                  <div className="h-full bg-magenta transition-[width] duration-200" style={{ width: `${(progress ?? 0) * 100}%` }} />
+                  <div className="h-full bg-brand transition-[width] duration-200" style={{ width: `${(progress ?? 0) * 100}%` }} />
                 </div>
                 <Button variant="outline" onClick={() => abort.current?.abort()}>
                   Cancel
@@ -1004,7 +1004,7 @@ function ReelExportButton({
               </div>
             ) : (
               <div className="grid gap-2">
-                <Button onClick={record} className="h-9 bg-magenta text-white hover:bg-magenta-ink">
+                <Button onClick={record} className="h-9 bg-brand text-white hover:bg-brand-ink">
                   <Film /> Export {format.label}
                 </Button>
                 <Button variant="ghost" size="sm" onClick={saveFrame}>
@@ -1037,7 +1037,7 @@ function SizeMenu({ value, onChange }: { value: PostSizeId; onChange: (size: Pos
             <DropdownMenuItem
               key={id}
               onClick={() => onChange(id)}
-              className={cn("gap-3 py-2", id === value && "bg-cyan-wash")}
+              className={cn("gap-3 py-2", id === value && "bg-aqua-wash")}
             >
               <span className="grid w-10 shrink-0 place-items-center">
                 <SizePreview w={s.w} h={s.h} max={26} />
@@ -1048,7 +1048,7 @@ function SizeMenu({ value, onChange }: { value: PostSizeId; onChange: (size: Pos
                   {s.ratio} · {s.w} × {s.h}
                 </span>
               </span>
-              {id === value && <Check className="text-cyan-ink" />}
+              {id === value && <Check className="text-aqua-ink" />}
             </DropdownMenuItem>
           );
         })}
@@ -1058,13 +1058,9 @@ function SizeMenu({ value, onChange }: { value: PostSizeId; onChange: (size: Pos
 }
 
 function BrandMark() {
-  // A registration target: the mark every print job is lined up by.
   return (
-    <svg viewBox="0 0 24 24" className="size-6" aria-hidden>
-      <circle cx="12" cy="12" r="7" fill="none" stroke="var(--ink)" strokeWidth="1.6" />
-      <circle cx="12" cy="12" r="3.2" fill="var(--magenta)" />
-      <path d="M12 1.5v21M1.5 12h21" stroke="var(--ink)" strokeWidth="1.6" />
-    </svg>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src="/favicon.png" alt="" width={28} height={28} className="size-7 shrink-0 rounded-[7px]" />
   );
 }
 

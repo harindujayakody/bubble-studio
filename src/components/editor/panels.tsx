@@ -94,7 +94,7 @@ export function PhotoPanel({
             <p className="text-sm text-pretty text-ink-soft">
               Add a photo of your shop, product or event. It stays on your computer.
             </p>
-            <Button onClick={onPickPhoto} className="w-fit bg-magenta text-white hover:bg-magenta-ink">
+            <Button onClick={onPickPhoto} className="w-fit bg-brand text-white hover:bg-brand-ink">
               <ImagePlus /> Choose photo
             </Button>
           </div>
@@ -196,7 +196,7 @@ export function FiltersPanel({
                     <span
                       className={cn(
                         "block aspect-square overflow-hidden rounded-[3px] bg-muted ring-1 ring-ink/10 transition-shadow",
-                        active ? "ring-2 ring-cyan ring-offset-2 ring-offset-sheet" : "group-hover:ring-ink/30 group-focus-visible:ring-2 group-focus-visible:ring-cyan",
+                        active ? "ring-2 ring-aqua ring-offset-2 ring-offset-sheet" : "group-hover:ring-ink/30 group-focus-visible:ring-2 group-focus-visible:ring-aqua",
                       )}
                     >
                       {thumbs[p.id] && (
@@ -204,7 +204,7 @@ export function FiltersPanel({
                         <img src={thumbs[p.id]} alt="" className="size-full object-cover" />
                       )}
                     </span>
-                    <span className={cn("text-xs", active ? "font-semibold text-cyan-ink" : "text-ink-soft")}>{p.label}</span>
+                    <span className={cn("text-xs", active ? "font-semibold text-aqua-ink" : "text-ink-soft")}>{p.label}</span>
                   </button>
                 );
               })}
@@ -408,7 +408,7 @@ export function TextPanel({
                 key={id}
                 type="button"
                 onClick={() => onAdd(id)}
-                className="flex h-12 items-center justify-between rounded-md border border-rule bg-sheet px-3 text-left text-ink transition-colors outline-none hover:border-magenta/50 hover:bg-magenta-wash focus-visible:ring-2 focus-visible:ring-cyan"
+                className="flex h-12 items-center justify-between rounded-md border border-rule bg-sheet px-3 text-left text-ink transition-colors outline-none hover:border-brand/50 hover:bg-brand-wash focus-visible:ring-2 focus-visible:ring-aqua"
               >
                 <span
                   className="truncate"
@@ -436,7 +436,7 @@ export function TextPanel({
               key={phrase}
               type="button"
               onClick={() => onAdd("sinhala", phrase)}
-              className="rounded-full border border-rule bg-sheet px-3 py-1.5 text-[13px] text-ink outline-none transition-colors hover:border-magenta/50 hover:bg-magenta-wash focus-visible:ring-2 focus-visible:ring-cyan"
+              className="rounded-full border border-rule bg-sheet px-3 py-1.5 text-[13px] text-ink outline-none transition-colors hover:border-brand/50 hover:bg-brand-wash focus-visible:ring-2 focus-visible:ring-aqua"
               style={{ fontFamily: fontStack("Noto Sans Sinhala") }}
             >
               {phrase}
@@ -455,11 +455,11 @@ export function TextPanel({
                   onClick={() => onSelect(t.id)}
                   aria-current={t.id === selectedId}
                   className={cn(
-                    "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm outline-none focus-visible:ring-2 focus-visible:ring-cyan",
-                    t.id === selectedId ? "bg-cyan-wash text-ink" : "text-ink-soft hover:bg-muted hover:text-ink",
+                    "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm outline-none focus-visible:ring-2 focus-visible:ring-aqua",
+                    t.id === selectedId ? "bg-aqua-wash text-ink" : "text-ink-soft hover:bg-muted hover:text-ink",
                   )}
                 >
-                  <Type className="size-3.5 shrink-0 text-magenta" />
+                  <Type className="size-3.5 shrink-0 text-brand" />
                   <span className="truncate">{t.text.trim() || "Empty text"}</span>
                 </button>
               </li>
@@ -669,7 +669,7 @@ export function TextPanel({
                 // Pick a fill that contrasts with the text the first time it is switched on.
                 const color =
                   layer.fill.mode === "none" && layer.fill.color.toLowerCase() === layer.color.toLowerCase()
-                    ? layer.color.toLowerCase() === "#ffffff" ? "#e6007e" : "#ffffff"
+                    ? layer.color.toLowerCase() === "#ffffff" ? "#7d2ae8" : "#ffffff"
                     : layer.fill.color;
                 patch({ fill: { ...layer.fill, mode, color } });
               }}

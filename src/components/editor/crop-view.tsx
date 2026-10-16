@@ -101,7 +101,7 @@ export function CropView({
           role="group"
           tabIndex={0}
           aria-label="Crop frame. Drag or use the arrow keys to move it."
-          className="absolute cursor-move touch-none outline-none focus-visible:ring-2 focus-visible:ring-cyan"
+          className="absolute cursor-move touch-none outline-none focus-visible:ring-2 focus-visible:ring-aqua"
           style={{
             left: frame.left,
             top: frame.top,

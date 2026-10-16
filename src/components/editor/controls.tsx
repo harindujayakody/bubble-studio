@@ -98,7 +98,7 @@ export function RangeField({
         <span
           className={cn(
             "font-mono text-xs tabular",
-            changed ? "text-cyan-ink" : "text-ink-soft",
+            changed ? "text-aqua-ink" : "text-ink-soft",
           )}
         >
           {shown}
@@ -128,8 +128,8 @@ export function RangeField({
 const SWATCHES = [
   "#ffffff",
   "#111111",
-  "#e6007e",
-  "#00a0e3",
+  "#7d2ae8",
+  "#00c4cc",
   "#ffe600",
   "#ff5a1f",
   "#16a34a",
@@ -167,17 +167,17 @@ export function ColorField({
             aria-pressed={value.toLowerCase() === c}
             onClick={() => onChange(c)}
             className={cn(
-              "size-6 rounded-[3px] ring-1 ring-ink/15 transition-shadow ring-inset outline-none focus-visible:ring-2 focus-visible:ring-cyan",
-              value.toLowerCase() === c && "ring-2 ring-cyan ring-offset-1 ring-offset-sheet",
+              "size-6 rounded-[3px] ring-1 ring-ink/15 transition-shadow ring-inset outline-none focus-visible:ring-2 focus-visible:ring-aqua",
+              value.toLowerCase() === c && "ring-2 ring-aqua ring-offset-1 ring-offset-sheet",
             )}
             style={{ background: c }}
           />
         ))}
         <label
-          className="relative grid size-6 cursor-pointer place-items-center overflow-hidden rounded-[3px] ring-1 ring-ink/15 ring-inset focus-within:ring-2 focus-within:ring-cyan"
+          className="relative grid size-6 cursor-pointer place-items-center overflow-hidden rounded-[3px] ring-1 ring-ink/15 ring-inset focus-within:ring-2 focus-within:ring-aqua"
           style={{
             background:
-              "conic-gradient(from 90deg, #00a0e3, #e6007e, #ffe600, #00a0e3)",
+              "conic-gradient(from 90deg, #00c4cc, #7d2ae8, #ffe600, #00c4cc)",
           }}
           title="Custom colour"
         >

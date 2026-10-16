@@ -179,10 +179,10 @@ export function CanvasStage(props: Props) {
                 />
 
                 {guides.v && (
-                  <span aria-hidden className="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-magenta" />
+                  <span aria-hidden className="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-brand" />
                 )}
                 {guides.h && (
-                  <span aria-hidden className="pointer-events-none absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-magenta" />
+                  <span aria-hidden className="pointer-events-none absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-brand" />
                 )}
 
                 {showHandles &&
@@ -280,8 +280,8 @@ export function CanvasStage(props: Props) {
             )}
 
             {dragOver && (
-              <div className="pointer-events-none absolute inset-0 grid place-items-center bg-cyan-wash/85 ring-2 ring-cyan ring-inset">
-                <p className="text-sm font-semibold text-cyan-ink">
+              <div className="pointer-events-none absolute inset-0 grid place-items-center bg-aqua-wash/85 ring-2 ring-aqua ring-inset">
+                <p className="text-sm font-semibold text-aqua-ink">
                   {state.media === "video" ? "Drop a video, or an image to add as a sticker" : "Drop to use this photo"}
                 </p>
               </div>
@@ -364,7 +364,7 @@ function PanLayer({
       ref={ref}
       role="application"
       aria-label="Move the photo. Drag to reposition, scroll to zoom, press Escape when done."
-      className="absolute inset-0 cursor-grab touch-none select-none outline-2 -outline-offset-2 outline-cyan outline-dashed active:cursor-grabbing"
+      className="absolute inset-0 cursor-grab touch-none select-none outline-2 -outline-offset-2 outline-aqua outline-dashed active:cursor-grabbing"
       onPointerDown={(e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -396,7 +396,7 @@ function PanLayer({
           type="button"
           onPointerDown={(e) => e.stopPropagation()}
           onClick={onDone}
-          className="rounded-full bg-sheet px-2.5 py-1 font-semibold text-ink outline-none hover:bg-cyan-wash focus-visible:ring-2 focus-visible:ring-cyan"
+          className="rounded-full bg-sheet px-2.5 py-1 font-semibold text-ink outline-none hover:bg-aqua-wash focus-visible:ring-2 focus-visible:ring-aqua"
         >
           Done
         </button>
@@ -504,8 +504,8 @@ function RegionLayer({
               "absolute cursor-move outline-none",
               r.shape === "ellipse" && "rounded-[50%]",
               selected
-                ? "ring-[1.5px] ring-cyan"
-                : "ring-1 ring-white/80 [box-shadow:0_0_0_2px_oklch(0.2_0.012_260/0.35)] hover:ring-cyan focus-visible:ring-cyan",
+                ? "ring-[1.5px] ring-aqua"
+                : "ring-1 ring-white/80 [box-shadow:0_0_0_2px_oklch(0.2_0.012_260/0.35)] hover:ring-aqua focus-visible:ring-aqua",
             )}
             style={{ left: `${r.x * 100}%`, top: `${r.y * 100}%`, width: `${r.w * 100}%`, height: `${r.h * 100}%` }}
             onPointerDown={(e) => {
@@ -528,7 +528,7 @@ function RegionLayer({
                     ref.current!.setPointerCapture(e.pointerId);
                     action.current = { type: "resize", id: r.id, corner: i, px: e.clientX, py: e.clientY, start: r };
                   }}
-                  className={cn("absolute size-2.5 bg-sheet ring-[1.5px] ring-cyan after:absolute after:-inset-2", c.pos, c.cursor)}
+                  className={cn("absolute size-2.5 bg-sheet ring-[1.5px] ring-aqua after:absolute after:-inset-2", c.pos, c.cursor)}
                 />
               ))}
           </div>
@@ -586,7 +586,7 @@ function InlineTextEditor({
           onDone();
         }
       }}
-      className="absolute resize-none overflow-hidden border-0 p-0 outline-[1.5px] outline-offset-4 outline-cyan outline-solid [field-sizing:content] selection:bg-cyan/40"
+      className="absolute resize-none overflow-hidden border-0 p-0 outline-[1.5px] outline-offset-4 outline-aqua outline-solid [field-sizing:content] selection:bg-aqua/40"
       style={{
         left: `${layer.x * 100}%`,
         top: `${layer.y * 100}%`,
@@ -697,8 +697,8 @@ function LayerHandle({
         className={cn(
           "pointer-events-auto absolute cursor-move touch-none outline-none",
           selected
-            ? "ring-[1.5px] ring-cyan"
-            : "hover:ring-1 hover:ring-cyan/70 focus-visible:ring-[1.5px] focus-visible:ring-cyan",
+            ? "ring-[1.5px] ring-aqua"
+            : "hover:ring-1 hover:ring-aqua/70 focus-visible:ring-[1.5px] focus-visible:ring-aqua",
         )}
         style={{
           left: `${(box.cx - box.w / 2) * 100}%`,
@@ -730,7 +730,7 @@ function LayerHandle({
               onPointerCancel={() => (scaleDrag.current = null)}
               onDoubleClick={(e) => e.stopPropagation()}
               className={cn(
-                "absolute size-2.5 touch-none bg-sheet ring-[1.5px] ring-cyan after:absolute after:-inset-2 hover:bg-cyan",
+                "absolute size-2.5 touch-none bg-sheet ring-[1.5px] ring-aqua after:absolute after:-inset-2 hover:bg-aqua",
                 c.pos,
                 c.cursor,
               )}
@@ -792,7 +792,7 @@ function ColourBar({ zoom, label, dims }: { zoom: number; label: string; dims: s
   return (
     <div className="flex h-9 shrink-0 items-center justify-center gap-4 overflow-hidden px-4 text-ink-soft">
       <div aria-hidden className="flex shrink-0">
-        {["var(--cyan)", "var(--magenta)", "var(--yellow)", "var(--ink)"].map((c) => (
+        {["var(--aqua)", "var(--brand)", "var(--yellow)", "var(--ink)"].map((c) => (
           <span key={c} className="size-3" style={{ background: c }} />
         ))}
       </div>
@@ -816,7 +816,7 @@ function EmptySheet({
   return (
     <div className="absolute inset-0 grid place-items-center p-6">
       <div className="flex max-w-xs flex-col items-center text-center">
-        <span className="mb-4 grid size-12 place-items-center rounded-full bg-sheet text-magenta ring-1 ring-ink/10">
+        <span className="mb-4 grid size-12 place-items-center rounded-full bg-sheet text-brand ring-1 ring-ink/10">
           <Icon className="size-5" />
         </span>
         <h2 className="text-lg font-semibold text-balance text-ink">{video ? "Start with a video" : "Start with a photo"}</h2>
@@ -826,7 +826,7 @@ function EmptySheet({
             : "Drop an image here, or pick one from your computer. JPG, PNG and WebP work. Nothing is uploaded."}
         </p>
         <div className="mt-5 flex flex-wrap justify-center gap-2">
-          <Button onClick={onPickPhoto} className="bg-magenta text-white hover:bg-magenta-ink">
+          <Button onClick={onPickPhoto} className="bg-brand text-white hover:bg-brand-ink">
             <Icon /> {video ? "Choose video" : "Choose photo"}
           </Button>
           {!video && (

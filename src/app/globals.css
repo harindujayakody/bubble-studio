@@ -17,12 +17,12 @@
   --color-rule: var(--rule);
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
-  --color-cyan: var(--cyan);
-  --color-cyan-ink: var(--cyan-ink);
-  --color-cyan-wash: var(--cyan-wash);
-  --color-magenta: var(--magenta);
-  --color-magenta-ink: var(--magenta-ink);
-  --color-magenta-wash: var(--magenta-wash);
+  --color-aqua: var(--aqua);
+  --color-aqua-ink: var(--aqua-ink);
+  --color-aqua-wash: var(--aqua-wash);
+  --color-brand: var(--brand);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-wash: var(--brand-wash);
   --color-yellow: var(--yellow);
   --color-yellow-wash: var(--yellow-wash);
 
@@ -65,24 +65,25 @@
 }
 
 /*
- * Press-proof palette. The make-ready table is a cool grey; panels are the
- * paper sheet; type is press ink. Process inks each carry exactly one job:
- * cyan = selection / active, magenta = text layers + the primary action,
- * yellow = crop. Nothing else is coloured.
+ * Canva-style palette. A light grey workspace, white panels and near-black
+ * text; colour carries meaning only:
+ * aqua (Canva turquoise) = selection / active tool,
+ * brand (Canva purple) = text layers + the primary action,
+ * yellow = crop.
  */
 :root {
-  --table: oklch(0.905 0.006 250);
-  --sheet: oklch(0.993 0.002 250);
-  --rule: oklch(0.86 0.006 250);
-  --ink: oklch(0.2 0.012 260);
-  --ink-soft: oklch(0.47 0.012 260);
+  --table: #ebecf0;
+  --sheet: #ffffff;
+  --rule: #dcdee4;
+  --ink: #0e1318;
+  --ink-soft: #5e6573;
 
-  --cyan: oklch(0.7 0.14 228);
-  --cyan-ink: oklch(0.5 0.13 235);
-  --cyan-wash: oklch(0.95 0.03 228);
-  --magenta: oklch(0.56 0.235 357);
-  --magenta-ink: oklch(0.5 0.22 357);
-  --magenta-wash: oklch(0.955 0.03 357);
+  --aqua: #00c4cc;
+  --aqua-ink: #00737a;
+  --aqua-wash: #e3f8f9;
+  --brand: #7d2ae8;
+  --brand-ink: #6420c7;
+  --brand-wash: #f1e9fd;
   --yellow: oklch(0.89 0.17 98);
   --yellow-wash: oklch(0.97 0.06 98);
 
@@ -98,14 +99,14 @@
   --secondary-foreground: var(--ink);
   --muted: oklch(0.945 0.005 250);
   --muted-foreground: var(--ink-soft);
-  --accent: var(--cyan-wash);
+  --accent: var(--aqua-wash);
   --accent-foreground: var(--ink);
   --destructive: oklch(0.55 0.21 27);
   --border: var(--rule);
   --input: oklch(0.83 0.008 250);
-  --ring: var(--cyan);
-  --chart-1: var(--cyan);
-  --chart-2: var(--magenta);
+  --ring: var(--aqua);
+  --chart-1: var(--aqua);
+  --chart-2: var(--brand);
   --chart-3: var(--yellow);
   --chart-4: var(--ink);
   --chart-5: var(--ink-soft);
@@ -114,10 +115,10 @@
   --sidebar-foreground: var(--ink);
   --sidebar-primary: var(--ink);
   --sidebar-primary-foreground: var(--sheet);
-  --sidebar-accent: var(--cyan-wash);
+  --sidebar-accent: var(--aqua-wash);
   --sidebar-accent-foreground: var(--ink);
   --sidebar-border: var(--rule);
-  --sidebar-ring: var(--cyan);
+  --sidebar-ring: var(--aqua);
 }
 
 @layer base {
@@ -137,15 +138,15 @@
     font-family: var(--font-heading);
   }
   ::selection {
-    background: var(--cyan-wash);
+    background: var(--aqua-wash);
     color: var(--ink);
   }
   input,
   textarea {
-    caret-color: var(--magenta);
+    caret-color: var(--brand);
   }
   :focus-visible {
-    outline-color: var(--cyan);
+    outline-color: var(--aqua);
   }
   ::-webkit-scrollbar {
     width: 10px;

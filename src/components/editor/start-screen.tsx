@@ -44,7 +44,7 @@ export function StartScreen({ onPick }: { onPick: (media: "photo" | "video", siz
             <button
               type="button"
               onClick={() => setStep("media")}
-              className="mb-4 inline-flex items-center gap-1.5 rounded-md text-sm text-ink-soft outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-cyan"
+              className="mb-4 inline-flex items-center gap-1.5 rounded-md text-sm text-ink-soft outline-none hover:text-ink focus-visible:ring-2 focus-visible:ring-aqua"
             >
               <ArrowLeft className="size-4" /> Photo or video
             </button>
@@ -63,14 +63,14 @@ export function StartScreen({ onPick }: { onPick: (media: "photo" | "video", siz
                     key={id}
                     type="button"
                     onClick={() => onPick("photo", id)}
-                    className="group flex flex-col rounded-lg border border-rule bg-sheet p-4 text-left outline-none transition-[border-color,box-shadow] hover:border-magenta/60 hover:shadow-[0_8px_24px_-12px_oklch(0.2_0.02_260/0.35)] focus-visible:ring-2 focus-visible:ring-cyan"
+                    className="group flex flex-col rounded-lg border border-rule bg-sheet p-4 text-left outline-none transition-[border-color,box-shadow] hover:border-brand/60 hover:shadow-[0_8px_24px_-12px_oklch(0.2_0.02_260/0.35)] focus-visible:ring-2 focus-visible:ring-aqua"
                   >
                     <span className="grid h-36 place-items-center rounded-md bg-table/60">
                       <SizePreview w={s.w} h={s.h} />
                     </span>
                     <span className="mt-4 font-heading text-[15px] font-semibold text-ink">{s.label}</span>
                     <span className="mt-0.5 flex items-baseline gap-2 font-mono text-xs text-ink-soft tabular">
-                      <span className="font-semibold text-magenta-ink">{s.ratio}</span>
+                      <span className="font-semibold text-brand-ink">{s.ratio}</span>
                       {s.w} × {s.h}
                     </span>
                     <span className="mt-2 text-[13px] text-pretty text-ink-soft">{s.use}</span>
@@ -104,9 +104,9 @@ function MediaCard({
     <button
       type="button"
       onClick={onClick}
-      className="group flex items-start gap-4 rounded-lg border border-rule bg-sheet p-5 text-left outline-none transition-[border-color,box-shadow] hover:border-magenta/60 hover:shadow-[0_8px_24px_-12px_oklch(0.2_0.02_260/0.35)] focus-visible:ring-2 focus-visible:ring-cyan"
+      className="group flex items-start gap-4 rounded-lg border border-rule bg-sheet p-5 text-left outline-none transition-[border-color,box-shadow] hover:border-brand/60 hover:shadow-[0_8px_24px_-12px_oklch(0.2_0.02_260/0.35)] focus-visible:ring-2 focus-visible:ring-aqua"
     >
-      <span className="grid size-12 shrink-0 place-items-center rounded-full bg-magenta-wash text-magenta">{icon}</span>
+      <span className="grid size-12 shrink-0 place-items-center rounded-full bg-brand-wash text-brand">{icon}</span>
       <span className="flex flex-col">
         <span className="font-heading text-lg font-semibold text-ink">{title}</span>
         <span className="mt-1 text-[14px] text-pretty text-ink-soft">{body}</span>
@@ -134,7 +134,7 @@ export function SizePreview({ w, h, max = 96 }: { w: number; h: number; max?: nu
       <rect
         width={pw}
         height={ph}
-        className="fill-sheet transition-[fill] group-hover:fill-magenta-wash"
+        className="fill-sheet transition-[fill] group-hover:fill-brand-wash"
         style={{ filter: "drop-shadow(0 2px 4px oklch(0.2 0.02 260 / 0.18))" }}
       />
       {corners.map(([x, y, sx, sy], i) => (
