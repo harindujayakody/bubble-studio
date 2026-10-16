@@ -16,7 +16,7 @@ Small business owners who are not designers. They need to turn a phone photo int
 
 ## Product Purpose
 
-A browser-based Facebook post creator in the spirit of Canva: load a photo, apply camera-style filters, adjust, crop, add text, and export a ready-to-upload JPG or PNG. Success is a finished, good-looking post in a couple of minutes.
+A browser-based Facebook post and reel creator in the spirit of Canva: load a photo or video, apply filters, crop, add text, stickers and music, and export a ready-to-upload JPG, PNG or MP4. Success is a finished, good-looking post in a couple of minutes.
 
 ## Positioning
 
@@ -28,14 +28,17 @@ Used at a desk or laptop between other business tasks. The output is uploaded ma
 
 ## Capabilities and Constraints
 
-- Canvas: Facebook square post, 1080×1080 (only size confirmed so far).
-- Features: image upload, filter presets, manual adjustments, crop, text layers, export to JPG/PNG.
-- All image processing runs client-side in the browser (assumed from scope; no backend requested).
-- Undecided: other sizes (portrait, story, cover), templates, stickers/shapes, saving projects.
+- Photo posts at 1:1 (1080×1080), 3:4 (1080×1440), 16:9 (1920×1080) and 9:16 (1080×1920); video reels at 9:16 only.
+- Photo: filters (classic and famous looks), adjustments, crop, reposition, text, stickers, emoji, icons, blur/pixelate areas, layers; export JPG or PNG.
+- Reels: trim, per-item timing on a timeline, original sound and background music with volumes, export MP4 (WebM where MP4 recording isn't available).
+- Sinhala and English fonts, with ready-made Sinhala phrases.
+- Everything runs in the user's browser. Photos, videos and audio are never uploaded; there is no backend (confirmed by the user). The only network use is loading fonts from Google Fonts.
+- Sticker and music libraries are read from /public/custom_icons and /public/music.
+- Undecided: saving projects between visits, templates.
 
 ## Brand Commitments
 
-Product name: **Bubble UX** (given by the user).
+Product name: **Bubble Studio** (given by the user; renamed from Bubble UX).
 
 ## Evidence on Hand
 

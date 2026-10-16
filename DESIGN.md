@@ -1,5 +1,5 @@
 ---
-name: Bubble UX
+name: Bubble Studio
 description: A Facebook post and reel editor in a Canva-style palette, framed as a proof on the workbench.
 colors:
   make-ready-table: "#ebecf0"
@@ -90,7 +90,7 @@ components:
     padding: "16px 16px 20px"
 ---
 
-# Design System: Bubble UX
+# Design System: Bubble Studio
 
 ## Overview
 
@@ -198,7 +198,7 @@ Small, square-ish corners: 6px on buttons and inputs, 4.8px on rail items and li
 - Square live-rendered previews of the photo, 3px corners, three to a row; selected shows an offset aqua ring and a Aqua Ink semibold name.
 
 ### Proof Marks (signature)
-- Corner crop marks (18px strokes offset 8px from the sheet, Press Ink, 1px; 2px in crop mode) and registration targets at the top, left and right midpoints (Press Ink at 50%). The brand mark is the Bubble UX "B" app icon (/public/favicon.png: white B on a purple rounded square), shown at 28px with 7px corners; it is also the favicon.
+- Corner crop marks (18px strokes offset 8px from the sheet, Press Ink, 1px; 2px in crop mode) and registration targets at the top, left and right midpoints (Press Ink at 50%). The brand mark is the Bubble Studio "B" app icon (/public/favicon.png: white B on a purple rounded square), shown at 28px with 7px corners; it is also the favicon.
 
 ### Crop Frame (signature)
 - In crop mode the full photo is shown with a 2px Process Yellow frame, dark keyline, rule-of-thirds lines in white at 40%, and four L-shaped yellow corner handles.

@@ -1,36 +1,26 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Bubble Studio
 
-## Getting Started
+A Canva-style creator for Facebook posts and reels that runs entirely in the browser. Photos, videos and music never leave your computer.
 
-First, run the development server:
+## What it does
+
+- **Photo posts** at 1:1, 3:4, 16:9 or 9:16: filters, adjustments, crop and reposition, text, stickers, emoji, icons, blur or pixelate areas, and a layers list. Export JPG or PNG.
+- **Video reels** at 9:16: trim the clip, set when each text or sticker appears on a timeline, mix the original sound with background music, and export MP4.
+- **Text** in English and Sinhala Google Fonts, with outlines, background fills and ready-made Sinhala phrases.
+
+## Run it
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open http://localhost:3000.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Add your own stickers and music
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Drop PNGs into `public/custom_icons` and audio files into `public/music`. They appear in the editor automatically (after a rebuild for a deployed site). Music files named like `audio_01.mp3` are listed as "Track 01".
 
-## Learn More
+## Built with
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Next.js, Tailwind CSS, shadcn/ui (Base UI) and Lucide icons. Design context lives in `PRODUCT.md` and `DESIGN.md`.

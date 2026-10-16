@@ -24,7 +24,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Bubble UX — Facebook post creator",
+  title: "Bubble Studio — Facebook post and reel creator",
   description:
     "Turn a photo or video into a Facebook post or reel: filters, crop, text, stickers, and export to JPG, PNG or MP4. Runs entirely in your browser.",
   icons: {

@@ -348,7 +348,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
       return;
     }
     if (file.type.startsWith("video/")) {
-      toast.error("Videos go in a reel", { description: "Start a new reel from the home screen (click the Bubble UX logo)." });
+      toast.error("Videos go in a reel", { description: "Start a new reel from the home screen (click the Bubble Studio logo)." });
       return;
     }
     if (!file.type.startsWith("image/")) {
@@ -564,7 +564,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
       <div className="flex h-full min-h-0 flex-col">
         <header className="flex h-14 shrink-0 items-center gap-2.5 border-b border-rule bg-sheet px-3 md:px-4">
           <BrandMark />
-          <span className="font-heading text-[15px] font-semibold tracking-[-0.01em] text-ink">Bubble UX</span>
+          <span className="font-heading text-[15px] font-semibold tracking-[-0.01em] text-ink">Bubble Studio</span>
         </header>
         <StartScreen
           onPick={(media, size) => {
@@ -869,7 +869,7 @@ function TopBar({
         className="flex items-center gap-2.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-aqua"
       >
         <BrandMark />
-        <span className="font-heading text-[15px] font-semibold tracking-[-0.01em] text-ink">Bubble UX</span>
+        <span className="font-heading text-[15px] font-semibold tracking-[-0.01em] text-ink">Bubble Studio</span>
       </button>
       <span className="hidden h-5 w-px bg-rule sm:block" aria-hidden />
       {state.media === "video" ? (
@@ -1075,7 +1075,7 @@ function ReelExportButton({
           <p className="px-4 py-4 text-sm text-pretty text-ink-soft">Add a video first, then come back to export.</p>
         ) : !format ? (
           <p className="px-4 py-4 text-sm text-pretty text-ink-soft">
-            This browser can&apos;t record video. Open Bubble UX in the latest Chrome, Edge or Safari to export reels.
+            This browser can&apos;t record video. Open Bubble Studio in the latest Chrome, Edge or Safari to export reels.
           </p>
         ) : (
           <div className="grid gap-4 px-4 py-4">

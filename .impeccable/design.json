@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
   "generatedAt": "2026-10-17T00:00:00Z",
-  "title": "Design System: Bubble UX",
+  "title": "Design System: Bubble Studio",
   "extensions": {
     "colorMeta": {
       "make-ready-table": { "role": "neutral", "displayName": "Make-Ready Table", "canonical": "oklch(0.905 0.006 250)", "tonalRamp": ["oklch(0.15 0.006 250)", "oklch(0.27 0.006 250)", "oklch(0.39 0.006 250)", "oklch(0.51 0.006 250)", "oklch(0.63 0.006 250)", "oklch(0.75 0.006 250)", "oklch(0.86 0.006 250)", "oklch(0.95 0.006 250)"] },
