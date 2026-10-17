@@ -8,6 +8,7 @@ import {
   Download,
   Droplets,
   Film,
+  Plus,
   ImageIcon,
   Redo2,
   Shapes,
@@ -30,7 +31,17 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { CanvasStage, type RegionDefaults } from "./canvas-stage";
-import { SizePreview, StartScreen } from "./start-screen";
+import { SizePreview, StartScreen, type StartStep } from "./start-screen";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { LayersMenu } from "./layers-menu";
 import { Timeline, VideoBar, VideoPanel } from "./reel";
 import {
@@ -111,6 +122,9 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
   const { state, update, reset, undo, redo, canUndo, canRedo } = useHistory(DEFAULT_STATE);
   /** False until a size is picked on the start screen. */
   const [started, setStarted] = useState(false);
+  /** Which start-screen step to open on, and a pending "new post" waiting for confirmation. */
+  const [startStep, setStartStep] = useState<StartStep>("media");
+  const [pendingNew, setPendingNew] = useState<StartStep | null>(null);
   const [tool, setTool] = useState<ToolId>("photo");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   /** Decoded images for the photo and uploaded stickers, keyed by id. Kept out of history. */
@@ -537,18 +551,27 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
       ? !state.video
       : !state.photoId && state.texts.length === 0 && state.stickers.length === 0 && !startedBlank;
 
-  const goHome = () => {
-    const hasWork = state.photoId || state.video || state.texts.length || state.stickers.length;
-    if (hasWork && !window.confirm("Start something new? This post will be cleared.")) return;
+  /** Clear the editor and go back to the start screen, at the given step. */
+  const startNew = (step: StartStep) => {
     for (const v of Object.values(videos)) {
       v.pause();
       v.remove();
     }
+    for (const a of Object.values(tracks)) a.pause();
     setVideos({});
     setSelectedId(null);
     setTool("photo");
     setStartedBlank(false);
+    setStartStep(step);
+    setPendingNew(null);
     setStarted(false);
+  };
+
+  /** Ask first when there's something on the post that would be lost. */
+  const requestNew = (step: StartStep) => {
+    const hasWork = state.photoId || state.video || state.music || state.texts.length || state.stickers.length || state.regions.length;
+    if (hasWork) setPendingNew(step);
+    else startNew(step);
   };
 
   // The photo keeps its framing relative to the new shape only roughly, so reset the crop.
@@ -588,6 +611,8 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
           <span className="font-heading text-[15px] font-semibold tracking-[-0.01em] text-ink">Bubble Studio</span>
         </header>
         <StartScreen
+          key={startStep}
+          initialStep={startStep}
           onPick={(media, size) => {
             reset({ ...DEFAULT_STATE, media, size });
             setStarted(true);
@@ -608,7 +633,8 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
         assets={photos}
         state={state}
         onSize={setSize}
-        onHome={goHome}
+        onHome={() => requestNew("media")}
+        onNew={requestNew}
         video={video}
         frame={frame}
         music={musicEl}
@@ -770,6 +796,26 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
           e.target.value = "";
         }}
       />
+      <AlertDialog open={pendingNew !== null} onOpenChange={(open) => !open && setPendingNew(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Start a new {pendingNew === "reel" ? "reel" : "post"}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your current design will be cleared and can&apos;t be brought back. Export it first if you want to keep it.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep editing</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-brand text-white hover:bg-brand-ink"
+              onClick={() => pendingNew && startNew(pendingNew)}
+            >
+              Start new
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <input
         ref={musicFileRef}
         type="file"
@@ -862,6 +908,7 @@ function TopBar({
   state,
   onSize,
   onHome,
+  onNew,
   video,
   frame,
   music,
@@ -876,6 +923,7 @@ function TopBar({
   state: typeof DEFAULT_STATE;
   onSize: (size: PostSizeId) => void;
   onHome: () => void;
+  onNew: (step: StartStep) => void;
   video: HTMLVideoElement | undefined;
   frame: HTMLCanvasElement | null;
   music: HTMLAudioElement | undefined;
@@ -902,6 +950,7 @@ function TopBar({
       />
 
       <div className="ml-auto flex items-center gap-1">
+        <NewMenu onNew={onNew} />
         {layers}
         <span className="mx-1 h-5 w-px bg-rule" aria-hidden />
         <Tooltip>
@@ -1137,6 +1186,34 @@ function ReelExportButton({
         )}
       </PopoverContent>
     </Popover>
+  );
+}
+
+/** "New" in the top bar: start a photo post or a reel without hunting for the way back. */
+function NewMenu({ onNew }: { onNew: (step: StartStep) => void }) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger render={<Button variant="outline" size="sm" className="gap-1.5 px-2.5" aria-label="Create new" />}>
+        <Plus />
+        <span className="hidden md:inline">New</span>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-60 p-1">
+        <DropdownMenuItem onClick={() => onNew("size")} className="gap-3 py-2">
+          <ImageIcon className="text-brand" />
+          <span className="flex flex-col">
+            <span className="text-sm font-medium text-ink">New photo post</span>
+            <span className="text-[11px] text-ink-soft">Choose a size, then add a photo</span>
+          </span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => onNew("reel")} className="gap-3 py-2">
+          <Film className="text-brand" />
+          <span className="flex flex-col">
+            <span className="text-sm font-medium text-ink">New video reel</span>
+            <span className="text-[11px] text-ink-soft">9:16 or the video&apos;s own size</span>
+          </span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 

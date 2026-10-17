@@ -7,8 +7,17 @@ import { POST_SIZES, type PostSizeId } from "@/lib/editor/types";
 const ORDER: PostSizeId[] = ["square", "portrait", "landscape", "story", "original"];
 
 /** First screen: photo post or video reel, then (for photos) the post's size. */
-export function StartScreen({ onPick }: { onPick: (media: "photo" | "video", size: PostSizeId) => void }) {
-  const [step, setStep] = useState<"media" | "size" | "reel">("media");
+export type StartStep = "media" | "size" | "reel";
+
+export function StartScreen({
+  onPick,
+  initialStep = "media",
+}: {
+  onPick: (media: "photo" | "video", size: PostSizeId) => void;
+  /** Open straight on the photo sizes or reel sizes, e.g. from the New menu. */
+  initialStep?: StartStep;
+}) {
+  const [step, setStep] = useState<StartStep>(initialStep);
 
   return (
     <main className="flex min-h-0 flex-1 flex-col items-center overflow-y-auto px-4 py-10 md:justify-center md:py-12">
