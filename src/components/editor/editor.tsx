@@ -55,7 +55,16 @@ import { useHistory } from "@/lib/editor/use-history";
 import { SINHALA_RE } from "@/lib/editor/fonts";
 import { nextZ, restack } from "@/lib/editor/layers";
 import { inkFor, mix } from "@/lib/editor/color";
-import { defaultCrop, ensureFonts, exportPost, orientImage, postDims, type Assets } from "@/lib/editor/render";
+import {
+  defaultCrop,
+  ensureFonts,
+  exportDims,
+  exportPost,
+  fitExport,
+  orientImage,
+  postDims,
+  type Assets,
+} from "@/lib/editor/render";
 import {
   DEFAULT_FILL,
   DEFAULT_STATE,
@@ -266,6 +275,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
             audio: true,
             volume: 100,
           },
+          custom: fitExport(v.videoWidth, v.videoHeight),
           crop: null,
           orientation: { rotation: 0, flipX: false, flipY: false },
         }));
@@ -364,6 +374,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
         ...s,
         photoId: id,
         photoName: file.name,
+        custom: fitExport(img.naturalWidth, img.naturalHeight),
         crop: null,
         orientation: { rotation: 0, flipX: false, flipY: false },
       }));
@@ -380,7 +391,12 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
 
 
   const setOrientation = (o: Orientation) =>
-    update((s) => ({ ...s, orientation: o, crop: null }));
+    update((s) => {
+      // A quarter turn swaps the upload's width and height, which "original" size follows.
+      const turned = (s.orientation.rotation - o.rotation) % 180 !== 0;
+      const custom = turned && s.custom ? { w: s.custom.h, h: s.custom.w } : s.custom;
+      return { ...s, orientation: o, crop: null, custom };
+    });
 
   const addText = (style: TextStyleId, text?: string) => {
     const st = TEXT_STYLES[style];
@@ -539,7 +555,12 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
   const setSize = (size: PostSizeId) =>
     update((s) => {
       if (s.size === size) return s;
-      const next = { ...s, size, crop: null };
+      const next = {
+        ...s,
+        size,
+        crop: null,
+        custom: size === "original" && source ? fitExport(source.width, source.height) : s.custom,
+      };
       if (!source || s.regions.length === 0) return next;
       // Regions are stored relative to the post; carry them through photo pixels into the new frame.
       const from = s.crop ?? defaultCrop(source.width, source.height, postDims(s).aspect);
@@ -872,15 +893,13 @@ function TopBar({
         <span className="font-heading text-[15px] font-semibold tracking-[-0.01em] text-ink">Bubble Studio</span>
       </button>
       <span className="hidden h-5 w-px bg-rule sm:block" aria-hidden />
-      {state.media === "video" ? (
-        <span className="flex items-center gap-2 px-2 text-sm text-ink">
-          <Film className="size-4 text-ink-soft" />
-          <span className="hidden sm:inline">Reel</span>
-          <span className="font-mono text-xs text-ink-soft tabular">9:16</span>
-        </span>
-      ) : (
-        <SizeMenu value={state.size} onChange={onSize} />
-      )}
+      <SizeMenu
+        value={state.size}
+        custom={state.custom}
+        options={state.media === "video" ? ["story", "original"] : ["square", "portrait", "landscape", "story", "original"]}
+        reel={state.media === "video"}
+        onChange={onSize}
+      />
 
       <div className="ml-auto flex items-center gap-1">
         {layers}
@@ -952,7 +971,7 @@ function ExportButton({
         <div className="border-b border-rule px-4 py-3">
           <h2 className="text-sm font-semibold text-ink">Export post</h2>
           <p className="mt-0.5 font-mono text-xs text-ink-soft tabular">
-            {postDims(state).w} × {postDims(state).h} px · {POST_SIZES[state.size].label.toLowerCase()}
+            {exportDims(state).w} × {exportDims(state).h} px · {POST_SIZES[state.size].label.toLowerCase()}
           </p>
         </div>
         <div className="grid gap-4 px-4 py-4">
@@ -1068,7 +1087,7 @@ function ReelExportButton({
         <div className="border-b border-rule px-4 py-3">
           <h2 className="text-sm font-semibold text-ink">Export reel</h2>
           <p className="mt-0.5 font-mono text-xs text-ink-soft tabular">
-            1080 × 1920 · {formatTime(length)} · {format?.label ?? "video"}
+            {exportDims(state).w} × {exportDims(state).h} · {formatTime(length)} · {format?.label ?? "video"}
           </p>
         </div>
         {!clip ? (
@@ -1130,20 +1149,47 @@ function soundSummary(state: typeof DEFAULT_STATE) {
   return "This reel will be silent.";
 }
 
-function SizeMenu({ value, onChange }: { value: PostSizeId; onChange: (size: PostSizeId) => void }) {
-  const current = POST_SIZES[value];
+function SizeMenu({
+  value,
+  custom,
+  options,
+  reel,
+  onChange,
+}: {
+  value: PostSizeId;
+  custom: { w: number; h: number } | null;
+  options: PostSizeId[];
+  reel: boolean;
+  onChange: (size: PostSizeId) => void;
+}) {
+  // In a reel the 9:16 preset reads as "Reel"; "Original size" shows the upload's real pixels.
+  const describe = (id: PostSizeId) => {
+    const s = POST_SIZES[id];
+    if (id === "original") {
+      return {
+        label: s.label,
+        ratio: custom ? `${custom.w}×${custom.h}` : "Fit",
+        detail: custom ? `${custom.w} × ${custom.h} · same as your ${reel ? "video" : "photo"}` : `Matches your ${reel ? "video" : "photo"}`,
+        w: custom?.w ?? 4,
+        h: custom?.h ?? 3,
+      };
+    }
+    return { label: reel && id === "story" ? "Reel" : s.label, ratio: s.ratio, detail: `${s.ratio} · ${s.w} × ${s.h}`, w: s.w, h: s.h };
+  };
+  const current = describe(value);
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
         render={<Button variant="ghost" size="sm" className="gap-2 px-2 text-ink" aria-label={`Post size: ${current.label}`} />}
       >
+        {reel && <Film className="text-ink-soft" />}
         <span className="hidden sm:inline">{current.label}</span>
         <span className="font-mono text-xs text-ink-soft tabular">{current.ratio}</span>
         <ChevronDown className="text-ink-soft" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-72 p-1">
-        {(Object.keys(POST_SIZES) as PostSizeId[]).map((id) => {
-          const s = POST_SIZES[id];
+        {options.map((id) => {
+          const s = describe(id);
           return (
             <DropdownMenuItem
               key={id}
@@ -1151,13 +1197,11 @@ function SizeMenu({ value, onChange }: { value: PostSizeId; onChange: (size: Pos
               className={cn("gap-3 py-2", id === value && "bg-aqua-wash")}
             >
               <span className="grid w-10 shrink-0 place-items-center">
-                <SizePreview w={s.w} h={s.h} max={26} />
+                <SizePreview w={s.w} h={s.h} max={26} dashed={id === "original" && !custom} />
               </span>
               <span className="flex flex-1 flex-col">
                 <span className="text-sm font-medium text-ink">{s.label}</span>
-                <span className="font-mono text-[11px] text-ink-soft tabular">
-                  {s.ratio} · {s.w} × {s.h}
-                </span>
+                <span className="font-mono text-[11px] text-ink-soft tabular">{s.detail}</span>
               </span>
               {id === value && <Check className="text-aqua-ink" />}
             </DropdownMenuItem>

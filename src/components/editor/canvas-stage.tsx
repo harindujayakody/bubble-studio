@@ -4,7 +4,16 @@ import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as Reac
 import { Film, ImagePlus, Move, Palette } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { clampCrop, defaultCrop, postDims, renderPost, type Assets, type Source, type TextBox } from "@/lib/editor/render";
+import {
+  clampCrop,
+  defaultCrop,
+  exportDims,
+  postDims,
+  renderPost,
+  type Assets,
+  type Source,
+  type TextBox,
+} from "@/lib/editor/render";
 import { fontStack, nearestWeight } from "@/lib/editor/fonts";
 import { autoOutline, inkFor, mix } from "@/lib/editor/color";
 import {
@@ -297,7 +306,7 @@ export function CanvasStage(props: Props) {
 
       <ColourBar
         zoom={zoom}
-        dims={`${post.w} × ${post.h} px`}
+        dims={`${exportDims(state).w} × ${exportDims(state).h} px`}
         label={
           cropping
             ? "Crop · drag the frame"

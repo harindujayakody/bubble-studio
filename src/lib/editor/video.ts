@@ -1,4 +1,4 @@
-import { ensureFonts, postDims, renderPost, type Assets } from "./render";
+import { ensureFonts, exportDims, renderPost, type Assets } from "./render";
 import type { MusicTrack, Orientation, PostState, VideoClip } from "./types";
 
 /** Load a video file into a detached element ready for drawing. */
@@ -203,7 +203,7 @@ export async function exportReel(opts: {
   if (!clip || !format) throw new Error("This browser can't record video. Try the latest Chrome, Edge or Safari.");
 
   await ensureFonts(state);
-  const { w, h } = postDims(state);
+  const { w, h } = exportDims(state);
   const out = document.createElement("canvas");
   out.width = w;
   out.height = h;

@@ -1,14 +1,19 @@
 /** Reference width that font and sticker sizes were designed against. */
 export const POST_SIZE = 1080;
 
-export type PostSizeId = "square" | "portrait" | "landscape" | "story";
+export type PostSizeId = "square" | "portrait" | "landscape" | "story" | "original";
 
 export const POST_SIZES: Record<PostSizeId, { label: string; ratio: string; w: number; h: number; use: string }> = {
   square: { label: "Square post", ratio: "1:1", w: 1080, h: 1080, use: "Feed posts and ads" },
   portrait: { label: "Portrait post", ratio: "3:4", w: 1080, h: 1440, use: "Fills more of the feed on phones" },
   landscape: { label: "Landscape", ratio: "16:9", w: 1920, h: 1080, use: "Link shares, events and video covers" },
   story: { label: "Story or reel", ratio: "9:16", w: 1080, h: 1920, use: "Full-screen stories and reel covers" },
+  // Placeholder until media is loaded; the real size comes from PostState.custom.
+  original: { label: "Original size", ratio: "Fit", w: 1080, h: 1080, use: "Exports at the exact size of your upload" },
 };
+
+/** Largest side we export at when matching an upload, to stay inside browser canvas limits. */
+export const MAX_EXPORT_SIDE = 4096;
 
 export type ToolId = "photo" | "filters" | "adjust" | "crop" | "text" | "elements" | "blur";
 
@@ -158,6 +163,8 @@ export type PostState = {
   /** A photo post or a video reel; chosen on the start screen. */
   media: "photo" | "video";
   size: PostSizeId;
+  /** Pixel size of the uploaded photo or video, used when `size` is "original". */
+  custom: { w: number; h: number } | null;
   video: VideoClip | null;
   music: MusicTrack | null;
   /** Present when a photo is loaded. The pixels themselves live outside history. */
@@ -177,6 +184,7 @@ export type PostState = {
 export const DEFAULT_STATE: PostState = {
   media: "photo",
   size: "square",
+  custom: null,
   video: null,
   music: null,
   photoId: null,

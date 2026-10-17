@@ -4,6 +4,8 @@ import { autoOutline } from "./color";
 import { stackOrder, visibleAt } from "./layers";
 import { drawSticker, stickerSize } from "./stickers";
 import {
+  MAX_EXPORT_SIDE,
+  POST_SIZE,
   POST_SIZES,
   type Region,
   type Crop,
@@ -18,7 +20,7 @@ export type Source = HTMLCanvasElement;
 export function orientImage(
   img: HTMLImageElement,
   o: Orientation,
-  maxSide = 4096,
+  maxSide = MAX_EXPORT_SIDE,
 ): Source {
   const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
   const w = Math.round(img.naturalWidth * scale);
@@ -36,10 +38,36 @@ export function orientImage(
   return canvas;
 }
 
-/** Post dimensions in output pixels. */
-export function postDims(state: Pick<PostState, "size">) {
+/**
+ * The post's design space. Presets are their pixel size; "original" keeps the
+ * upload's exact shape scaled so its short side is 1080, so text and sticker
+ * sizes behave the same whatever the photo's resolution.
+ */
+export function postDims(state: Pick<PostState, "size" | "custom">) {
+  if (state.size === "original" && state.custom) {
+    const { w, h } = state.custom;
+    const k = POST_SIZE / Math.min(w, h);
+    return { w: Math.round(w * k), h: Math.round(h * k), aspect: w / h };
+  }
   const { w, h } = POST_SIZES[state.size];
   return { w, h, aspect: w / h };
+}
+
+/** The pixel size of the exported file: the preset, or the upload's own size (capped). */
+export function exportDims(state: Pick<PostState, "size" | "custom">) {
+  if (state.size === "original" && state.custom) {
+    const { w, h } = state.custom;
+    const k = Math.min(1, MAX_EXPORT_SIDE / Math.max(w, h));
+    return { w: Math.round(w * k), h: Math.round(h * k) };
+  }
+  const { w, h } = postDims(state);
+  return { w, h };
+}
+
+/** Clamp an upload's size to what we can export. */
+export function fitExport(w: number, h: number) {
+  const k = Math.min(1, MAX_EXPORT_SIDE / Math.max(w, h));
+  return { w: Math.round(w * k), h: Math.round(h * k) };
 }
 
 /** Largest centred crop of the given aspect (width / height) that fits the photo. */
@@ -233,7 +261,7 @@ export function drawPhotoLook(
   dh: number,
   lookOverride?: RenderOptions["lookOverride"],
 ) {
-  const scale = dw / POST_SIZES[state.size].w;
+  const scale = dw / postDims(state).w;
   const look = resolveLook(
     lookOverride?.filter ?? state.filter,
     lookOverride?.strength ?? state.filterStrength,
@@ -405,7 +433,7 @@ export async function exportPost(
 ): Promise<Blob> {
   await ensureFonts(state);
   const canvas = document.createElement("canvas");
-  const { w, h } = postDims(state);
+  const { w, h } = exportDims(state);
   canvas.width = w;
   canvas.height = h;
   const ctx = canvas.getContext("2d")!;
