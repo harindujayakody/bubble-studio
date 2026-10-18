@@ -1,7 +1,7 @@
 /** Reference width that font and sticker sizes were designed against. */
 export const POST_SIZE = 1080;
 
-export type PostSizeId = "square" | "portrait" | "landscape" | "story" | "original";
+export type PostSizeId = "square" | "portrait" | "landscape" | "story" | "original" | "custom";
 
 export const POST_SIZES: Record<PostSizeId, { label: string; ratio: string; w: number; h: number; use: string }> = {
   square: { label: "Square post", ratio: "1:1", w: 1080, h: 1080, use: "Feed posts and ads" },
@@ -10,6 +10,8 @@ export const POST_SIZES: Record<PostSizeId, { label: string; ratio: string; w: n
   story: { label: "Story or reel", ratio: "9:16", w: 1080, h: 1920, use: "Full-screen stories and reel covers" },
   // Placeholder until media is loaded; the real size comes from PostState.custom.
   original: { label: "Original size", ratio: "Fit", w: 1080, h: 1080, use: "Exports at the exact size of your upload" },
+  // Placeholder; the real size comes from PostState.canvas.
+  custom: { label: "Custom size", ratio: "Custom", w: 1080, h: 1080, use: "Any width and height you type" },
 };
 
 /** Largest side we export at when matching an upload, to stay inside browser canvas limits. */
@@ -91,7 +93,36 @@ export type TextLayer = {
   z: number;
 } & Timing;
 
-export type StickerKind = "emoji" | "icon" | "image";
+export type StickerKind = "emoji" | "icon" | "image" | "shape" | "animated" | "gif";
+
+export type ShapeId =
+  | "square"
+  | "rounded"
+  | "circle"
+  | "triangle"
+  | "triangle-down"
+  | "cross"
+  | "plaque"
+  | "ticket"
+  | "parallelogram"
+  | "parallelogram-left"
+  | "trapezoid"
+  | "trapezoid-down"
+  | "u-shape"
+  | "arch"
+  | "right-triangle"
+  | "semicircle"
+  | "quarter"
+  | "quarter-ring"
+  | "half-ring"
+  | "star"
+  | "heart"
+  | "hexagon"
+  | "diamond"
+  | "arrow"
+  | "burst"
+  | "bubble"
+  | "line";
 
 export type Sticker = {
   id: string;
@@ -102,8 +133,17 @@ export type Sticker = {
   y: number;
   size: number; // width in px at 1080
   rotation: number;
-  color: string; // icon stroke
+  color: string; // icon stroke, shape fill, animated sticker colour
   opacity: number; // 0..100
+  /** Shapes: which outline, and its look. */
+  shape?: ShapeId;
+  /** Shape fill; "none" leaves it hollow. Falls back to `color`. */
+  fill?: string;
+  stroke?: string;
+  strokeWidth?: number; // px at 1080
+  radius?: number; // 0..100, corner rounding of squares and bubbles
+  /** Width / height. Shapes can be stretched; everything else is square or follows its image. */
+  aspect?: number;
   /** Stacking order shared with text layers; higher draws on top. */
   z: number;
 } & Timing;
@@ -169,6 +209,8 @@ export type PostState = {
   size: PostSizeId;
   /** Pixel size of the uploaded photo or video, used when `size` is "original". */
   custom: { w: number; h: number } | null;
+  /** Width and height typed by the user, used when `size` is "custom". */
+  canvas?: { w: number; h: number } | null;
   video: VideoClip | null;
   music: MusicTrack | null;
   /** Present when a photo is loaded. The pixels themselves live outside history. */
@@ -183,6 +225,16 @@ export type PostState = {
   regions: Region[];
   stickers: Sticker[];
   texts: TextLayer[];
+  /** Photo collage that replaces the single photo. */
+  grid?: CollageGrid | null;
+};
+
+/** A photo collage: a layout of cells, each holding an uploaded image (asset id) or empty. */
+export type CollageGrid = {
+  layout: string;
+  cells: (string | null)[];
+  gap: number; // px at 1080
+  radius: number; // px at 1080
 };
 
 export const DEFAULT_STATE: PostState = {

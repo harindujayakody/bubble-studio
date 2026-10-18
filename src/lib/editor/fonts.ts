@@ -25,7 +25,9 @@ export const POSTER_FONTS: PosterFont[] = [
   { family: "Caveat", label: "Caveat", weights: [500, 700], fallback: "cursive", script: "latin" },
   { family: "Permanent Marker", label: "Permanent Marker", weights: [400], fallback: "cursive", script: "latin" },
   // Sinhala (සිංහල). All include Latin glyphs too.
-  { family: "Noto Sans Sinhala", label: "Noto Sans Sinhala", weights: [400, 600, 800], fallback: "sans-serif", script: "sinhala" },
+  { family: "Noto Sans Sinhala", label: "Noto Sans Sinhala", weights: [300, 400, 600, 800, 900], fallback: "sans-serif", script: "sinhala" },
+  { family: "Google Sans", label: "Google Sans", weights: [400, 500, 700], fallback: "sans-serif", script: "sinhala" },
+  { family: "Maname", label: "Maname", weights: [400], fallback: "serif", script: "sinhala" },
   { family: "Noto Serif Sinhala", label: "Noto Serif Sinhala", weights: [400, 700], fallback: "serif", script: "sinhala" },
   { family: "Abhaya Libre", label: "Abhaya Libre", weights: [400, 600, 800], fallback: "serif", script: "sinhala" },
   { family: "Yaldevi", label: "Yaldevi", weights: [400, 600, 700], fallback: "sans-serif", script: "sinhala" },

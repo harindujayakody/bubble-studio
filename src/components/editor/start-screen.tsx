@@ -1,13 +1,15 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, AudioLines, Film, ImageIcon, Lock, MoreHorizontal, Play, Star, Trash2 } from "lucide-react";
+import { ArrowRight, AudioLines, Film, ImageIcon, Lock, MoreHorizontal, Play, Plus, Star, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { DraftSummary } from "@/lib/editor/draft";
 import { gradientCss, GRADIENT_PRESETS } from "@/lib/editor/palettes";
 import { POST_SIZES, type PostSizeId, type ToolId } from "@/lib/editor/types";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { BulkIcon, VideoIcon } from "./tool-icons";
+import { CustomSizeForm } from "./custom-size";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const PHOTO_SIZES: PostSizeId[] = ["square", "portrait", "landscape", "story", "original"];
 const REEL_SIZES: PostSizeId[] = ["story", "landscape", "original"];
@@ -18,6 +20,7 @@ const SHORT: Record<PostSizeId, string> = {
   landscape: "Landscape",
   story: "Story",
   original: "Original",
+  custom: "Custom",
 };
 
 export const REPO_URL = "https://github.com/harindujayakody/bubble-studio";
@@ -35,7 +38,7 @@ export function StartScreen({
   onOpen,
   onRemove,
 }: {
-  onPick: (media: "photo" | "video", size: PostSizeId, openTool?: ToolId) => void;
+  onPick: (media: "photo" | "video", size: PostSizeId, openTool?: ToolId, canvas?: { w: number; h: number }) => void;
   onTool: (tool: StartTool) => void;
   initialStep?: StartStep;
   /** Designs saved in this browser, newest first. */
@@ -66,6 +69,7 @@ export function StartScreen({
             sizes={PHOTO_SIZES}
             reel={false}
             onPick={(size) => onPick("photo", size)}
+            onCustom={(dims) => onPick("photo", "custom", undefined, dims)}
           />
           <CreateCard
             highlighted={initialStep === "reel"}
@@ -257,6 +261,7 @@ function CreateCard({
   reel,
   highlighted,
   onPick,
+  onCustom,
 }: {
   title: string;
   body: string;
@@ -265,6 +270,8 @@ function CreateCard({
   reel: boolean;
   highlighted: boolean;
   onPick: (size: PostSizeId) => void;
+  /** Photos only: start at a typed width and height. */
+  onCustom?: (dims: { w: number; h: number }) => void;
 }) {
   return (
     <article className={cn("flex flex-col rounded-2xl bg-sheet p-4 shadow-float md:p-5", highlighted && "ring-2 ring-brand")}>
@@ -304,6 +311,19 @@ function CreateCard({
             </button>
           );
         })}
+        {onCustom && (
+          <Popover>
+            <PopoverTrigger
+              className="inline-flex h-9 min-w-0 items-center gap-1.5 rounded-full border border-dashed border-brand/60 bg-sheet pr-2.5 pl-2 text-[13px] font-medium text-brand outline-none transition-colors hover:bg-brand-wash focus-visible:ring-2 focus-visible:ring-aqua aria-expanded:bg-brand-wash sm:gap-2 sm:pr-3.5 sm:pl-2.5"
+            >
+              <Plus className="size-4" /> Custom size
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-80 p-4">
+              <h3 className="mb-3 font-heading text-sm font-semibold text-ink">Custom size</h3>
+              <CustomSizeForm submitLabel="Create design" onSubmit={onCustom} />
+            </PopoverContent>
+          </Popover>
+        )}
       </div>
     </article>
   );

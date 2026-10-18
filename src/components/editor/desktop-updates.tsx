@@ -50,9 +50,42 @@ let current: UpdateStatus = { state: "idle" };
 /** Set when the user pressed "Check for updates", so "up to date" and errors are reported. */
 let manualCheck = false;
 const listeners = new Set<() => void>();
+/** Newest version published, from the updater or the releases page; shown whatever is installed. */
+let latest: string | null = null;
 function setStatus(s: UpdateStatus) {
   current = s;
+  if ("version" in s && s.version) latest = s.version;
   listeners.forEach((l) => l());
+}
+
+const RELEASES_API = "https://api.github.com/repos/harindujayakody/bubble-studio/releases/latest";
+let fetchedLatest = false;
+/** Ask GitHub once for the newest release, so the number shows even before (or without) a check. */
+function fetchLatest() {
+  if (fetchedLatest) return;
+  fetchedLatest = true;
+  void fetch(RELEASES_API, { headers: { Accept: "application/vnd.github+json" } })
+    .then((r) => (r.ok ? r.json() : null))
+    .then((d: { tag_name?: string } | null) => {
+      const v = d?.tag_name?.replace(/^v/, "");
+      if (v && !latest) {
+        latest = v;
+        listeners.forEach((l) => l());
+      }
+    })
+    .catch(() => {});
+}
+
+export function useLatestVersion(): string | null {
+  return useSyncExternalStore(
+    (cb) => {
+      listeners.add(cb);
+      fetchLatest();
+      return () => listeners.delete(cb);
+    },
+    () => latest,
+    () => null,
+  );
 }
 
 export function useUpdateStatus(): UpdateStatus {

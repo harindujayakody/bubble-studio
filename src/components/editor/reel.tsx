@@ -46,7 +46,7 @@ export function VideoPanel({
         <p className="mb-3 text-sm text-pretty text-ink-soft">
           Add a clip from your phone or computer. MP4 and WebM work best. It stays on your computer.
         </p>
-        <Button onClick={onPickVideo} className="bg-brand text-white hover:bg-brand-ink">
+        <Button onClick={onPickVideo}>
           <Film /> Choose video
         </Button>
       </PanelSection>

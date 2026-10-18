@@ -128,7 +128,7 @@ export function BulkPanel({
           you download them all at once.
         </p>
         <div className="flex flex-wrap gap-2">
-          <Button onClick={onAdd} className="bg-brand text-white hover:bg-brand-ink" disabled={progress !== null}>
+          <Button onClick={onAdd} disabled={progress !== null}>
             <ImagePlus /> Add photos
           </Button>
           {photos.length > 0 && (
@@ -211,7 +211,7 @@ export function BulkPanel({
                 {state.size === "original" ? "Each at its own size" : `${dims.w} × ${dims.h} px each`} · one ZIP file
               </p>
               {progress === null ? (
-                <Button onClick={exportAll} className="h-9 bg-brand text-white hover:bg-brand-ink">
+                <Button onClick={exportAll} className="h-9">
                   <Download /> Export {photos.length} post{photos.length === 1 ? "" : "s"}
                 </Button>
               ) : (
@@ -365,7 +365,7 @@ export function BulkReelPanel({
         <div className="flex flex-wrap gap-2">
           <Button
             onClick={onAdd}
-            className="bg-brand text-white hover:bg-brand-ink"
+           
             disabled={progress !== null || !supported}
           >
             <ImagePlus /> Add clips
@@ -453,7 +453,7 @@ export function BulkReelPanel({
               <Button
                 onClick={exportAll}
                 disabled={!supported}
-                className="h-9 w-full bg-brand text-white hover:bg-brand-ink"
+                className="h-9 w-full"
               >
                 <Download /> Export {clips.length} reel{clips.length === 1 ? "" : "s"}
               </Button>

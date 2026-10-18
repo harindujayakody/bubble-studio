@@ -3,6 +3,8 @@ import { resolveLook } from "./filters";
 import { autoOutline } from "./color";
 import { stackOrder, visibleAt } from "./layers";
 import { drawSticker, stickerSize } from "./stickers";
+import { gridCells } from "./elements";
+import { drawWatermark, ensureWatermarkFont, getWatermark, watermarkApplies } from "./watermark";
 import {
   MAX_EXPORT_SIDE,
   POST_SIZE,
@@ -43,9 +45,10 @@ export function orientImage(
  * upload's exact shape scaled so its short side is 1080, so text and sticker
  * sizes behave the same whatever the photo's resolution.
  */
-export function postDims(state: Pick<PostState, "size" | "custom">) {
-  if (state.size === "original" && state.custom) {
-    const { w, h } = state.custom;
+export function postDims(state: Pick<PostState, "size" | "custom" | "canvas">) {
+  const own = state.size === "original" ? state.custom : state.size === "custom" ? state.canvas : null;
+  if (own) {
+    const { w, h } = own;
     const k = POST_SIZE / Math.min(w, h);
     return { w: Math.round(w * k), h: Math.round(h * k), aspect: w / h };
   }
@@ -54,9 +57,10 @@ export function postDims(state: Pick<PostState, "size" | "custom">) {
 }
 
 /** The pixel size of the exported file: the preset, or the upload's own size (capped). */
-export function exportDims(state: Pick<PostState, "size" | "custom">) {
-  if (state.size === "original" && state.custom) {
-    const { w, h } = state.custom;
+export function exportDims(state: Pick<PostState, "size" | "custom" | "canvas">) {
+  const own = state.size === "original" ? state.custom : state.size === "custom" ? state.canvas : null;
+  if (own) {
+    const { w, h } = own;
     const k = Math.min(1, MAX_EXPORT_SIDE / Math.max(w, h));
     return { w: Math.round(w * k), h: Math.round(h * k) };
   }
@@ -377,7 +381,32 @@ export function renderPost(ctx: CanvasRenderingContext2D, opts: RenderOptions): 
   }
   ctx.fillRect(0, 0, width, height);
 
-  if (source) {
+  if (state.grid && state.media === "photo") {
+    // Collage: each cell shows its photo, cropped to fill, with the post's look.
+    const cells = gridCells(state.grid, width, height, scale);
+    cells.forEach((c, i) => {
+      const id = state.grid!.cells[i];
+      const img = id ? assets[id] : undefined;
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(c.x, c.y, c.w, c.h, state.grid!.radius * scale);
+      ctx.clip();
+      if (img) {
+        const iw = img.naturalWidth || img.width;
+        const ih = img.naturalHeight || img.height;
+        const k = Math.max(c.w / iw, c.h / ih);
+        const sw = c.w / k;
+        const sh = c.h / k;
+        ctx.translate(c.x, c.y);
+        drawPhotoLook(ctx, img as unknown as Source, state, (iw - sw) / 2, (ih - sh) / 2, sw, sh, c.w, c.h, lookOverride);
+      } else if (withText) {
+        // Empty cell: a soft placeholder, left out of thumbnails.
+        ctx.fillStyle = "rgba(127,127,140,0.18)";
+        ctx.fillRect(c.x, c.y, c.w, c.h);
+      }
+      ctx.restore();
+    });
+  } else if (source) {
     const crop = state.crop ?? defaultCrop(source.width, source.height, post.aspect);
     ctx.save();
     ctx.beginPath();
@@ -395,12 +424,12 @@ export function renderPost(ctx: CanvasRenderingContext2D, opts: RenderOptions): 
       if (time !== undefined && !visibleAt(item.layer, time)) continue;
       if (item.kind === "sticker") {
         const s = item.layer;
-        if (s.kind === "image" && !assets[s.value]) continue;
+        if ((s.kind === "image" || s.kind === "gif") && !assets[s.value]) continue;
         const { w, h } = stickerSize(s, assets);
         ctx.save();
         ctx.translate(s.x * width, s.y * height);
         ctx.rotate((s.rotation * Math.PI) / 180);
-        drawSticker(ctx, s, scale, assets);
+        drawSticker(ctx, s, scale, assets, time ?? 0);
         ctx.restore();
         boxes.push({ id: s.id, kind: "sticker", cx: s.x, cy: s.y, w: w / post.w, h: h / post.h, rotation: s.rotation });
       } else {
@@ -410,6 +439,8 @@ export function renderPost(ctx: CanvasRenderingContext2D, opts: RenderOptions): 
         boxes.push(drawText(ctx, layer, scale, width, height, !hidden));
       }
     }
+    const wm = getWatermark();
+    if (watermarkApplies(wm, state.media)) drawWatermark(ctx, wm, width, height);
   }
   ctx.restore();
   return boxes;
@@ -420,7 +451,7 @@ export async function ensureFonts(state: PostState) {
   const loads = state.texts.map((t) =>
     document.fonts.load(fontString(t.fontFamily, t.fontWeight, 48), t.text || "A").catch(() => []),
   );
-  await Promise.all(loads);
+  await Promise.all([...loads, ensureWatermarkFont()]);
 }
 
 export async function exportPost(

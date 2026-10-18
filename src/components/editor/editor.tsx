@@ -14,6 +14,7 @@ import {
   Plus,
   ImageIcon,
   Redo2,
+  Ruler,
   Sun,
   Undo2,
 } from "lucide-react";
@@ -33,6 +34,7 @@ import {
 import { setThemePref, useResolvedTheme } from "@/lib/theme";
 import { saveExport, type ExportKind } from "@/lib/editor/save";
 import { extractAudio } from "@/lib/editor/media-tools";
+import { loadGif } from "@/lib/editor/gif";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -43,8 +45,11 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { CustomSizeForm } from "./custom-size";
 import {
   deleteDraft,
   loadDraft,
@@ -61,6 +66,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { CanvasStage, type RegionDefaults } from "./canvas-stage";
 import { SizePreview, StartScreen, type StartStep, type StartTool } from "./start-screen";
 import { ExtractAudioScreen, MergeVideosScreen } from "./media-tool-screens";
+import { WatermarkSection } from "./watermark-panel";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -183,6 +189,9 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
   const videoFileRef = useRef<HTMLInputElement>(null);
   const musicFileRef = useRef<HTMLInputElement>(null);
   const musicVideoRef = useRef<HTMLInputElement>(null);
+  const cellFileRef = useRef<HTMLInputElement>(null);
+  const gifFileRef = useRef<HTMLInputElement>(null);
+  const pendingCell = useRef(0);
   /** Loaded music, keyed by track id (library URL or upload id). */
   const [tracks, setTracks] = useState<Record<string, HTMLAudioElement>>({});
   /** Loaded clips, keyed by id like photos. */
@@ -414,6 +423,53 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
   };
 
 
+  /** An animated GIF sticker for a reel: frames are unpacked once, then drawn by time. */
+  const loadGifFile = async (file: File) => {
+    if (file.type !== "image/gif") {
+      toast.error("That file isn't a GIF", { description: "Choose an animated .gif file." });
+      return;
+    }
+    const id = crypto.randomUUID();
+    try {
+      await loadGif(id, file);
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const i = new Image();
+        i.onload = () => resolve(i);
+        i.onerror = reject;
+        i.src = URL.createObjectURL(file);
+      });
+      files.current.set(id, file);
+      const next = { ...photos, [id]: img };
+      setPhotos(next);
+      addSticker({ kind: "gif", value: id, size: 320 }, next);
+    } catch {
+      toast.error("This GIF couldn't be opened", { description: "Try another GIF file." });
+    }
+  };
+
+  /** A photo for one cell of the collage. */
+  const loadCellPhoto = (file: File, index: number) => {
+    if (!file.type.startsWith("image/") || file.type === "image/svg+xml") {
+      toast.error("That file isn't a photo", { description: "Choose a JPG, PNG or WebP image." });
+      return;
+    }
+    const img = new Image();
+    img.onload = () => {
+      const id = crypto.randomUUID();
+      files.current.set(id, file);
+      setPhotos((p) => ({ ...p, [id]: img }));
+      update((s) => {
+        if (!s.grid) return s;
+        const cells = [...s.grid.cells];
+        cells[index] = id;
+        return { ...s, grid: { ...s.grid, cells } };
+      });
+      setStartedBlank(true);
+    };
+    img.onerror = () => toast.error("This photo couldn't be opened", { description: "Try saving it as JPG or PNG." });
+    img.src = URL.createObjectURL(file);
+  };
+
   /** Stickers from /public/custom_icons load on first use and are then kept with the other images. */
   const addCustomSticker = (id: string, src: string) => {
     if (photos[id]) {
@@ -619,10 +675,17 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
     return () => window.removeEventListener("keydown", onKey);
   }, [selected, selectedKind, undo, redo, update]);
 
+  // A collage has no single photo; its first cell stands in for filter previews.
+  const firstCell = state.grid?.cells.find((c) => c && photos[c]) ?? null;
+  const lookSource = useMemo(
+    () => source ?? (firstCell ? orientImage(photos[firstCell], { rotation: 0, flipX: false, flipY: false }, 1080) : null),
+    [source, firstCell, photos],
+  );
+
   const showEmpty =
     state.media === "video"
       ? !state.video
-      : !state.photoId && state.texts.length === 0 && state.stickers.length === 0 && !startedBlank;
+      : !state.photoId && !state.grid && state.texts.length === 0 && state.stickers.length === 0 && !startedBlank;
 
   // Auto-save: shortly after each change, store the design and the files it uses in this browser.
   useEffect(() => {
@@ -683,7 +746,19 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
         if (blob) nextPhotos[next.photoId] = await imageFrom(URL.createObjectURL(blob));
         else missing.push("photo");
       }
+      for (const cell of next.grid?.cells ?? []) {
+        const blob = cell && !nextPhotos[cell] ? stored.get(cell) : undefined;
+        if (cell && blob) nextPhotos[cell] = await imageFrom(URL.createObjectURL(blob));
+      }
       for (const s of next.stickers) {
+        if (s.kind === "gif" && !nextPhotos[s.value]) {
+          const blob = stored.get(s.value);
+          if (blob) {
+            await loadGif(s.value, blob).catch(() => {});
+            nextPhotos[s.value] = await imageFrom(URL.createObjectURL(blob));
+          }
+          continue;
+        }
         if (s.kind !== "image" || nextPhotos[s.value]) continue;
         const blob = stored.get(s.value);
         const library = stickers.find((l) => l.id === s.value);
@@ -828,12 +903,13 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
   };
 
   // The photo keeps its framing relative to the new shape only roughly, so reset the crop.
-  const setSize = (size: PostSizeId) =>
+  const setSize = (size: PostSizeId, canvas?: { w: number; h: number }) =>
     update((s) => {
-      if (s.size === size) return s;
+      if (s.size === size && size !== "custom") return s;
       const next = {
         ...s,
         size,
+        canvas: size === "custom" ? (canvas ?? s.canvas ?? null) : s.canvas,
         crop: null,
         custom: size === "original" && source ? fitExport(source.width, source.height) : s.custom,
       };
@@ -879,9 +955,9 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
             recents={recents}
             onOpen={resumeDraft}
             onRemove={removeRecent}
-            onPick={(media, size, openTool) => {
+            onPick={(media, size, openTool, canvas) => {
               designId.current = crypto.randomUUID();
-              reset({ ...DEFAULT_STATE, media, size });
+              reset({ ...DEFAULT_STATE, media, size, canvas: canvas ?? null });
               if (openTool) setTool(openTool);
               setStarted(true);
             }}
@@ -1023,8 +1099,9 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
               onRemovePhoto={() => update((s) => ({ ...s, photoId: null, photoName: null, crop: null }))}
             />
           )}
-          {tool === "filters" && <FiltersPanel source={source} state={state} update={update} />}
-          {tool === "adjust" && <AdjustPanel source={source} state={state} update={update} />}
+          {tool === "photo" && <WatermarkSection />}
+          {tool === "filters" && <FiltersPanel source={lookSource} state={state} update={update} />}
+          {tool === "adjust" && <AdjustPanel source={lookSource} state={state} update={update} />}
           {tool === "crop" && <CropPanel source={source} state={state} update={update} onOrient={setOrientation} />}
           {tool === "text" && (
             <TextPanel
@@ -1047,6 +1124,11 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
               onAddCustom={addCustomSticker}
               library={stickers}
               onUpload={() => stickerFileRef.current?.click()}
+              onUploadGif={() => gifFileRef.current?.click()}
+              onPickCell={(i) => {
+                pendingCell.current = i;
+                cellFileRef.current?.click();
+              }}
             />
           )}
           {tool === "bulk" && state.media === "video" && (
@@ -1109,7 +1191,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
           <AlertDialogFooter>
             <AlertDialogCancel>Keep editing</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-brand text-white hover:bg-brand-ink"
+             
               onClick={() => pendingNew && startNew(pendingNew)}
             >
               Start new
@@ -1143,6 +1225,32 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
         onChange={(e) => {
           const list = Array.from(e.target.files ?? []);
           if (list.length) void addBulkPhotos(list);
+          e.target.value = "";
+        }}
+      />
+      <input
+        ref={gifFileRef}
+        type="file"
+        accept="image/gif"
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) void loadGifFile(f);
+          e.target.value = "";
+        }}
+      />
+      <input
+        ref={cellFileRef}
+        type="file"
+        accept={ACCEPT}
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) loadCellPhoto(f, pendingCell.current);
           e.target.value = "";
         }}
       />
@@ -1294,7 +1402,7 @@ function TopBar({
   source: ReturnType<typeof orientImage> | null;
   assets: Assets;
   state: typeof DEFAULT_STATE;
-  onSize: (size: PostSizeId) => void;
+  onSize: (size: PostSizeId, canvas?: { w: number; h: number }) => void;
   onHome: () => void;
   onNew: (step: StartStep) => void;
   autosave: React.ReactNode;
@@ -1319,9 +1427,15 @@ function TopBar({
       <SizeMenu
         value={state.size}
         custom={state.custom}
-        options={state.media === "video" ? ["story", "landscape", "original"] : ["square", "portrait", "landscape", "story", "original"]}
+        canvas={state.canvas ?? null}
+        options={
+          state.media === "video"
+            ? ["story", "landscape", "original"]
+            : ["square", "portrait", "landscape", "story", "original", ...(state.size === "custom" ? (["custom"] as const) : [])]
+        }
         reel={state.media === "video"}
         onChange={onSize}
+        onCustom={state.media === "photo" ? (dims) => onSize("custom", dims) : undefined}
       />
 
       <NewMenu onNew={onNew} />
@@ -1435,7 +1549,7 @@ function ExportButton({
               <span className="font-mono text-xs text-ink-soft">.{format === "jpeg" ? "jpg" : "png"}</span>
             </div>
           </div>
-          <Button onClick={download} disabled={busy} className="h-9 bg-brand text-white hover:bg-brand-ink">
+          <Button onClick={download} disabled={busy} className="h-9">
             <Download /> {busy ? "Preparing…" : `Download ${format === "jpeg" ? "JPG" : "PNG"}`}
           </Button>
         </div>
@@ -1569,7 +1683,7 @@ function ReelExportButton({
               </div>
             ) : (
               <div className="grid gap-2">
-                <Button onClick={record} className="h-9 bg-brand text-white hover:bg-brand-ink">
+                <Button onClick={record} className="h-9">
                   <Film /> Export {format.label}
                 </Button>
                 <Button variant="ghost" size="sm" onClick={saveFrame}>
@@ -1601,8 +1715,9 @@ function designName(state: typeof DEFAULT_STATE) {
 function buildDraft(state: typeof DEFAULT_STATE, id: string): Draft & { id: string } {
   const assets: DraftAsset[] = [];
   if (state.photoId) assets.push({ id: state.photoId, kind: "image" });
+  for (const cell of state.grid?.cells ?? []) if (cell && cell !== state.photoId) assets.push({ id: cell, kind: "image" });
   for (const s of state.stickers) {
-    if (s.kind === "image" && !s.value.startsWith("custom:")) assets.push({ id: s.value, kind: "image" });
+    if ((s.kind === "image" || s.kind === "gif") && !s.value.startsWith("custom:")) assets.push({ id: s.value, kind: "image" });
   }
   if (state.video) assets.push({ id: state.video.id, kind: "video", name: state.video.name });
   if (state.music && !state.music.src.startsWith("/")) assets.push({ id: state.music.id, kind: "audio", name: state.music.name });
@@ -1704,12 +1819,17 @@ function soundSummary(state: typeof DEFAULT_STATE) {
 function SizeMenu({
   value,
   custom,
+  canvas,
+  onCustom,
   options,
   reel,
   onChange,
 }: {
   value: PostSizeId;
   custom: { w: number; h: number } | null;
+  canvas: { w: number; h: number } | null;
+  /** Photos: resize the design to a typed width and height. */
+  onCustom?: (dims: { w: number; h: number }) => void;
   options: PostSizeId[];
   reel: boolean;
   onChange: (size: PostSizeId) => void;
@@ -1717,6 +1837,10 @@ function SizeMenu({
   // In a reel the 9:16 preset reads as "Reel"; "Original size" shows the upload's real pixels.
   const describe = (id: PostSizeId) => {
     const s = POST_SIZES[id];
+    if (id === "custom") {
+      const c = canvas ?? { w: 1080, h: 1080 };
+      return { label: s.label, ratio: `${c.w}×${c.h}`, detail: `${c.w} × ${c.h} · your size`, w: c.w, h: c.h };
+    }
     if (id === "original") {
       return {
         label: s.label,
@@ -1729,7 +1853,9 @@ function SizeMenu({
     return { label: reel && id === "story" ? "Reel" : s.label, ratio: s.ratio, detail: `${s.ratio} · ${s.w} × ${s.h}`, w: s.w, h: s.h };
   };
   const current = describe(value);
+  const [customOpen, setCustomOpen] = useState(false);
   return (
+    <>
     <DropdownMenu>
       <DropdownMenuTrigger
         render={<Button variant="ghost" size="sm" className="gap-1.5 px-2" aria-label={`Post size: ${current.label}`} />}
@@ -1759,8 +1885,41 @@ function SizeMenu({
             </DropdownMenuItem>
           );
         })}
+        {onCustom && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setCustomOpen(true)} className="gap-3 py-2">
+              <span className="grid w-10 shrink-0 place-items-center text-brand">
+                <Ruler className="size-4" />
+              </span>
+              <span className="flex flex-1 flex-col">
+                <span className="text-sm font-medium text-ink">Custom size…</span>
+                <span className="text-[11px] text-ink-soft">Resize to any width and height</span>
+              </span>
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
+    {onCustom && (
+      <Dialog open={customOpen} onOpenChange={setCustomOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Resize design</DialogTitle>
+            <DialogDescription>Text and stickers keep their places; the photo refills the new shape.</DialogDescription>
+          </DialogHeader>
+          <CustomSizeForm
+            initial={canvas ?? { w: current.w, h: current.h }}
+            submitLabel="Resize"
+            onSubmit={(dims) => {
+              onCustom(dims);
+              setCustomOpen(false);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+    )}
+    </>
   );
 }
 

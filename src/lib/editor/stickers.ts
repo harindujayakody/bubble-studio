@@ -29,6 +29,8 @@ import {
   type IconNode,
 } from "lucide";
 import type { Sticker } from "./types";
+import { drawAnimated, drawShape } from "./elements";
+import { gifFrame } from "./gif";
 
 export const STICKER_ICONS: Record<string, IconNode> = {
   ShoppingBag,
@@ -60,13 +62,35 @@ export const STICKER_ICONS: Record<string, IconNode> = {
   Sun,
 };
 
-export const STICKER_EMOJI = [
-  "🎉", "🎊", "🔥", "⭐", "✨", "💯", "❤️", "😍",
-  "😋", "👍", "👉", "📣", "🎁", "🛍️", "🛒", "💸",
-  "🏷️", "☕", "🍰", "🎂", "🍕", "🍔", "🥗", "🍹",
-  "🌸", "🌹", "🌿", "☀️", "⚡", "✅", "📞", "📍",
-  "⏰", "🚚", "💄", "👗", "👟", "📸", "🎵", "🪔",
+export const EMOJI_GROUPS: { label: string; items: string[] }[] = [
+  {
+    label: "Popular",
+    items: ["😂", "❤️", "🔥", "😍", "🥰", "😊", "🙏", "👍", "🎉", "✨", "💯", "😎", "🤩", "😘", "🥳", "😭", "🤗", "😁", "😉", "🙌", "💪", "👏", "⭐", "✅"],
+  },
+  {
+    label: "Hands",
+    items: ["👍", "👎", "👌", "✌️", "🤞", "🤟", "🤘", "🤙", "👋", "🙌", "👏", "🙏", "🤝", "💪", "👉", "👈", "👆", "👇", "☝️", "✋", "🤚", "🖐️", "🫶", "🫰", "✍️", "🤌", "👊", "✊"],
+  },
+  {
+    label: "Hearts",
+    items: ["❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎", "🩷", "🩵", "💖", "💗", "💓", "💞", "💕", "💘", "💝", "💟", "❣️", "💔", "❤️‍🔥", "😻", "💌"],
+  },
+  {
+    label: "Faces",
+    items: ["😀", "😃", "😄", "😆", "😅", "🤣", "🙂", "😇", "😋", "😜", "🤪", "🤔", "🤫", "😴", "😱", "😡", "🥺", "😳", "🤯", "🥶", "😷", "🤑", "😏", "🙄"],
+  },
+  {
+    label: "Celebrate",
+    items: ["🎉", "🎊", "🎈", "🎁", "🎂", "🍰", "🥂", "🍾", "🎆", "🎇", "🪔", "🏆", "🥇", "🎯", "🎵", "🎶", "📣", "💐", "🌹", "🌸", "🌺", "🌻", "☀️", "🌈"],
+  },
+  {
+    label: "Shop and food",
+    items: ["🛍️", "🛒", "💸", "💰", "🏷️", "📦", "🚚", "📞", "📍", "⏰", "📸", "💄", "👗", "👟", "☕", "🍕", "🍔", "🍟", "🥗", "🍹", "🍦", "🍩", "🍜", "🍛"],
+  },
 ];
+
+/** Every emoji once, in group order. */
+export const STICKER_EMOJI = [...new Set(EMOJI_GROUPS.flatMap((g) => g.items))];
 
 /** An illustrated sticker from /public/custom_icons. The list is read from the folder on the server. */
 export type LibrarySticker = { id: string; src: string };
@@ -75,11 +99,12 @@ export const EMOJI_FONT = `"Segoe UI Emoji", "Apple Color Emoji", "Noto Color Em
 
 /** Width and height in post px of a sticker at its current size. */
 export function stickerSize(s: Sticker, assets: Record<string, CanvasImageSource & { width: number; height: number }>) {
-  if (s.kind === "image") {
+  if (s.kind === "image" || s.kind === "gif") {
     const img = assets[s.value];
     const ratio = img ? img.height / img.width : 1;
     return { w: s.size, h: s.size * ratio };
   }
+  if (s.kind === "shape") return { w: s.size, h: s.size / (s.aspect ?? 1) };
   return { w: s.size, h: s.size };
 }
 
@@ -112,6 +137,7 @@ export function drawSticker(
   s: Sticker,
   scale: number,
   assets: Record<string, CanvasImageSource & { width: number; height: number }>,
+  time = 0,
 ) {
   const { w: pw, h: ph } = stickerSize(s, assets);
   const w = pw * scale;
@@ -123,6 +149,14 @@ export function drawSticker(
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(s.value, 0, h * 0.04);
+  } else if (s.kind === "shape") {
+    drawShape(ctx, s, w, h, scale);
+  } else if (s.kind === "gif") {
+    const frame = gifFrame(s.value, time);
+    const img = frame ?? assets[s.value];
+    if (img) ctx.drawImage(img, -w / 2, -h / 2, w, h);
+  } else if (s.kind === "animated") {
+    drawAnimated(ctx, s.value, s.color, w, time);
   } else if (s.kind === "icon") {
     const node = STICKER_ICONS[s.value];
     if (!node) return;

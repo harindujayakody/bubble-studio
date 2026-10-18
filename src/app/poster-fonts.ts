@@ -38,4 +38,14 @@ import "@fontsource/gemunu-libre/600.css";
 import "@fontsource/gemunu-libre/800.css";
 import "@fontsource/stick-no-bills/400.css";
 import "@fontsource/stick-no-bills/700.css";
+import "@fontsource/noto-sans-sinhala/300.css";
+import "@fontsource/noto-sans-sinhala/900.css";
+import "@fontsource/maname/400.css";
+// The watermark's face (clean, phone-camera style).
+import "@fontsource/roboto/400.css";
+import "@fontsource/roboto/500.css";
+import "@fontsource/roboto/700.css";
+import "@fontsource/google-sans/400.css";
+import "@fontsource/google-sans/500.css";
+import "@fontsource/google-sans/700.css";
 import "@fontsource/stick-no-bills/800.css";

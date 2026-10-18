@@ -26,6 +26,7 @@ import {
   POST_SIZES,
 } from "@/lib/editor/types";
 import { CropView } from "./crop-view";
+import { useWatermark } from "@/lib/editor/watermark";
 
 export type RegionDefaults = Pick<Region, "kind" | "shape" | "strength">;
 
@@ -58,6 +59,8 @@ const SNAP = 0.012;
 
 export function CanvasStage(props: Props) {
   const { source, assets, state, tool, selectedId, fontsVersion, showEmpty, clock, getTime } = props;
+  // The watermark is a saved preference outside the design; redraw when it changes.
+  const watermark = useWatermark();
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   /** Room available for the sheet, before the gutter. */
@@ -106,13 +109,39 @@ export function CanvasStage(props: Props) {
       // Video frames redraw ~30 times a second; only touch React state when a box actually moved.
       setBoxes((prev) => (sameBoxes(prev, next) ? prev : next));
     };
-    const raf = requestAnimationFrame(draw);
+    let raf = requestAnimationFrame(draw);
     clock?.addEventListener("frame", draw);
+
+    // Animated stickers in a paused reel keep moving in the preview, carrying on from the
+    // paused frame. While the video plays, its own frames drive them.
+    const animated = state.media === "video" && state.stickers.some((s) => s.kind === "animated" || s.kind === "gif");
+    let idle = 0;
+    if (animated && getTime) {
+      let from = performance.now();
+      let at = getTime();
+      let last = at;
+      const loop = (now: number) => {
+        const t = getTime();
+        if (t !== last) {
+          // Playing or seeking: follow the video.
+          last = t;
+          at = t;
+          from = now;
+        } else {
+          const next = renderPost(ctx, { source, assets, state, width: post.w, hideTextId: editing, time: at + (now - from) / 1000 });
+          setBoxes((prev) => (sameBoxes(prev, next) ? prev : next));
+        }
+        idle = requestAnimationFrame(loop);
+      };
+      idle = requestAnimationFrame(loop);
+    }
     return () => {
       cancelAnimationFrame(raf);
+      cancelAnimationFrame(idle);
+      raf = 0;
       clock?.removeEventListener("frame", draw);
     };
-  }, [source, assets, state, cropping, fontsVersion, mounted, editing, post.w, clock, getTime]);
+  }, [source, assets, state, cropping, fontsVersion, mounted, editing, post.w, clock, getTime, watermark]);
 
   useEffect(() => {
     if (!panning) return;
@@ -203,7 +232,7 @@ export function CanvasStage(props: Props) {
                           box={box}
                           side={side}
                           sideY={sideY}
-                          label={`${s.kind === "emoji" ? `Emoji ${s.value}` : s.kind === "icon" ? "Icon" : "Sticker"}`}
+                          label={`${s.kind === "emoji" ? `Emoji ${s.value}` : s.kind === "icon" ? "Icon" : s.kind === "shape" ? "Shape" : s.kind === "animated" ? "Animated sticker" : s.kind === "gif" ? "GIF" : "Sticker"}`}
                           selected={selectedId === box.id}
                           resizeValue={s.size}
                           min={24}
@@ -211,6 +240,8 @@ export function CanvasStage(props: Props) {
                           onSelect={() => props.onSelect(box.id)}
                           onMove={(x, y) => props.onStickerChange(s.id, { x, y }, `move:${s.id}`)}
                           onResize={(size) => props.onStickerChange(s.id, { size }, `size:${s.id}`)}
+                          stretch={s.kind === "shape" ? { size: s.size, aspect: s.aspect ?? 1 } : undefined}
+                          onStretch={(size, aspect) => props.onStickerChange(s.id, { size, aspect }, `stretch:${s.id}`)}
                           onGuides={setGuides}
                         />
                       );
@@ -641,6 +672,8 @@ function LayerHandle({
   onEdit,
   onMove,
   onResize,
+  stretch,
+  onStretch,
   onGuides,
 }: {
   box: TextBox;
@@ -655,9 +688,22 @@ function LayerHandle({
   onEdit?: () => void;
   onMove: (x: number, y: number) => void;
   onResize: (value: number) => void;
+  /** Shapes: width and width/height, changed by the edge handles. */
+  stretch?: { size: number; aspect: number };
+  onStretch?: (size: number, aspect: number) => void;
   onGuides: (g: { v: boolean; h: boolean }) => void;
 }) {
   const drag = useRef<{ px: number; py: number; x: number; y: number } | null>(null);
+  const edgeDrag = useRef<{ left: number; top: number; axis: "x" | "y"; dist: number; size: number; aspect: number } | null>(null);
+  // Distance from the centre along the shape's own (rotated) axis.
+  const axisDist = (e: ReactPointerEvent, left: number, top: number, axis: "x" | "y") => {
+    const dx = e.clientX - left - box.cx * side;
+    const dy = e.clientY - top - box.cy * sideY;
+    const a = (-box.rotation * Math.PI) / 180;
+    const lx = dx * Math.cos(a) - dy * Math.sin(a);
+    const ly = dx * Math.sin(a) + dy * Math.cos(a);
+    return Math.abs(axis === "x" ? lx : ly);
+  };
   const scaleDrag = useRef<{ left: number; top: number; value: number; dist: number } | null>(null);
 
   const centreDist = (e: ReactPointerEvent, left: number, top: number) =>
@@ -748,10 +794,59 @@ function LayerHandle({
               )}
             />
           ))}
+        {selected &&
+          stretch &&
+          onStretch &&
+          EDGES.map((edge) => (
+            <span
+              key={edge.pos}
+              aria-label={edge.axis === "x" ? "Drag to change the width" : "Drag to change the height"}
+              onPointerDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                e.currentTarget.setPointerCapture(e.pointerId);
+                const rect = e.currentTarget.closest("[data-sheet]")!.getBoundingClientRect();
+                edgeDrag.current = {
+                  left: rect.left,
+                  top: rect.top,
+                  axis: edge.axis,
+                  dist: Math.max(1, axisDist(e, rect.left, rect.top, edge.axis)),
+                  size: stretch.size,
+                  aspect: stretch.aspect,
+                };
+              }}
+              onPointerMove={(e) => {
+                const d = edgeDrag.current;
+                if (!d) return;
+                const ratio = Math.max(0.05, axisDist(e, d.left, d.top, d.axis) / d.dist);
+                if (d.axis === "x") {
+                  const size = Math.round(Math.min(max * 2, Math.max(min, d.size * ratio)));
+                  onStretch(size, Math.min(80, Math.max(0.05, (d.aspect * size) / d.size)));
+                } else {
+                  onStretch(d.size, Math.min(80, Math.max(0.05, d.aspect / ratio)));
+                }
+              }}
+              onPointerUp={() => (edgeDrag.current = null)}
+              onPointerCancel={() => (edgeDrag.current = null)}
+              onDoubleClick={(e) => e.stopPropagation()}
+              className={cn(
+                "absolute touch-none rounded-full bg-white ring-[1.5px] ring-aqua after:absolute after:-inset-2 hover:bg-aqua",
+                edge.pos,
+                edge.cursor,
+              )}
+            />
+          ))}
       </div>
     </div>
   );
 }
+
+const EDGES = [
+  { pos: "left-1/2 -top-1 h-2 w-5 -translate-x-1/2", cursor: "cursor-ns-resize", axis: "y" },
+  { pos: "left-1/2 -bottom-1 h-2 w-5 -translate-x-1/2", cursor: "cursor-ns-resize", axis: "y" },
+  { pos: "top-1/2 -left-1 h-5 w-2 -translate-y-1/2", cursor: "cursor-ew-resize", axis: "x" },
+  { pos: "top-1/2 -right-1 h-5 w-2 -translate-y-1/2", cursor: "cursor-ew-resize", axis: "x" },
+] as const;
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
 
@@ -805,7 +900,7 @@ function EmptySheet({
             : "Drop an image here, or pick one from your computer. JPG, PNG and WebP work. Nothing is uploaded."}
         </p>
         <div className="mt-5 flex flex-wrap justify-center gap-2 @max-xs:mt-3">
-          <Button onClick={onPickPhoto} className="bg-brand text-white hover:bg-brand-ink">
+          <Button onClick={onPickPhoto}>
             <Icon /> {video ? "Choose video" : "Choose photo"}
           </Button>
           {!video && (

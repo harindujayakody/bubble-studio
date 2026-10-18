@@ -15,6 +15,9 @@ export function layerName(item: StackItem) {
   const s = item.layer;
   if (s.kind === "emoji") return `Emoji ${s.value}`;
   if (s.kind === "icon") return `${s.value.replace(/([a-z])([A-Z0-9])/g, "$1 $2")} icon`;
+  if (s.kind === "shape") return `${(s.shape ?? "square").replace(/-/g, " ")} shape`;
+  if (s.kind === "animated") return "Animated sticker";
+  if (s.kind === "gif") return "GIF";
   return s.value.startsWith("custom:") ? "Sticker" : "Image";
 }
 

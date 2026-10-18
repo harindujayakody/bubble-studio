@@ -7,6 +7,7 @@ import {
   AlignRight,
   ArrowDown,
   ArrowUp,
+  Check,
   Copy,
   FlipHorizontal2,
   FlipVertical2,
@@ -34,8 +35,8 @@ import {
 } from "@/components/ui/select";
 import { ColorField, IconAction, PanelSection, RangeField } from "./controls";
 import { SavedPhrases } from "./phrase-panel";
-import { FILTER_PRESETS } from "@/lib/editor/filters";
-import { GRADIENT_PRESETS, gradientCss } from "@/lib/editor/palettes";
+import { FILTER_GROUPS, FILTER_PRESETS, type FilterGroup } from "@/lib/editor/filters";
+import { GRADIENT_PRESETS, SOLID_PRESETS, gradientCss } from "@/lib/editor/palettes";
 import { POSTER_FONTS, fontStack, getFont, nearestWeight } from "@/lib/editor/fonts";
 import { defaultCrop, postDims, renderPost, type Source } from "@/lib/editor/render";
 import { nextZ, restack } from "@/lib/editor/layers";
@@ -96,7 +97,7 @@ export function PhotoPanel({
             <p className="text-sm text-pretty text-ink-soft">
               Add a photo of your shop, product or event. It stays on your computer.
             </p>
-            <Button onClick={onPickPhoto} className="w-fit bg-brand text-white hover:bg-brand-ink">
+            <Button onClick={onPickPhoto} className="w-fit">
               <ImagePlus /> Choose photo
             </Button>
           </div>
@@ -109,17 +110,56 @@ export function PhotoPanel({
             ? "Shows behind the photo only where it doesn't reach."
             : "Your post's base colour. Add text on top for a quick announcement."}
         </p>
-        <ToggleGroup
-          variant="outline"
-          size="sm"
-          spacing={0}
-          value={[bg.kind]}
-          onValueChange={(v) => v[0] && setBg({ kind: v[0] as Background["kind"] }, "bg:kind")}
-          className="mb-4"
-        >
-          <ToggleGroupItem value="solid" className="px-3">Solid</ToggleGroupItem>
-          <ToggleGroupItem value="gradient" className="px-3">Gradient</ToggleGroupItem>
-        </ToggleGroup>
+        <div className="mb-4 grid grid-cols-2 gap-1 rounded-lg bg-tile p-1" role="tablist" aria-label="Background type">
+          {(["solid", "gradient"] as const).map((k) => (
+            <button
+              key={k}
+              type="button"
+              role="tab"
+              aria-selected={bg.kind === k}
+              onClick={() => setBg({ kind: k }, "bg:kind")}
+              className={cn(
+                "h-8 rounded-md text-[13px] font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-aqua",
+                bg.kind === k ? "bg-sheet text-ink shadow-float" : "text-ink-soft hover:text-ink",
+              )}
+            >
+              {k === "solid" ? "Solid colour" : "Gradient"}
+            </button>
+          ))}
+        </div>
+        {bg.kind === "solid" && (
+          <div className="mb-5">
+            <div className="mb-2 flex items-baseline justify-between">
+              <span className="text-[13px] text-ink-soft">Presets</span>
+              <span className="text-xs text-ink-soft">
+                {SOLID_PRESETS.find((c) => c.hex === bg.from.toLowerCase())?.name ?? "Custom"}
+              </span>
+            </div>
+            <div className="grid grid-cols-5 gap-1.5" role="radiogroup" aria-label="Solid colour presets">
+              {SOLID_PRESETS.map((c) => {
+                const active = bg.from.toLowerCase() === c.hex;
+                return (
+                  <button
+                    key={c.hex}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    aria-label={c.name}
+                    title={c.name}
+                    onClick={() => setBg({ kind: "solid", from: c.hex, stops: undefined, preset: undefined }, "bg:from")}
+                    className={cn(
+                      "grid aspect-square place-items-center rounded-md ring-1 ring-ink/10 ring-inset outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-aqua",
+                      active && "ring-2 ring-aqua ring-offset-2 ring-offset-sheet",
+                    )}
+                    style={{ background: c.hex }}
+                  >
+                    {active && <Check className={cn("size-4", ["#ffffff", "#f2f3f5", "#f4efe6", "#fff3b0", "#d8f3dc", "#bde0fe", "#ffc8dd", "#ffd93d", "#cdb4db"].includes(c.hex) ? "text-[#111]" : "text-white")} strokeWidth={3} />}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
         {bg.kind === "gradient" && (
           <div className="mb-5">
             <div className="mb-2 flex items-baseline justify-between">
@@ -153,7 +193,7 @@ export function PhotoPanel({
         )}
         <div className="grid gap-4">
           <ColorField
-            label={bg.kind === "gradient" ? "Start colour" : "Colour"}
+            label={bg.kind === "gradient" ? "Start colour" : "Custom colour"}
             value={bg.from}
             onChange={(c) => setBg({ from: c, stops: undefined, preset: undefined }, "bg:from")}
           />
@@ -182,6 +222,7 @@ export function FiltersPanel({
   update: Update;
 }) {
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
+  const [category, setCategory] = useState<"all" | FilterGroup>("all");
 
   // Re-render previews whenever the photo or its framing changes.
   useEffect(() => {
@@ -191,7 +232,7 @@ export function FiltersPanel({
     canvas.width = size;
     canvas.height = Math.round(size / postDims(state).aspect);
     const ctx = canvas.getContext("2d")!;
-    const base = { ...state, texts: [] };
+    const base = { ...state, texts: [], stickers: [], grid: null };
     const next: Record<string, string> = {};
     const id = requestAnimationFrame(() => {
       for (const p of FILTER_PRESETS) {
@@ -212,14 +253,64 @@ export function FiltersPanel({
 
   if (!source) return <NeedsPhoto what="Filters" />;
 
+  const groups = category === "all" ? FILTER_GROUPS : FILTER_GROUPS.filter((g) => g.id === category);
+  const current = FILTER_PRESETS.find((p) => p.id === state.filter) ?? FILTER_PRESETS[0];
+  const pick = (id: string) =>
+    update((s) => ({ ...s, filter: id, filterStrength: s.filter === id ? s.filterStrength : 100 }));
+
   return (
     <>
-      {(["classic", "famous"] as const).map((group) => {
-        const label = group === "classic" ? "Filters" : "Famous filters";
+      <div className="sticky top-0 z-10 border-b border-rule bg-sheet px-4 pt-4 pb-3">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="font-heading text-[14px] font-semibold text-ink">Filters</h3>
+          <span className="truncate text-xs text-ink-soft">
+            {current.id === "original" ? "None applied" : current.label}
+          </span>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-1.5" role="tablist" aria-label="Filter groups">
+          {(["all", ...FILTER_GROUPS.map((g) => g.id)] as const).map((id) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={category === id}
+              onClick={() => setCategory(id)}
+              className={cn(
+                "h-8 shrink-0 rounded-full px-3 text-[13px] font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-aqua",
+                category === id ? "bg-ink text-sheet" : "bg-tile text-ink hover:bg-brand-wash",
+              )}
+            >
+              {id === "all" ? "All" : FILTER_GROUPS.find((g) => g.id === id)!.label}
+            </button>
+          ))}
+        </div>
+        {state.filter !== "original" && (
+          <div className="mt-3">
+            <RangeField
+              label="Strength"
+              value={state.filterStrength}
+              min={0}
+              max={100}
+              defaultValue={100}
+              format={(v) => `${v}%`}
+              onChange={(v) => update((s) => ({ ...s, filterStrength: v }), "filter:strength")}
+            />
+          </div>
+        )}
+      </div>
+
+      {groups.map((group) => {
+        const presets = FILTER_PRESETS.filter(
+          (p) => (p.group ?? "classic") === group.id,
+        );
         return (
-          <PanelSection key={group} title={label}>
-            <div className="grid grid-cols-3 gap-x-2 gap-y-3" role="radiogroup" aria-label={label}>
-              {FILTER_PRESETS.filter((p) => (p.group ?? "classic") === group).map((p) => {
+          <section key={group.id} className="border-b border-rule px-4 pt-4 pb-5 last:border-b-0">
+            <div className="mb-3 flex items-baseline justify-between gap-2">
+              <h4 className="text-[13px] font-semibold text-ink">{group.label}</h4>
+              <span className="text-[11px] text-ink-soft">{group.note}</span>
+            </div>
+            <div className="grid grid-cols-3 gap-x-2 gap-y-3" role="radiogroup" aria-label={`${group.label} filters`}>
+              {presets.map((p) => {
                 const active = state.filter === p.id;
                 return (
                   <button
@@ -227,41 +318,35 @@ export function FiltersPanel({
                     type="button"
                     role="radio"
                     aria-checked={active}
-                    onClick={() => update((s) => ({ ...s, filter: p.id, filterStrength: s.filter === p.id ? s.filterStrength : 100 }))}
+                    onClick={() => pick(p.id)}
                     className="group grid gap-1.5 text-left outline-none"
                   >
                     <span
                       className={cn(
-                        "block aspect-square overflow-hidden rounded-[3px] bg-muted ring-1 ring-ink/10 transition-shadow",
-                        active ? "ring-2 ring-aqua ring-offset-2 ring-offset-sheet" : "group-hover:ring-ink/30 group-focus-visible:ring-2 group-focus-visible:ring-aqua",
+                        "relative block aspect-square overflow-hidden rounded-lg bg-tile ring-1 ring-ink/10 transition-shadow",
+                        active
+                          ? "ring-2 ring-aqua ring-offset-2 ring-offset-sheet"
+                          : "group-hover:ring-ink/30 group-focus-visible:ring-2 group-focus-visible:ring-aqua",
                       )}
                     >
                       {thumbs[p.id] && (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={thumbs[p.id]} alt="" className="size-full object-cover" />
+                        <img src={thumbs[p.id]} alt="" className="size-full object-cover transition-transform duration-200 group-hover:scale-105" />
+                      )}
+                      {active && (
+                        <span className="absolute top-1 right-1 grid size-5 place-items-center rounded-full bg-aqua text-white shadow-float">
+                          <Check className="size-3" strokeWidth={3} />
+                        </span>
                       )}
                     </span>
-                    <span className={cn("text-xs", active ? "font-semibold text-aqua-ink" : "text-ink-soft")}>{p.label}</span>
+                    <span className={cn("truncate text-xs", active ? "font-semibold text-aqua-ink" : "text-ink-soft")}>{p.label}</span>
                   </button>
                 );
               })}
             </div>
-          </PanelSection>
+          </section>
         );
       })}
-      {state.filter !== "original" && (
-        <PanelSection title="Strength">
-          <RangeField
-            label="Amount"
-            value={state.filterStrength}
-            min={0}
-            max={100}
-            defaultValue={100}
-            format={(v) => `${v}%`}
-            onChange={(v) => update((s) => ({ ...s, filterStrength: v }), "filter:strength")}
-          />
-        </PanelSection>
-      )}
     </>
   );
 }

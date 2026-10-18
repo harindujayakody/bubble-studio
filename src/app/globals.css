@@ -109,8 +109,8 @@
   --card-foreground: var(--ink);
   --popover: var(--raised);
   --popover-foreground: var(--ink);
-  --primary: var(--ink);
-  --primary-foreground: var(--sheet);
+  --primary: var(--brand);
+  --primary-foreground: #ffffff;
   --secondary: var(--tile);
   --secondary-foreground: var(--ink);
   --muted: var(--tile);
@@ -249,19 +249,19 @@
   background: var(--header);
   color: #fff;
 }
-.app-header [data-slot="button"]:not(.cta),
-.app-header [data-slot="button"]:not(.cta) * {
+.app-header button:not(.cta),
+.app-header button:not(.cta) * {
   color: #fff;
 }
-.app-header [data-slot="button"]:not(.cta) {
+.app-header button:not(.cta) {
   background: transparent;
   border-color: transparent;
 }
-.app-header [data-slot="button"]:not(.cta):hover,
-.app-header [data-slot="button"]:not(.cta)[aria-expanded="true"] {
+.app-header button:not(.cta):hover,
+.app-header button:not(.cta)[aria-expanded="true"] {
   background: rgb(255 255 255 / 0.16);
 }
-.app-header [data-slot="button"]:focus-visible {
+.app-header button:focus-visible {
   box-shadow: 0 0 0 2px #fff;
 }
 .app-header .dim {
@@ -339,4 +339,30 @@
   color: #3a1488 !important;
   font-weight: 600;
   border-radius: 8px !important;
+}
+
+/* Every toggle group is a segmented control: a tinted track, the chosen option a raised chip. */
+[data-slot="toggle-group"] {
+  background: var(--tile);
+  padding: 3px;
+  border-radius: 10px;
+  gap: 3px;
+}
+[data-slot="toggle-group"] [data-slot="toggle-group-item"] {
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ink-soft);
+  box-shadow: none;
+  height: 30px;
+}
+[data-slot="toggle-group"] [data-slot="toggle-group-item"]:hover {
+  color: var(--ink);
+  background: transparent;
+}
+[data-slot="toggle-group"] [data-slot="toggle-group-item"][aria-pressed="true"] {
+  background: var(--sheet);
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: var(--float-shadow);
 }

@@ -105,7 +105,7 @@ export function SavedPhrases({ onAdd }: { onAdd: (style: TextStyleId, text: stri
               <div className="flex gap-2">
                 <Button
                   size="sm"
-                  className="bg-brand text-white hover:bg-brand-ink"
+                 
                   onClick={() => {
                     const list = splitPhrases(draft);
                     report(addPhrases(list), list.length);

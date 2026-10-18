@@ -1,6 +1,6 @@
 {
   "name": "bubble-studio",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -22,7 +22,9 @@
     "@fontsource/caveat": "^5.3.0",
     "@fontsource/dm-serif-display": "^5.3.0",
     "@fontsource/gemunu-libre": "^5.3.0",
+    "@fontsource/google-sans": "^5.3.2",
     "@fontsource/lobster": "^5.3.0",
+    "@fontsource/maname": "^5.3.0",
     "@fontsource/montserrat": "^5.3.0",
     "@fontsource/noto-sans-sinhala": "^5.3.0",
     "@fontsource/noto-serif-sinhala": "^5.3.0",
@@ -31,6 +33,7 @@
     "@fontsource/permanent-marker": "^5.3.0",
     "@fontsource/playfair-display": "^5.3.0",
     "@fontsource/poppins": "^5.3.0",
+    "@fontsource/roboto": "^5.3.0",
     "@fontsource/stick-no-bills": "^5.3.0",
     "@fontsource/yaldevi": "^5.3.0",
     "@mediabunny/mp3-encoder": "^1.61.6",

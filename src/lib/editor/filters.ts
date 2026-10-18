@@ -9,6 +9,15 @@ type FilterParams = {
   hue: number; // degrees
 };
 
+export type FilterGroup = "classic" | "instagram" | "tiktok" | "snapchat";
+
+export const FILTER_GROUPS: { id: FilterGroup; label: string; note: string }[] = [
+  { id: "classic", label: "Classic", note: "Everyday looks" },
+  { id: "instagram", label: "Instagram", note: "Inspired by Instagram filters" },
+  { id: "tiktok", label: "TikTok", note: "Inspired by popular TikTok looks" },
+  { id: "snapchat", label: "Snapchat", note: "Inspired by Snapchat colour filters" },
+];
+
 type Tint = { color: string; alpha: number; blend: GlobalCompositeOperation };
 
 export type FilterPreset = {
@@ -18,8 +27,8 @@ export type FilterPreset = {
   tint?: Tint;
   fade?: number; // 0..1
   vignette?: number; // 0..1
-  /** "famous" looks are modelled on well-known photo-app filters. */
-  group?: "classic" | "famous";
+  /** Where the look comes from; app groups are approximations of popular in-app filters. */
+  group?: FilterGroup;
 };
 
 const IDENTITY: FilterParams = {
@@ -96,14 +105,14 @@ export const FILTER_PRESETS: FilterPreset[] = [
   {
     id: "clarendon",
     label: "Clarendon",
-    group: "famous",
+    group: "instagram",
     params: { contrast: 1.2, saturate: 1.35 },
     tint: { color: "#7fbbe3", alpha: 0.2, blend: "overlay" },
   },
   {
     id: "gingham",
     label: "Gingham",
-    group: "famous",
+    group: "instagram",
     params: { brightness: 1.05, hue: -10, contrast: 0.92 },
     tint: { color: "#e6e6fa", alpha: 0.5, blend: "soft-light" },
     fade: 0.1,
@@ -111,35 +120,35 @@ export const FILTER_PRESETS: FilterPreset[] = [
   {
     id: "juno",
     label: "Juno",
-    group: "famous",
+    group: "instagram",
     params: { sepia: 0.25, contrast: 1.15, brightness: 1.1, saturate: 1.6 },
     tint: { color: "#7fbbe3", alpha: 0.15, blend: "overlay" },
   },
   {
     id: "lark",
     label: "Lark",
-    group: "famous",
+    group: "instagram",
     params: { contrast: 0.9, brightness: 1.1, saturate: 0.95 },
     tint: { color: "#f2f2f2", alpha: 0.35, blend: "soft-light" },
   },
   {
     id: "ludwig",
     label: "Ludwig",
-    group: "famous",
+    group: "instagram",
     params: { contrast: 1.05, saturate: 1.1, brightness: 1.05, sepia: 0.25 },
     vignette: 0.25,
   },
   {
     id: "valencia",
     label: "Valencia",
-    group: "famous",
+    group: "instagram",
     params: { contrast: 1.08, brightness: 1.08, sepia: 0.12 },
     tint: { color: "#e8a87c", alpha: 0.3, blend: "soft-light" },
   },
   {
     id: "nashville",
     label: "Nashville",
-    group: "famous",
+    group: "instagram",
     params: { sepia: 0.2, contrast: 1.2, brightness: 1.05, saturate: 1.2 },
     tint: { color: "#f7b07d", alpha: 0.35, blend: "soft-light" },
     fade: 0.08,
@@ -147,7 +156,7 @@ export const FILTER_PRESETS: FilterPreset[] = [
   {
     id: "toaster",
     label: "Toaster",
-    group: "famous",
+    group: "instagram",
     params: { contrast: 1.4, brightness: 0.92, sepia: 0.15 },
     tint: { color: "#ff7a30", alpha: 0.28, blend: "soft-light" },
     vignette: 0.45,
@@ -155,17 +164,141 @@ export const FILTER_PRESETS: FilterPreset[] = [
   {
     id: "walden",
     label: "Walden",
-    group: "famous",
+    group: "instagram",
     params: { brightness: 1.1, hue: -10, sepia: 0.3, saturate: 1.5 },
     tint: { color: "#4a7dff", alpha: 0.18, blend: "screen" },
   },
   {
     id: "xpro2",
     label: "X-Pro II",
-    group: "famous",
+    group: "instagram",
     params: { sepia: 0.3, contrast: 1.3, saturate: 1.3 },
     tint: { color: "#e6e6b4", alpha: 0.25, blend: "soft-light" },
     vignette: 0.55,
+  },
+
+  // Instagram: five more favourites.
+  {
+    id: "aden",
+    label: "Aden",
+    group: "instagram",
+    params: { hue: -20, contrast: 0.9, saturate: 0.85, brightness: 1.2 },
+    tint: { color: "#ffc0cb", alpha: 0.18, blend: "soft-light" },
+    fade: 0.1,
+  },
+  {
+    id: "crema",
+    label: "Crema",
+    group: "instagram",
+    params: { sepia: 0.3, contrast: 0.92, saturate: 0.85, brightness: 1.05 },
+    tint: { color: "#f5deb3", alpha: 0.25, blend: "soft-light" },
+    fade: 0.12,
+  },
+  {
+    id: "reyes",
+    label: "Reyes",
+    group: "instagram",
+    params: { sepia: 0.22, brightness: 1.1, contrast: 0.85, saturate: 0.75 },
+    tint: { color: "#efcdad", alpha: 0.3, blend: "soft-light" },
+    fade: 0.18,
+  },
+  {
+    id: "slumber",
+    label: "Slumber",
+    group: "instagram",
+    params: { saturate: 0.66, brightness: 1.05, sepia: 0.1 },
+    tint: { color: "#7d6a5a", alpha: 0.2, blend: "soft-light" },
+    fade: 0.16,
+  },
+  {
+    id: "mayfair",
+    label: "Mayfair",
+    group: "instagram",
+    params: { contrast: 1.1, saturate: 1.1 },
+    tint: { color: "#ffc8c8", alpha: 0.24, blend: "overlay" },
+    vignette: 0.3,
+  },
+
+  // TikTok-style looks.
+  {
+    id: "tt-glow",
+    label: "Glow",
+    group: "tiktok",
+    params: { brightness: 1.1, contrast: 0.95, saturate: 1.15 },
+    tint: { color: "#ffd6e0", alpha: 0.22, blend: "soft-light" },
+    fade: 0.06,
+  },
+  {
+    id: "tt-teal-orange",
+    label: "Teal & Orange",
+    group: "tiktok",
+    params: { contrast: 1.15, saturate: 1.2 },
+    tint: { color: "#ff8a3d", alpha: 0.18, blend: "overlay" },
+    vignette: 0.2,
+  },
+  {
+    id: "tt-film",
+    label: "Film F2",
+    group: "tiktok",
+    params: { contrast: 1.08, saturate: 0.8, sepia: 0.15, hue: -4 },
+    tint: { color: "#3b7a6a", alpha: 0.16, blend: "soft-light" },
+    fade: 0.16,
+  },
+  {
+    id: "tt-moody",
+    label: "Moody",
+    group: "tiktok",
+    params: { contrast: 1.25, saturate: 0.7, brightness: 0.9 },
+    tint: { color: "#1f3a5f", alpha: 0.22, blend: "soft-light" },
+    vignette: 0.4,
+  },
+  {
+    id: "tt-soft",
+    label: "Soft Skin",
+    group: "tiktok",
+    params: { brightness: 1.08, contrast: 0.88, saturate: 1.05 },
+    tint: { color: "#ffe0cc", alpha: 0.26, blend: "soft-light" },
+    fade: 0.1,
+  },
+
+  // Snapchat-style colour filters.
+  {
+    id: "sc-sunny",
+    label: "Sunny",
+    group: "snapchat",
+    params: { brightness: 1.08, saturate: 1.3, sepia: 0.1 },
+    tint: { color: "#ffb300", alpha: 0.2, blend: "soft-light" },
+  },
+  {
+    id: "sc-miami",
+    label: "Miami",
+    group: "snapchat",
+    params: { saturate: 1.35, contrast: 1.05, hue: -8 },
+    tint: { color: "#ff4fa3", alpha: 0.22, blend: "soft-light" },
+  },
+  {
+    id: "sc-chill",
+    label: "Chill",
+    group: "snapchat",
+    params: { brightness: 1.04, saturate: 0.9, hue: 8 },
+    tint: { color: "#4fc3ff", alpha: 0.24, blend: "soft-light" },
+  },
+  {
+    id: "sc-blush",
+    label: "Blush",
+    group: "snapchat",
+    params: { brightness: 1.06, saturate: 1.1 },
+    tint: { color: "#ff8fa3", alpha: 0.28, blend: "soft-light" },
+    fade: 0.06,
+  },
+  {
+    id: "sc-retro",
+    label: "Retro",
+    group: "snapchat",
+    params: { contrast: 1.1, saturate: 0.85, sepia: 0.35 },
+    tint: { color: "#ff7043", alpha: 0.16, blend: "soft-light" },
+    fade: 0.14,
+    vignette: 0.35,
   },
 ];
 

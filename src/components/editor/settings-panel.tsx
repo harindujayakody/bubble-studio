@@ -11,7 +11,7 @@ import { PanelSection } from "./controls";
 import { GithubMark, REPO_URL } from "./start-screen";
 import { deleteDraft, setAutosave } from "@/lib/editor/draft";
 import { clearPhrases } from "@/lib/editor/phrases";
-import { checkForUpdatesNow, useIsDesktop, useUpdateStatus, type DesktopSettings } from "./desktop-updates";
+import { checkForUpdatesNow, useIsDesktop, useLatestVersion, useUpdateStatus, type DesktopSettings } from "./desktop-updates";
 
 const formatSize = (bytes: number) =>
   bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1048576).toFixed(1)} MB`;
@@ -127,8 +127,18 @@ function AppearanceSection() {
   );
 }
 
+/** Whether version a is newer than b (x.y.z). */
+function isNewer(a: string, b: string) {
+  const pa = a.split(".").map(Number);
+  const pb = b.split(".").map(Number);
+  for (let i = 0; i < 3; i++) if ((pa[i] ?? 0) !== (pb[i] ?? 0)) return (pa[i] ?? 0) > (pb[i] ?? 0);
+  return false;
+}
+
 function UpdatesSection({ version }: { version: string | null }) {
   const status = useUpdateStatus();
+  const latest = useLatestVersion();
+  const newer = !!(latest && version && isNewer(latest, version));
   const bridge = typeof window === "undefined" ? undefined : window.bubbleDesktop;
   const busy = status.state === "checking" || status.state === "downloading";
 
@@ -162,7 +172,16 @@ function UpdatesSection({ version }: { version: string | null }) {
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-ink">{view.title}</p>
           {view.detail && <p className="mt-0.5 text-[13px] text-pretty text-ink-soft">{view.detail}</p>}
-          <p className="mt-1 font-mono text-[11px] text-ink-soft tabular">Installed: {version ?? "…"}</p>
+          <dl className="mt-2.5 grid grid-cols-2 gap-2">
+            <div className="rounded-md bg-tile px-2.5 py-1.5">
+              <dt className="text-[11px] text-ink-soft">Installed</dt>
+              <dd className="font-mono text-[13px] font-medium text-ink tabular">{version ?? "…"}</dd>
+            </div>
+            <div className={cn("rounded-md px-2.5 py-1.5", newer ? "bg-brand-wash" : "bg-tile")}>
+              <dt className="text-[11px] text-ink-soft">Latest</dt>
+              <dd className={cn("font-mono text-[13px] font-medium tabular", newer ? "text-brand" : "text-ink")}>{latest ?? "…"}</dd>
+            </div>
+          </dl>
           {status.state === "downloading" && (
             <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
               <div className="h-full bg-aqua transition-[width] duration-200" style={{ width: `${status.percent}%` }} />
@@ -172,11 +191,11 @@ function UpdatesSection({ version }: { version: string | null }) {
       </div>
       <div className="mt-3">
         {status.state === "ready" ? (
-          <Button className="w-full bg-brand text-white hover:bg-brand-ink" onClick={() => void bridge?.installUpdate()}>
+          <Button className="w-full" onClick={() => void bridge?.installUpdate()}>
             <RotateCcw /> Restart and update
           </Button>
         ) : status.state === "manual" ? (
-          <Button className="w-full bg-brand text-white hover:bg-brand-ink" onClick={() => void bridge?.openDownload()}>
+          <Button className="w-full" onClick={() => void bridge?.openDownload()}>
             <Download /> Download update
           </Button>
         ) : (
@@ -247,7 +266,7 @@ function DownloadsSection({
         </ul>
       </div>
       <div className="mt-3 grid gap-2">
-        <Button className="bg-brand text-white hover:bg-brand-ink" onClick={() => void choose()}>
+        <Button onClick={() => void choose()}>
           {dir ? "Change folder…" : "Choose a folder…"}
         </Button>
         {dir && (

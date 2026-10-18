@@ -134,3 +134,27 @@ export const SOLID_PALETTES: SolidPalette[] = [
     ],
   },
 ];
+
+/** Solid background colours, shown as a grid like the gradients. */
+export const SOLID_PRESETS: { name: string; hex: string }[] = [
+  { name: "White", hex: "#ffffff" },
+  { name: "Cloud", hex: "#f2f3f5" },
+  { name: "Cream", hex: "#f4efe6" },
+  { name: "Blush", hex: "#ffc8dd" },
+  { name: "Sky", hex: "#bde0fe" },
+  { name: "Mint", hex: "#d8f3dc" },
+  { name: "Butter", hex: "#fff3b0" },
+  { name: "Lilac", hex: "#cdb4db" },
+  { name: "Coral", hex: "#ff6b6b" },
+  { name: "Sunshine", hex: "#ffd93d" },
+  { name: "Leaf", hex: "#40916c" },
+  { name: "Ocean", hex: "#0077b6" },
+  { name: "Turquoise", hex: "#00c4cc" },
+  { name: "Purple", hex: "#7d2ae8" },
+  { name: "Hot pink", hex: "#ec4899" },
+  { name: "Tangerine", hex: "#ff8008" },
+  { name: "Terracotta", hex: "#e07a5f" },
+  { name: "Navy", hex: "#03045e" },
+  { name: "Charcoal", hex: "#1f1f1f" },
+  { name: "Black", hex: "#0d0d0d" },
+];
