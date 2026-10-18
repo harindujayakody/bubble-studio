@@ -27,9 +27,10 @@ nsis:
   shortcutName: Bubble Studio
   deleteAppDataOnUninstall: false
 
-# Installers and update metadata go to a public releases-only repo, so the source repo stays private.
+# Installers and update metadata are published as GitHub Releases of this (public) repo,
+# which installed apps read to find updates.
 publish:
   provider: github
   owner: harindujayakody
-  repo: bubble-studio-releases
+  repo: bubble-studio
   releaseType: release

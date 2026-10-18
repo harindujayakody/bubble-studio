@@ -1,11 +1,5 @@
-# Builds the Windows installer on every push to main and publishes it as a GitHub Release
-# in the public releases repo, which installed copies of Bubble Studio check for updates.
-#
-# One-time setup (see README "Desktop app"):
-#   1. Create the public repo harindujayakody/bubble-studio-releases (empty is fine).
-#   2. Create a fine-grained token with "Contents: Read and write" on that repo and add it here
-#      as the Actions secret RELEASES_TOKEN.
-# Without the secret, the installer is still built and attached to the workflow run.
+# Builds the Windows installer on every push to main and publishes it as a GitHub Release of
+# this repo. Installed copies of Bubble Studio read these releases to update themselves.
 name: Desktop release
 
 on:
@@ -13,8 +7,9 @@ on:
     branches: [main]
   workflow_dispatch:
 
+# The built-in token needs write access to create releases.
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: desktop-release
@@ -24,7 +19,7 @@ jobs:
   windows:
     runs-on: windows-latest
     env:
-      GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -49,18 +44,15 @@ jobs:
           echo "VERSION=$version" >> "$GITHUB_ENV"
 
       - name: Build and publish release
-        if: env.GH_TOKEN != ''
         run: npm run desktop:release
 
-      - name: Build installer (no release token set)
-        if: env.GH_TOKEN == ''
-        run: npm run desktop:dist
-
       - name: Attach installer to this run
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: Bubble-Studio-Setup-${{ env.VERSION }}
           path: |
             dist-desktop/*.exe
             dist-desktop/latest.yml
+          if-no-files-found: ignore
           retention-days: 30
