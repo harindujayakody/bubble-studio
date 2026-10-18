@@ -19,5 +19,5 @@ if (build.status !== 0) process.exit(build.status ?? 1);
 
 rmSync(web, { recursive: true, force: true });
 cpSync(out, web, { recursive: true });
-copyFileSync(path.join(root, "build", "icon.png"), path.join(root, "desktop", "icon.png"));
+copyFileSync(path.join(root, "public", "favicon.png"), path.join(root, "desktop", "icon.png"));
 console.log("Desktop web build ready in desktop/web");

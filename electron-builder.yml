@@ -6,7 +6,7 @@ copyright: Copyright © Harindu Jayakody
 directories:
   app: desktop          # two-package layout: only the shell + static web build are packaged
   output: dist-desktop
-  buildResources: build
+  buildResources: public
 
 files:
   - "**/*"
@@ -15,7 +15,7 @@ win:
   target:
     - target: nsis
       arch: [x64]
-  icon: build/icon.png
+  icon: public/favicon.png
   artifactName: Bubble-Studio-Setup-${version}.${ext}
 
 nsis:
