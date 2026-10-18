@@ -1,137 +1,672 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-17T00:00:00Z",
+  "generatedAt": "2026-10-18T21:00:59.289Z",
   "title": "Design System: Bubble Studio",
   "extensions": {
     "colorMeta": {
-      "make-ready-table": { "role": "neutral", "displayName": "Make-Ready Table", "canonical": "oklch(0.905 0.006 250)", "tonalRamp": ["oklch(0.15 0.006 250)", "oklch(0.27 0.006 250)", "oklch(0.39 0.006 250)", "oklch(0.51 0.006 250)", "oklch(0.63 0.006 250)", "oklch(0.75 0.006 250)", "oklch(0.86 0.006 250)", "oklch(0.95 0.006 250)"] },
-      "proof-sheet": { "role": "neutral", "displayName": "Proof Sheet", "canonical": "oklch(0.993 0.002 250)", "tonalRamp": ["oklch(0.15 0.002 250)", "oklch(0.27 0.002 250)", "oklch(0.39 0.002 250)", "oklch(0.51 0.002 250)", "oklch(0.63 0.002 250)", "oklch(0.75 0.002 250)", "oklch(0.87 0.002 250)", "oklch(0.993 0.002 250)"] },
-      "hairline-rule": { "role": "neutral", "displayName": "Hairline Rule", "canonical": "oklch(0.86 0.006 250)", "tonalRamp": ["oklch(0.15 0.006 250)", "oklch(0.27 0.006 250)", "oklch(0.39 0.006 250)", "oklch(0.51 0.006 250)", "oklch(0.63 0.006 250)", "oklch(0.75 0.006 250)", "oklch(0.86 0.006 250)", "oklch(0.95 0.006 250)"] },
-      "input-rule": { "role": "neutral", "displayName": "Input Rule", "canonical": "oklch(0.83 0.008 250)", "tonalRamp": ["oklch(0.15 0.008 250)", "oklch(0.27 0.008 250)", "oklch(0.39 0.008 250)", "oklch(0.51 0.008 250)", "oklch(0.63 0.008 250)", "oklch(0.75 0.008 250)", "oklch(0.83 0.008 250)", "oklch(0.95 0.008 250)"] },
-      "press-ink": { "role": "neutral", "displayName": "Press Ink", "canonical": "oklch(0.2 0.012 260)", "tonalRamp": ["oklch(0.15 0.012 260)", "oklch(0.2 0.012 260)", "oklch(0.35 0.012 260)", "oklch(0.47 0.012 260)", "oklch(0.6 0.012 260)", "oklch(0.72 0.012 260)", "oklch(0.84 0.012 260)", "oklch(0.95 0.012 260)"] },
-      "soft-ink": { "role": "neutral", "displayName": "Soft Ink", "canonical": "oklch(0.47 0.012 260)", "tonalRamp": ["oklch(0.15 0.012 260)", "oklch(0.27 0.012 260)", "oklch(0.37 0.012 260)", "oklch(0.47 0.012 260)", "oklch(0.6 0.012 260)", "oklch(0.72 0.012 260)", "oklch(0.84 0.012 260)", "oklch(0.95 0.012 260)"] },
-      "muted-sheet": { "role": "neutral", "displayName": "Muted Sheet", "canonical": "oklch(0.945 0.005 250)", "tonalRamp": ["oklch(0.15 0.005 250)", "oklch(0.27 0.005 250)", "oklch(0.39 0.005 250)", "oklch(0.51 0.005 250)", "oklch(0.63 0.005 250)", "oklch(0.75 0.005 250)", "oklch(0.87 0.005 250)", "oklch(0.945 0.005 250)"] },
-      "process-cyan": { "role": "secondary", "displayName": "Process Cyan", "canonical": "oklch(0.7 0.14 228)", "tonalRamp": ["oklch(0.15 0.06 228)", "oklch(0.27 0.1 228)", "oklch(0.39 0.12 228)", "oklch(0.5 0.13 235)", "oklch(0.7 0.14 228)", "oklch(0.8 0.1 228)", "oklch(0.88 0.06 228)", "oklch(0.95 0.03 228)"] },
-      "cyan-ink": { "role": "secondary", "displayName": "Cyan Ink", "canonical": "oklch(0.5 0.13 235)" },
-      "cyan-wash": { "role": "secondary", "displayName": "Cyan Wash", "canonical": "oklch(0.95 0.03 228)" },
-      "process-magenta": { "role": "primary", "displayName": "Process Magenta", "canonical": "oklch(0.56 0.235 357)", "tonalRamp": ["oklch(0.15 0.08 357)", "oklch(0.27 0.13 357)", "oklch(0.39 0.18 357)", "oklch(0.5 0.22 357)", "oklch(0.56 0.235 357)", "oklch(0.72 0.15 357)", "oklch(0.86 0.07 357)", "oklch(0.955 0.03 357)"] },
-      "magenta-ink": { "role": "primary", "displayName": "Magenta Ink", "canonical": "oklch(0.5 0.22 357)" },
-      "magenta-wash": { "role": "primary", "displayName": "Magenta Wash", "canonical": "oklch(0.955 0.03 357)" },
-      "process-yellow": { "role": "tertiary", "displayName": "Process Yellow", "canonical": "oklch(0.89 0.17 98)", "tonalRamp": ["oklch(0.15 0.04 98)", "oklch(0.27 0.06 98)", "oklch(0.39 0.09 98)", "oklch(0.51 0.11 98)", "oklch(0.63 0.13 98)", "oklch(0.76 0.15 98)", "oklch(0.89 0.17 98)", "oklch(0.97 0.06 98)"] },
-      "destructive-red": { "role": "neutral", "displayName": "Destructive Red", "canonical": "oklch(0.55 0.21 27)" }
+      "workspace": {
+        "role": "neutral",
+        "displayName": "Workspace",
+        "canonical": "oklch(0.94 0.006 265)",
+        "tonalRamp": [
+          "oklch(0.15 0.006 265)",
+          "oklch(0.26 0.006 265)",
+          "oklch(0.37 0.006 265)",
+          "oklch(0.48 0.006 265)",
+          "oklch(0.6 0.006 265)",
+          "oklch(0.72 0.006 265)",
+          "oklch(0.84 0.006 265)",
+          "oklch(0.95 0.006 265)"
+        ]
+      },
+      "sheet": {
+        "role": "neutral",
+        "displayName": "Sheet",
+        "canonical": "oklch(1 0 0)",
+        "tonalRamp": [
+          "oklch(0.15 0.004 265)",
+          "oklch(0.26 0.004 265)",
+          "oklch(0.37 0.004 265)",
+          "oklch(0.48 0.004 265)",
+          "oklch(0.6 0.004 265)",
+          "oklch(0.72 0.004 265)",
+          "oklch(0.84 0.004 265)",
+          "oklch(0.95 0.004 265)"
+        ]
+      },
+      "raised": {
+        "role": "neutral",
+        "displayName": "Raised",
+        "canonical": "oklch(1 0 0)",
+        "tonalRamp": [
+          "oklch(0.15 0.004 265)",
+          "oklch(0.26 0.004 265)",
+          "oklch(0.37 0.004 265)",
+          "oklch(0.48 0.004 265)",
+          "oklch(0.6 0.004 265)",
+          "oklch(0.72 0.004 265)",
+          "oklch(0.84 0.004 265)",
+          "oklch(0.95 0.004 265)"
+        ]
+      },
+      "tile": {
+        "role": "neutral",
+        "displayName": "Tile",
+        "canonical": "oklch(0.965 0.005 265)",
+        "tonalRamp": [
+          "oklch(0.15 0.005 265)",
+          "oklch(0.26 0.005 265)",
+          "oklch(0.37 0.005 265)",
+          "oklch(0.48 0.005 265)",
+          "oklch(0.6 0.005 265)",
+          "oklch(0.72 0.005 265)",
+          "oklch(0.84 0.005 265)",
+          "oklch(0.95 0.005 265)"
+        ]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "oklch(0.92 0.008 265)",
+        "tonalRamp": [
+          "oklch(0.15 0.008 265)",
+          "oklch(0.26 0.008 265)",
+          "oklch(0.37 0.008 265)",
+          "oklch(0.48 0.008 265)",
+          "oklch(0.6 0.008 265)",
+          "oklch(0.72 0.008 265)",
+          "oklch(0.84 0.008 265)",
+          "oklch(0.95 0.008 265)"
+        ]
+      },
+      "input-rule": {
+        "role": "neutral",
+        "displayName": "Input Rule",
+        "canonical": "oklch(0.86 0.01 265)",
+        "tonalRamp": [
+          "oklch(0.15 0.01 265)",
+          "oklch(0.26 0.01 265)",
+          "oklch(0.37 0.01 265)",
+          "oklch(0.48 0.01 265)",
+          "oklch(0.6 0.01 265)",
+          "oklch(0.72 0.01 265)",
+          "oklch(0.84 0.01 265)",
+          "oklch(0.95 0.01 265)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "oklch(0.18 0.012 250)",
+        "tonalRamp": [
+          "oklch(0.15 0.012 250)",
+          "oklch(0.26 0.012 250)",
+          "oklch(0.37 0.012 250)",
+          "oklch(0.48 0.012 250)",
+          "oklch(0.6 0.012 250)",
+          "oklch(0.72 0.012 250)",
+          "oklch(0.84 0.012 250)",
+          "oklch(0.95 0.012 250)"
+        ]
+      },
+      "ink-soft": {
+        "role": "neutral",
+        "displayName": "Soft Ink",
+        "canonical": "oklch(0.5 0.02 265)",
+        "tonalRamp": [
+          "oklch(0.15 0.02 265)",
+          "oklch(0.26 0.02 265)",
+          "oklch(0.37 0.02 265)",
+          "oklch(0.48 0.02 265)",
+          "oklch(0.6 0.02 265)",
+          "oklch(0.72 0.02 265)",
+          "oklch(0.84 0.02 265)",
+          "oklch(0.95 0.02 265)"
+        ]
+      },
+      "brand": {
+        "role": "primary",
+        "displayName": "Bubble Purple",
+        "canonical": "oklch(0.53 0.24 293)",
+        "tonalRamp": [
+          "oklch(0.15 0.22 293)",
+          "oklch(0.26 0.22 293)",
+          "oklch(0.37 0.22 293)",
+          "oklch(0.48 0.22 293)",
+          "oklch(0.6 0.22 293)",
+          "oklch(0.72 0.22 293)",
+          "oklch(0.84 0.22 293)",
+          "oklch(0.95 0.22 293)"
+        ]
+      },
+      "brand-ink": {
+        "role": "primary",
+        "displayName": "Deep Purple",
+        "canonical": "oklch(0.47 0.22 291)",
+        "tonalRamp": [
+          "oklch(0.15 0.2 291)",
+          "oklch(0.26 0.2 291)",
+          "oklch(0.37 0.2 291)",
+          "oklch(0.48 0.2 291)",
+          "oklch(0.6 0.2 291)",
+          "oklch(0.72 0.2 291)",
+          "oklch(0.84 0.2 291)",
+          "oklch(0.95 0.2 291)"
+        ]
+      },
+      "brand-wash": {
+        "role": "primary",
+        "displayName": "Lilac Wash",
+        "canonical": "oklch(0.95 0.03 300)",
+        "tonalRamp": [
+          "oklch(0.15 0.08 300)",
+          "oklch(0.26 0.08 300)",
+          "oklch(0.37 0.08 300)",
+          "oklch(0.48 0.08 300)",
+          "oklch(0.6 0.08 300)",
+          "oklch(0.72 0.08 300)",
+          "oklch(0.84 0.08 300)",
+          "oklch(0.95 0.08 300)"
+        ]
+      },
+      "aqua": {
+        "role": "secondary",
+        "displayName": "Canvas Turquoise",
+        "canonical": "oklch(0.75 0.13 198)",
+        "tonalRamp": [
+          "oklch(0.15 0.12 198)",
+          "oklch(0.26 0.12 198)",
+          "oklch(0.37 0.12 198)",
+          "oklch(0.48 0.12 198)",
+          "oklch(0.6 0.12 198)",
+          "oklch(0.72 0.12 198)",
+          "oklch(0.84 0.12 198)",
+          "oklch(0.95 0.12 198)"
+        ]
+      },
+      "aqua-ink": {
+        "role": "secondary",
+        "displayName": "Turquoise Ink",
+        "canonical": "oklch(0.5 0.09 198)",
+        "tonalRamp": [
+          "oklch(0.15 0.09 198)",
+          "oklch(0.26 0.09 198)",
+          "oklch(0.37 0.09 198)",
+          "oklch(0.48 0.09 198)",
+          "oklch(0.6 0.09 198)",
+          "oklch(0.72 0.09 198)",
+          "oklch(0.84 0.09 198)",
+          "oklch(0.95 0.09 198)"
+        ]
+      },
+      "aqua-wash": {
+        "role": "secondary",
+        "displayName": "Turquoise Wash",
+        "canonical": "oklch(0.96 0.03 198)",
+        "tonalRamp": [
+          "oklch(0.15 0.06 198)",
+          "oklch(0.26 0.06 198)",
+          "oklch(0.37 0.06 198)",
+          "oklch(0.48 0.06 198)",
+          "oklch(0.6 0.06 198)",
+          "oklch(0.72 0.06 198)",
+          "oklch(0.84 0.06 198)",
+          "oklch(0.95 0.06 198)"
+        ]
+      },
+      "crop-yellow": {
+        "role": "tertiary",
+        "displayName": "Crop Yellow",
+        "canonical": "oklch(0.89 0.17 98)",
+        "tonalRamp": [
+          "oklch(0.15 0.15 98)",
+          "oklch(0.26 0.15 98)",
+          "oklch(0.37 0.15 98)",
+          "oklch(0.48 0.15 98)",
+          "oklch(0.6 0.15 98)",
+          "oklch(0.72 0.15 98)",
+          "oklch(0.84 0.15 98)",
+          "oklch(0.95 0.15 98)"
+        ]
+      },
+      "yellow-wash": {
+        "role": "tertiary",
+        "displayName": "Yellow Wash",
+        "canonical": "oklch(0.97 0.06 98)",
+        "tonalRamp": [
+          "oklch(0.15 0.08 98)",
+          "oklch(0.26 0.08 98)",
+          "oklch(0.37 0.08 98)",
+          "oklch(0.48 0.08 98)",
+          "oklch(0.6 0.08 98)",
+          "oklch(0.72 0.08 98)",
+          "oklch(0.84 0.08 98)",
+          "oklch(0.95 0.08 98)"
+        ]
+      },
+      "destructive": {
+        "role": "neutral",
+        "displayName": "Destructive Red",
+        "canonical": "oklch(0.55 0.21 27)",
+        "tonalRamp": [
+          "oklch(0.15 0.19 27)",
+          "oklch(0.26 0.19 27)",
+          "oklch(0.37 0.19 27)",
+          "oklch(0.48 0.19 27)",
+          "oklch(0.6 0.19 27)",
+          "oklch(0.72 0.19 27)",
+          "oklch(0.84 0.19 27)",
+          "oklch(0.95 0.19 27)"
+        ]
+      },
+      "gradient-start": {
+        "role": "primary",
+        "displayName": "Gradient Violet",
+        "canonical": "oklch(0.45 0.22 288)",
+        "tonalRamp": [
+          "oklch(0.15 0.2 288)",
+          "oklch(0.26 0.2 288)",
+          "oklch(0.37 0.2 288)",
+          "oklch(0.48 0.2 288)",
+          "oklch(0.6 0.2 288)",
+          "oklch(0.72 0.2 288)",
+          "oklch(0.84 0.2 288)",
+          "oklch(0.95 0.2 288)"
+        ]
+      },
+      "gradient-teal": {
+        "role": "secondary",
+        "displayName": "Gradient Teal",
+        "canonical": "oklch(0.62 0.1 205)",
+        "tonalRamp": [
+          "oklch(0.15 0.1 205)",
+          "oklch(0.26 0.1 205)",
+          "oklch(0.37 0.1 205)",
+          "oklch(0.48 0.1 205)",
+          "oklch(0.6 0.1 205)",
+          "oklch(0.72 0.1 205)",
+          "oklch(0.84 0.1 205)",
+          "oklch(0.95 0.1 205)"
+        ]
+      },
+      "cta-ink": {
+        "role": "primary",
+        "displayName": "Export Ink",
+        "canonical": "oklch(0.4 0.2 289)",
+        "tonalRamp": [
+          "oklch(0.15 0.2 289)",
+          "oklch(0.26 0.2 289)",
+          "oklch(0.37 0.2 289)",
+          "oklch(0.48 0.2 289)",
+          "oklch(0.6 0.2 289)",
+          "oklch(0.72 0.2 289)",
+          "oklch(0.84 0.2 289)",
+          "oklch(0.95 0.2 289)"
+        ]
+      },
+      "dark-workspace": {
+        "role": "neutral",
+        "displayName": "Night Workspace",
+        "canonical": "oklch(0.16 0.006 265)",
+        "tonalRamp": [
+          "oklch(0.15 0.006 265)",
+          "oklch(0.26 0.006 265)",
+          "oklch(0.37 0.006 265)",
+          "oklch(0.48 0.006 265)",
+          "oklch(0.6 0.006 265)",
+          "oklch(0.72 0.006 265)",
+          "oklch(0.84 0.006 265)",
+          "oklch(0.95 0.006 265)"
+        ]
+      },
+      "dark-sheet": {
+        "role": "neutral",
+        "displayName": "Charcoal Sheet",
+        "canonical": "oklch(0.22 0.008 265)",
+        "tonalRamp": [
+          "oklch(0.15 0.008 265)",
+          "oklch(0.26 0.008 265)",
+          "oklch(0.37 0.008 265)",
+          "oklch(0.48 0.008 265)",
+          "oklch(0.6 0.008 265)",
+          "oklch(0.72 0.008 265)",
+          "oklch(0.84 0.008 265)",
+          "oklch(0.95 0.008 265)"
+        ]
+      },
+      "dark-raised": {
+        "role": "neutral",
+        "displayName": "Charcoal Raised",
+        "canonical": "oklch(0.26 0.01 265)",
+        "tonalRamp": [
+          "oklch(0.15 0.01 265)",
+          "oklch(0.26 0.01 265)",
+          "oklch(0.37 0.01 265)",
+          "oklch(0.48 0.01 265)",
+          "oklch(0.6 0.01 265)",
+          "oklch(0.72 0.01 265)",
+          "oklch(0.84 0.01 265)",
+          "oklch(0.95 0.01 265)"
+        ]
+      },
+      "dark-tile": {
+        "role": "neutral",
+        "displayName": "Charcoal Tile",
+        "canonical": "oklch(0.27 0.01 265)",
+        "tonalRamp": [
+          "oklch(0.15 0.01 265)",
+          "oklch(0.26 0.01 265)",
+          "oklch(0.37 0.01 265)",
+          "oklch(0.48 0.01 265)",
+          "oklch(0.6 0.01 265)",
+          "oklch(0.72 0.01 265)",
+          "oklch(0.84 0.01 265)",
+          "oklch(0.95 0.01 265)"
+        ]
+      },
+      "dark-rule": {
+        "role": "neutral",
+        "displayName": "Night Hairline",
+        "canonical": "oklch(0.3 0.012 265)",
+        "tonalRamp": [
+          "oklch(0.15 0.012 265)",
+          "oklch(0.26 0.012 265)",
+          "oklch(0.37 0.012 265)",
+          "oklch(0.48 0.012 265)",
+          "oklch(0.6 0.012 265)",
+          "oklch(0.72 0.012 265)",
+          "oklch(0.84 0.012 265)",
+          "oklch(0.95 0.012 265)"
+        ]
+      },
+      "dark-ink": {
+        "role": "neutral",
+        "displayName": "Night Ink",
+        "canonical": "oklch(0.95 0.006 265)",
+        "tonalRamp": [
+          "oklch(0.15 0.006 265)",
+          "oklch(0.26 0.006 265)",
+          "oklch(0.37 0.006 265)",
+          "oklch(0.48 0.006 265)",
+          "oklch(0.6 0.006 265)",
+          "oklch(0.72 0.006 265)",
+          "oklch(0.84 0.006 265)",
+          "oklch(0.95 0.006 265)"
+        ]
+      },
+      "dark-ink-soft": {
+        "role": "neutral",
+        "displayName": "Night Soft Ink",
+        "canonical": "oklch(0.74 0.02 265)",
+        "tonalRamp": [
+          "oklch(0.15 0.02 265)",
+          "oklch(0.26 0.02 265)",
+          "oklch(0.37 0.02 265)",
+          "oklch(0.48 0.02 265)",
+          "oklch(0.6 0.02 265)",
+          "oklch(0.72 0.02 265)",
+          "oklch(0.84 0.02 265)",
+          "oklch(0.95 0.02 265)"
+        ]
+      },
+      "dark-brand": {
+        "role": "primary",
+        "displayName": "Night Purple",
+        "canonical": "oklch(0.57 0.25 295)",
+        "tonalRamp": [
+          "oklch(0.15 0.22 295)",
+          "oklch(0.26 0.22 295)",
+          "oklch(0.37 0.22 295)",
+          "oklch(0.48 0.22 295)",
+          "oklch(0.6 0.22 295)",
+          "oklch(0.72 0.22 295)",
+          "oklch(0.84 0.22 295)",
+          "oklch(0.95 0.22 295)"
+        ]
+      },
+      "dark-aqua": {
+        "role": "secondary",
+        "displayName": "Night Turquoise",
+        "canonical": "oklch(0.8 0.13 198)",
+        "tonalRamp": [
+          "oklch(0.15 0.12 198)",
+          "oklch(0.26 0.12 198)",
+          "oklch(0.37 0.12 198)",
+          "oklch(0.48 0.12 198)",
+          "oklch(0.6 0.12 198)",
+          "oklch(0.72 0.12 198)",
+          "oklch(0.84 0.12 198)",
+          "oklch(0.95 0.12 198)"
+        ]
+      }
     },
     "typographyMeta": {
-      "title": { "displayName": "Title", "purpose": "Product name in the top bar." },
-      "section": { "displayName": "Section", "purpose": "Panel section headings and popover titles." },
-      "body": { "displayName": "Body", "purpose": "Helper text and layer names." },
-      "label": { "displayName": "Label", "purpose": "Field labels above controls, in Soft Ink." },
-      "readout": { "displayName": "Readout", "purpose": "Every live number: slider values, hex, size, zoom. Mono, tabular." },
-      "slug": { "displayName": "Slug", "purpose": "Condensed-caps status-strip label." }
+      "display": {
+        "displayName": "Display",
+        "purpose": "Start-screen h1 only; Poppins 700, uppercase, white on the hero gradient."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Start-screen section headings (20px mobile, 24px desktop)."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Create-card and tool-tile titles (15px on tiles)."
+      },
+      "section": {
+        "displayName": "Section",
+        "purpose": "Tool-panel section headings."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Descriptions, layer names, panel copy."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Size chips, field labels, menu items."
+      },
+      "rail-label": {
+        "displayName": "Rail Label",
+        "purpose": "Text under rail icons; 600 when active."
+      },
+      "readout": {
+        "displayName": "Readout",
+        "purpose": "Geist Mono tabular figures for px, ratios, zoom, hex and versions."
+      }
     },
     "shadows": [
-      { "name": "sheet-lift", "value": "0 1px 2px oklch(0.2 0.02 260 / 0.12), 0 12px 32px -12px oklch(0.2 0.02 260 / 0.28)", "purpose": "The canvas proof sheet only." },
-      { "name": "crop-keyline", "value": "0 0 0 1px oklch(0.2 0.012 260 / 0.5)", "purpose": "Dark keyline under the yellow crop frame so it reads on light photos." }
+      {
+        "name": "sheet",
+        "value": "0 1px 2px rgb(14 19 24 / 0.08), 0 16px 40px -16px rgb(14 19 24 / 0.28)",
+        "dark": "0 1px 2px rgb(0 0 0 / 0.5), 0 18px 44px -14px rgb(0 0 0 / 0.75)",
+        "purpose": "The post sheet, card art and recent thumbnails."
+      },
+      {
+        "name": "float",
+        "value": "0 1px 2px rgb(14 19 24 / 0.06), 0 8px 24px -8px rgb(14 19 24 / 0.22)",
+        "dark": "0 1px 2px rgb(0 0 0 / 0.4), 0 10px 28px -8px rgb(0 0 0 / 0.7)",
+        "purpose": "Create cards, tool tiles, status pill, overflow buttons, dragged layer rows."
+      },
+      {
+        "name": "cta-lift",
+        "value": "0 1px 2px rgb(0 0 0 / 0.18)",
+        "purpose": "The white Export pill on the gradient."
+      }
+    ],
+    "gradients": [
+      {
+        "name": "brand",
+        "value": "linear-gradient(90deg, #5b1fc4 0%, #7d2ae8 42%, #0d9aa5 100%)",
+        "dark": "linear-gradient(90deg, #2d1170 0%, #43169a 42%, #0b5f67 100%)",
+        "purpose": "The header and the start hero band only."
+      }
     ],
     "motion": [
-      { "name": "state-colors", "value": "transition-colors (150ms ease)", "purpose": "Hover/active fills on rail items, list rows and tiles." }
+      {
+        "name": "duo-fill",
+        "value": "fill 150ms ease-out",
+        "purpose": "Duotone icon fill on hover and active."
+      },
+      {
+        "name": "rail-tile",
+        "value": "background-color 150ms",
+        "purpose": "Rail icon tile state changes."
+      },
+      {
+        "name": "card-lift",
+        "value": "transform 200ms ease-out",
+        "purpose": "Tool tiles lift 2px; recent thumbnails scale to 1.03; card art untilts over 300ms."
+      },
+      {
+        "name": "theme-switch",
+        "value": "transition: none for one frame (.theme-switching on <html>)",
+        "purpose": "Light and dark recolour in a single repaint."
+      }
     ],
     "breakpoints": [
-      { "name": "sm", "value": "640px" },
-      { "name": "md", "value": "768px" }
-    ]
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      }
+    ],
+    "theming": {
+      "mechanism": "Class 'dark' on <html>; CSS variables in :root and .dark; an inline pre-paint script reads localStorage 'bubble-studio:theme' (absent = follow the system).",
+      "invariant": "The post sheet and everything drawn on it stay light in both themes."
+    }
   },
   "components": [
+    {
+      "name": "Brand Header",
+      "kind": "nav",
+      "refersTo": "header",
+      "description": "56px gradient bar with white ghost controls and the white Export pill.",
+      "html": "<header class=\"ds-header\"><span class=\"ds-header-mark\">Bubble Studio</span><button class=\"ds-header-btn\">New</button><span class=\"ds-header-spacer\"></span><button class=\"ds-header-btn\">Layers</button><button class=\"ds-cta\">Export</button></header>",
+      "css": ".ds-header{display:flex;align-items:center;gap:10px;height:56px;padding:0 16px;background:linear-gradient(90deg,#5b1fc4 0%,#7d2ae8 42%,#0d9aa5 100%);color:#fff;font-family:Inter,ui-sans-serif,sans-serif}.ds-header-mark{font-family:Poppins,Inter,sans-serif;font-weight:700;font-size:15px}.ds-header-spacer{flex:1}.ds-header-btn{height:36px;padding:0 12px;border:0;border-radius:8px;background:transparent;color:#fff;font:500 14px Inter,sans-serif;cursor:pointer}.ds-header-btn:hover{background:rgb(255 255 255 / .16)}.ds-header-btn:focus-visible{outline:none;box-shadow:0 0 0 2px #fff}.ds-cta{height:36px;padding:0 14px;border:0;border-radius:8px;background:#fff;color:#4b19ad;font:600 14px Inter,sans-serif;box-shadow:0 1px 2px rgb(0 0 0 / .18);cursor:pointer}.ds-cta:hover{background:#f3edff}.ds-cta:focus-visible{outline:none;box-shadow:0 0 0 2px #fff}"
+    },
     {
       "name": "Primary Button",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "Magenta primary action: Export, Download, empty-state photo pick.",
-      "html": "<button class=\"ds-btn-primary\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4\"/><path d=\"M7 10l5 5 5-5\"/><path d=\"M12 15V3\"/></svg>Export</button>",
-      "css": ".ds-btn-primary { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; background: var(--magenta, oklch(0.56 0.235 357)); color: #fff; border: 1px solid transparent; border-radius: 6px; font: 500 14px Geist, ui-sans-serif, system-ui, sans-serif; cursor: pointer; transition: background 0.15s; } .ds-btn-primary:hover { background: var(--magenta-ink, oklch(0.5 0.22 357)); } .ds-btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 3px oklch(0.7 0.14 228 / 0.5); } .ds-btn-primary:active { transform: translateY(1px); }"
+      "description": "Purple fill for the primary in-panel action.",
+      "html": "<button class=\"ds-btn-primary\">Add a photo</button>",
+      "css": ".ds-btn-primary{height:36px;padding:0 12px;border:0;border-radius:8px;background:var(--brand,#7d2ae8);color:#fff;font:500 14px Inter,sans-serif;cursor:pointer;transition:background .15s}.ds-btn-primary:hover{background:var(--brand-ink,#6420c7)}.ds-btn-primary:focus-visible{outline:2px solid var(--aqua,#00c4cc);outline-offset:2px}.ds-btn-primary:active{transform:translateY(1px)}"
     },
     {
-      "name": "Ghost Icon Button",
-      "kind": "button",
-      "refersTo": "button-ghost",
-      "description": "Undo / redo in the top bar.",
-      "html": "<button class=\"ds-btn-ghost\" aria-label=\"Undo\"><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M9 14 4 9l5-5\"/><path d=\"M4 9h10.5a5.5 5.5 0 0 1 0 11H11\"/></svg></button>",
-      "css": ".ds-btn-ghost { display: inline-grid; place-items: center; width: 32px; height: 32px; background: transparent; color: var(--ink, oklch(0.2 0.012 260)); border: 1px solid transparent; border-radius: 6px; cursor: pointer; transition: background 0.15s; } .ds-btn-ghost:hover { background: var(--muted, oklch(0.945 0.005 250)); } .ds-btn-ghost:focus-visible { outline: none; box-shadow: 0 0 0 3px oklch(0.7 0.14 228 / 0.5); } .ds-btn-ghost:disabled { opacity: 0.5; pointer-events: none; }"
-    },
-    {
-      "name": "Tool Rail",
+      "name": "Rail Tool",
       "kind": "nav",
-      "refersTo": "tool-rail-item",
-      "description": "Left rail of tools; active tool in cyan wash.",
-      "html": "<nav class=\"ds-rail\"><button class=\"ds-rail-item\" aria-current=\"page\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2.1\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M6 2v14a2 2 0 0 0 2 2h14\"/><path d=\"M18 22V8a2 2 0 0 0-2-2H2\"/></svg>Crop</button><button class=\"ds-rail-item\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M4 7V4h16v3\"/><path d=\"M9 20h6\"/><path d=\"M12 4v16\"/></svg>Text</button></nav>",
-      "css": ".ds-rail { display: flex; flex-direction: column; gap: 4px; width: 76px; padding: 12px 8px; background: var(--sheet, oklch(0.993 0.002 250)); border-right: 1px solid var(--rule, oklch(0.86 0.006 250)); } .ds-rail-item { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; height: 56px; min-width: 56px; border: 0; border-radius: 4.8px; background: transparent; color: var(--ink-soft, oklch(0.47 0.012 260)); font: 500 11px Geist, ui-sans-serif, sans-serif; cursor: pointer; transition: background 0.15s, color 0.15s; } .ds-rail-item:hover { background: var(--muted, oklch(0.945 0.005 250)); color: var(--ink, oklch(0.2 0.012 260)); } .ds-rail-item[aria-current] { background: var(--cyan-wash, oklch(0.95 0.03 228)); color: var(--cyan-ink, oklch(0.5 0.13 235)); } .ds-rail-item:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--cyan, oklch(0.7 0.14 228)); }"
+      "refersTo": "rail-tool-active",
+      "description": "Rail button: 40px icon tile and 11px label; the duo shape fills purple when active.",
+      "html": "<div class=\"ds-rail\"><button class=\"ds-tool\" data-active><span class=\"ds-tool-tile\"><svg viewBox=\"0 0 24 24\" width=\"22\" height=\"22\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle class=\"duo\" cx=\"9\" cy=\"9.5\" r=\"5.25\"/><circle cx=\"15\" cy=\"9.5\" r=\"5.25\"/><circle cx=\"12\" cy=\"14.75\" r=\"5.25\"/></svg></span><span>Filters</span></button><button class=\"ds-tool\"><span class=\"ds-tool-tile\"><svg viewBox=\"0 0 24 24\" width=\"22\" height=\"22\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect class=\"duo\" x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"3.5\"/><path d=\"m3.5 17 4.8-4.8a1.5 1.5 0 0 1 2.1 0L15 16.8\"/><path d=\"m13.5 15.3 1.7-1.7a1.5 1.5 0 0 1 2.1 0l3.4 3.4\"/><circle cx=\"15.5\" cy=\"8.75\" r=\"1.5\"/></svg></span><span>Photo</span></button></div>",
+      "css": ".ds-rail{display:flex;flex-direction:column;gap:4px;width:76px;padding:10px 6px;background:var(--sheet,#fff);border-right:1px solid var(--rule,#e2e4ea)}.ds-tool{display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 0;border:0;border-radius:8px;background:none;color:var(--ink-soft,#5b6270);font:500 11px Inter,sans-serif;cursor:pointer}.ds-tool:hover{color:var(--ink,#0e1318)}.ds-tool-tile{display:grid;place-items:center;width:40px;height:40px;border-radius:11.2px;transition:background-color .15s}.ds-tool:hover .ds-tool-tile{background:var(--tile,#f2f3f6)}.ds-tool .duo{fill:transparent;transition:fill .15s ease-out}.ds-tool:hover .duo{fill:color-mix(in oklch,currentColor 10%,transparent)}.ds-tool[data-active]{color:var(--ink,#0e1318);font-weight:600}.ds-tool[data-active] .ds-tool-tile{background:var(--brand-wash,#f1e9fd);color:var(--brand,#7d2ae8)}.ds-tool[data-active] .duo{fill:color-mix(in oklch,var(--brand,#7d2ae8) 26%,transparent)}.ds-tool:focus-visible{outline:2px solid var(--aqua,#00c4cc)}"
     },
     {
-      "name": "Text Input",
-      "kind": "input",
-      "refersTo": "input",
-      "description": "Sheet-backed field with input-rule stroke, magenta caret, cyan focus.",
-      "html": "<input class=\"ds-input\" value=\"facebook-post\" aria-label=\"File name\">",
-      "css": ".ds-input { height: 32px; width: 220px; padding: 4px 10px; background: var(--sheet, oklch(0.993 0.002 250)); color: var(--ink, oklch(0.2 0.012 260)); border: 1px solid var(--input, oklch(0.83 0.008 250)); border-radius: 6px; font: 400 14px Geist, ui-sans-serif, sans-serif; caret-color: var(--magenta, oklch(0.56 0.235 357)); transition: border-color 0.15s; } .ds-input:focus-visible { outline: none; border-color: var(--cyan, oklch(0.7 0.14 228)); box-shadow: 0 0 0 3px oklch(0.7 0.14 228 / 0.5); }"
+      "name": "Size Chip",
+      "kind": "chip",
+      "refersTo": "size-chip",
+      "description": "Round chip with a shape glyph, name and mono ratio.",
+      "html": "<button class=\"ds-chip\"><span class=\"ds-chip-glyph\"></span>Square<span class=\"ds-chip-ratio\">1:1</span></button>",
+      "css": ".ds-chip{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 14px 0 10px;border:1px solid var(--rule,#e2e4ea);border-radius:9999px;background:var(--sheet,#fff);color:var(--ink,#0e1318);font:500 13px Inter,sans-serif;cursor:pointer;transition:background-color .15s,border-color .15s}.ds-chip:hover{border-color:var(--brand,#7d2ae8);background:var(--brand-wash,#f1e9fd)}.ds-chip:focus-visible{outline:none;box-shadow:0 0 0 2px var(--aqua,#00c4cc)}.ds-chip-glyph{width:14px;height:14px;border:1.5px solid var(--brand,#7d2ae8);border-radius:3px}.ds-chip-ratio{font:11px 'Geist Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums;color:var(--ink-soft,#5b6270)}"
     },
     {
-      "name": "Range Field",
-      "kind": "input",
-      "description": "Label, tabular mono readout (cyan ink when changed), ink-filled slider with cyan-ringed thumb.",
-      "html": "<div class=\"ds-range\"><div class=\"ds-range-head\"><span class=\"ds-range-label\">Brightness</span><span class=\"ds-range-value\">+12</span></div><div class=\"ds-range-track\"><span class=\"ds-range-fill\"></span><span class=\"ds-range-thumb\" tabindex=\"0\"></span></div></div>",
-      "css": ".ds-range { display: grid; gap: 8px; width: 260px; } .ds-range-head { display: flex; justify-content: space-between; align-items: baseline; } .ds-range-label { font: 400 13px Geist, ui-sans-serif, sans-serif; color: var(--ink-soft, oklch(0.47 0.012 260)); } .ds-range-value { font: 400 12px 'Geist Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; color: var(--cyan-ink, oklch(0.5 0.13 235)); } .ds-range-track { position: relative; height: 4px; border-radius: 999px; background: var(--muted, oklch(0.945 0.005 250)); } .ds-range-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 56%; border-radius: 999px; background: var(--ink, oklch(0.2 0.012 260)); } .ds-range-thumb { position: absolute; left: 56%; top: 50%; width: 12px; height: 12px; transform: translate(-50%, -50%); border-radius: 999px; background: #fff; border: 1px solid var(--cyan, oklch(0.7 0.14 228)); transition: box-shadow 0.15s; } .ds-range-thumb:hover, .ds-range-thumb:focus-visible { outline: none; box-shadow: 0 0 0 3px oklch(0.7 0.14 228 / 0.5); }"
-    },
-    {
-      "name": "Panel Section",
+      "name": "Create Card",
       "kind": "card",
-      "refersTo": "panel",
-      "description": "Properties-panel section: sheet, 13px semibold heading, hairline bottom rule.",
-      "html": "<section class=\"ds-panel\"><h3 class=\"ds-panel-title\">Layers</h3><p class=\"ds-panel-body\">Click a text on the post to edit it.</p></section>",
-      "css": ".ds-panel { width: 320px; padding: 16px 16px 20px; background: var(--sheet, oklch(0.993 0.002 250)); border-bottom: 1px solid var(--rule, oklch(0.86 0.006 250)); } .ds-panel-title { margin: 0 0 12px; font: 600 13px Geist, ui-sans-serif, sans-serif; color: var(--ink, oklch(0.2 0.012 260)); } .ds-panel-body { margin: 0; font: 400 13px Geist, ui-sans-serif, sans-serif; color: var(--ink-soft, oklch(0.47 0.012 260)); }"
+      "refersTo": "create-card",
+      "description": "Start-screen card: art well, title and body; floats on the workspace.",
+      "html": "<article class=\"ds-card\"><div class=\"ds-card-row\"><span class=\"ds-card-well\"><span class=\"ds-card-art\"></span></span><span><span class=\"ds-card-title\">Photo post</span><span class=\"ds-card-body\">Filters, text, stickers and blur on a photo.</span></span></div></article>",
+      "css": ".ds-card{max-width:440px;padding:20px;border-radius:14.4px;background:var(--sheet,#fff);box-shadow:0 1px 2px rgb(14 19 24 / .06),0 8px 24px -8px rgb(14 19 24 / .22)}.ds-card-row{display:flex;align-items:center;gap:16px}.ds-card-well{display:grid;place-items:center;flex:none;width:112px;height:112px;border-radius:11.2px;background:var(--tile,#f2f3f6);transition:background-color .2s}.ds-card:hover .ds-card-well{background:var(--brand-wash,#f1e9fd)}.ds-card-art{width:78%;height:78%;border-radius:8px;background:linear-gradient(135deg,#ff6b6b,#c026d3);transform:rotate(-3deg);transition:transform .3s ease-out;box-shadow:0 1px 2px rgb(14 19 24 / .08),0 16px 40px -16px rgb(14 19 24 / .28)}.ds-card:hover .ds-card-art{transform:none}.ds-card-title{display:block;font:600 18px Poppins,Inter,sans-serif;color:var(--ink,#0e1318)}.ds-card-body{display:block;margin-top:4px;font:14px/1.5 Inter,sans-serif;color:var(--ink-soft,#5b6270)}"
     },
     {
-      "name": "Proof Sheet With Marks",
-      "kind": "custom",
-      "description": "Signature: lifted sheet on the table, corner crop marks and registration targets.",
-      "html": "<div class=\"ds-table\"><div class=\"ds-sheet\"><svg class=\"ds-marks\" viewBox=\"-36 -36 192 192\" aria-hidden=\"true\"><g stroke=\"oklch(0.2 0.012 260)\" stroke-width=\"1\"><path d=\"M-8 0h-18M0 -8v-18M128 0h18M120 -8v-18M-8 120h-18M0 128v18M128 120h18M120 128v18\"/></g><g stroke=\"oklch(0.2 0.012 260)\" stroke-opacity=\"0.5\" fill=\"none\"><circle cx=\"60\" cy=\"-22\" r=\"6\"/><path d=\"M50 -22h20M60 -32v20\"/></g></svg></div></div>",
-      "css": ".ds-table { display: grid; place-items: center; width: 240px; height: 240px; background: var(--table, oklch(0.905 0.006 250)); } .ds-sheet { position: relative; width: 120px; height: 120px; background: var(--sheet, oklch(0.993 0.002 250)); box-shadow: 0 1px 2px oklch(0.2 0.02 260 / 0.12), 0 12px 32px -12px oklch(0.2 0.02 260 / 0.28); } .ds-marks { position: absolute; left: -36px; top: -36px; width: 192px; height: 192px; overflow: visible; pointer-events: none; }"
+      "name": "Tool Tile",
+      "kind": "card",
+      "refersTo": "tool-tile",
+      "description": "More tools tile with a lilac icon well; lifts 2px on hover.",
+      "html": "<button class=\"ds-tile\"><span class=\"ds-tile-icon\"><svg viewBox=\"0 0 24 24\" width=\"24\" height=\"24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect class=\"duo\" x=\"2.5\" y=\"4\" width=\"8\" height=\"6.5\" rx=\"1.75\"/><rect x=\"2.5\" y=\"13.5\" width=\"8\" height=\"6.5\" rx=\"1.75\"/><path d=\"M10.5 7.25h2.25a2 2 0 0 1 2 2v5.5a2 2 0 0 1-2 2H10.5\"/><path d=\"M14.75 12h6.75M19 9.5 21.5 12 19 14.5\"/></svg></span><span><span class=\"ds-tile-title\">Merge videos</span><span class=\"ds-tile-body\">Join clips into one video</span></span></button>",
+      "css": ".ds-tile{display:flex;align-items:center;gap:14px;width:280px;padding:12px;border:0;border-radius:11.2px;background:var(--sheet,#fff);text-align:left;cursor:pointer;box-shadow:0 1px 2px rgb(14 19 24 / .06),0 8px 24px -8px rgb(14 19 24 / .22);transition:transform .2s ease-out}.ds-tile:hover{transform:translateY(-2px)}.ds-tile .duo{fill:transparent;transition:fill .15s ease-out}.ds-tile:hover .duo{fill:color-mix(in oklch,currentColor 10%,transparent)}.ds-tile:focus-visible{outline:2px solid var(--aqua,#00c4cc)}.ds-tile-icon{display:grid;place-items:center;flex:none;width:48px;height:48px;border-radius:8px;background:var(--brand-wash,#f1e9fd);color:var(--brand,#7d2ae8)}.ds-tile-title{display:block;font:600 15px Poppins,Inter,sans-serif;color:var(--ink,#0e1318)}.ds-tile-body{display:block;font:13px/1.35 Inter,sans-serif;color:var(--ink-soft,#5b6270)}"
     },
     {
-      "name": "Status Strip",
+      "name": "Status Pill",
       "kind": "custom",
-      "description": "Signature: CMYK colour bar, condensed-caps slug, tabular readouts.",
-      "html": "<div class=\"ds-status\"><span class=\"ds-cmyk\"><i style=\"background:oklch(0.7 0.14 228)\"></i><i style=\"background:oklch(0.56 0.235 357)\"></i><i style=\"background:oklch(0.89 0.17 98)\"></i><i style=\"background:oklch(0.2 0.012 260)\"></i></span><span class=\"ds-slug\">Facebook post</span><span class=\"ds-readout\">1080 × 1080 px</span><span class=\"ds-readout\">48%</span></div>",
-      "css": ".ds-status { display: flex; align-items: center; justify-content: center; gap: 16px; height: 36px; padding: 0 16px; color: var(--ink-soft, oklch(0.47 0.012 260)); } .ds-cmyk { display: flex; } .ds-cmyk i { display: block; width: 12px; height: 12px; } .ds-slug { font: 600 12px 'Barlow Condensed', Geist, sans-serif; text-transform: uppercase; letter-spacing: 0.06em; } .ds-readout { font: 400 11px 'Geist Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }"
+      "refersTo": "status-pill",
+      "description": "Floating readout under the post: label, mono dimensions, zoom chip.",
+      "html": "<div class=\"ds-status\"><span class=\"ds-status-label\">Square post</span><span class=\"ds-status-sep\"></span><span class=\"ds-mono\">1080 × 1080 px</span><span class=\"ds-status-zoom\">67%</span></div>",
+      "css": ".ds-status{display:inline-flex;align-items:center;gap:12px;height:32px;padding:0 14px;border-radius:9999px;background:var(--raised,#fff);color:var(--ink-soft,#5b6270);font:12px Inter,sans-serif;box-shadow:0 1px 2px rgb(14 19 24 / .06),0 8px 24px -8px rgb(14 19 24 / .22)}.ds-status-label{color:var(--ink,#0e1318)}.ds-status-sep{width:1px;height:14px;background:var(--rule,#e2e4ea)}.ds-mono{font:11px 'Geist Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}.ds-status-zoom{padding:2px 8px;border-radius:9999px;background:var(--tile,#f2f3f6);color:var(--ink,#0e1318);font:11px 'Geist Mono',ui-monospace,monospace;font-variant-numeric:tabular-nums}"
+    },
+    {
+      "name": "Colour Field",
+      "kind": "input",
+      "refersTo": "panel-section",
+      "description": "Swatch row with a mono hex readout; the selected swatch takes a turquoise ring.",
+      "html": "<div class=\"ds-color\"><div class=\"ds-color-head\"><label>Text colour</label><span class=\"ds-color-hex\">#7D2AE8</span></div><div class=\"ds-color-row\"><button class=\"ds-swatch\" style=\"background:#0e1318\"></button><button class=\"ds-swatch\" aria-pressed=\"true\" style=\"background:#7d2ae8\"></button><button class=\"ds-swatch\" style=\"background:#00c4cc\"></button><button class=\"ds-swatch\" style=\"background:#ffffff\"></button><span class=\"ds-swatch ds-swatch-custom\"></span></div></div>",
+      "css": ".ds-color{display:grid;gap:8px;width:280px;font-family:Inter,sans-serif}.ds-color-head{display:flex;justify-content:space-between;align-items:baseline}.ds-color-head label{font-size:13px;color:var(--ink-soft,#5b6270)}.ds-color-hex{font:12px 'Geist Mono',ui-monospace,monospace;color:var(--ink-soft,#5b6270);text-transform:uppercase}.ds-color-row{display:flex;gap:6px}.ds-swatch{width:24px;height:24px;border:0;border-radius:3px;box-shadow:inset 0 0 0 1px rgb(14 19 24 / .15);cursor:pointer}.ds-swatch:hover{box-shadow:inset 0 0 0 1px rgb(14 19 24 / .35)}.ds-swatch:focus-visible{outline:2px solid var(--aqua,#00c4cc)}.ds-swatch[aria-pressed=true]{box-shadow:0 0 0 1px var(--sheet,#fff),0 0 0 3px var(--aqua,#00c4cc)}.ds-swatch-custom{background:conic-gradient(from 90deg,#00c4cc,#7d2ae8,#ffe600,#00c4cc)}"
     }
   ],
   "narrative": {
-    "northStar": "The Press Proof on the Make-Ready Table",
-    "overview": "The editor is a print shop's proofing bench. The post sits as a cool paper-white sheet on a light grey make-ready ground, framed by crop marks and registration targets, and the chrome around it (top bar, tool rail, properties panel) is the same paper, divided by hairline rules. Type is press ink. Colour is reserved: the three process inks each carry one job, so colour in the UI always means something.\n\nDensity is calm and tool-like: 13px labels, tabular readouts, generous panel padding, no decoration that competes with the photo. The world rejects the generic grey editor with a single purple accent; its identity comes from prepress material (marks, ink roles, the CMYK colour bar), while every label stays in plain English.",
+    "northStar": "The Calm Workspace",
+    "overview": "Bubble Studio is a Canva-clean editor. The post floats on a quiet grey workspace (dark: a near-black one), plain sheet panels sit beside it with hairline rules and 8px corners, and the tools run down a left rail in the order you use them. All the brand energy lives in one purple-to-turquoise gradient: the 56px header across the top of every screen, continued into the hero band on the start screen. Everything else is calm, so the post is the most colourful thing on screen.\n\nColour carries meaning, not decoration. Purple is the brand and marks what you are doing: the active tool, the primary action, text layers. Turquoise marks what is selected on the canvas and where keyboard focus is. Yellow means crop. Neutrals do the rest. The system ships in light and dark, switched by a `dark` class on `<html>` that swaps CSS variables only; transitions pause for one frame during the switch so the whole app recolours at once. The post sheet, and anything drawn on it, stays light in both themes because it is the user's artwork, not chrome.\n\nThis world rejects the print-proof costume it replaced (crop marks, registration targets, CMYK strips, proof slugs) and the grey editor with a single lonely accent.",
     "keyCharacteristics": [
-      "Paper sheet on grey table; chrome is flat paper separated by 1px rules.",
-      "Cyan = selection and active tool; magenta = text layers and the primary action; yellow = crop.",
-      "Crop marks and registration targets frame the canvas; a CMYK colour bar leads the status strip.",
-      "Numbers are tabular mono readouts; the status label is a condensed-caps slug."
+      "One brand gradient, in exactly two places: the header and the start hero band.",
+      "Plain sheet panels with hairline rules, 8px base radius, soft ambient shadows only on floating things.",
+      "Purple = active / primary / text; turquoise = selection / focus; yellow = crop.",
+      "An authored duotone icon set whose \"duo\" shape fills purple on the active tool.",
+      "Poppins headings, Inter UI, Geist Mono for numeric readouts.",
+      "Light and dark by CSS variables alone; the post sheet stays light in both."
     ],
     "rules": [
-      { "name": "The One Ink, One Job Rule", "body": "Each process ink has exactly one meaning. Never use cyan for an action, magenta for selection, or yellow outside crop. Nothing else in the chrome is coloured.", "section": "colors" },
-      { "name": "The Ink Is Not Brand Paint Rule", "body": "The process inks are signals, not decoration: no ink-coloured panels, headers, gradients, or illustration fills.", "section": "colors" },
-      { "name": "The Tabular Gauge Rule", "body": "Any number that changes as the user works is mono with tabular numerals, so it never jitters.", "section": "typography" },
-      { "name": "The Plain English Slug Rule", "body": "Condensed caps carry prepress tone, but the words stay ordinary. No prepress jargon in labels.", "section": "typography" },
-      { "name": "The One Sheet Rule", "body": "Only the proof sheet casts a shadow. Popovers and tooltips use the shadcn defaults; no new shadows on chrome.", "section": "elevation" }
+      {
+        "name": "The Two Places Rule",
+        "body": "The brand gradient appears in the header and the start hero band, and nowhere else. No gradient buttons, panels, text or borders.",
+        "section": "colors"
+      },
+      {
+        "name": "The Meaning Rule",
+        "body": "Purple says \"this is what you are doing\", turquoise says \"this is what is selected or focused\", yellow says \"crop\". Never swap them, and never use one for decoration.",
+        "section": "colors"
+      },
+      {
+        "name": "The Light Sheet Rule",
+        "body": "The post sheet and everything drawn on it (selection handles, empty-state buttons, the empty-state icon disc) stay light in both themes, using literal light values rather than theme variables.",
+        "section": "colors"
+      },
+      {
+        "name": "The Heading Face Rule",
+        "body": "h1 to h3 are always Poppins; UI text is always Inter. Uppercase belongs to the start h1 alone.",
+        "section": "typography"
+      },
+      {
+        "name": "The Readout Rule",
+        "body": "Any number the user reads as a measurement (px, ratio, %, hex, version) is Geist Mono with tabular figures.",
+        "section": "typography"
+      },
+      {
+        "name": "The Float-Only Rule",
+        "body": "Only floating objects cast shadows. Docked chrome (rail, panel, header) is separated by hairlines or the gradient.",
+        "section": "elevation"
+      }
     ],
     "dos": [
-      "Do keep chrome on Proof Sheet against the Make-Ready Table, divided by 1px Hairline Rules.",
-      "Do use cyan for every selection and focus state, magenta for the one primary action and text layers, yellow only for crop.",
-      "Do set every live number in Geist Mono with tabular numerals.",
-      "Do frame the canvas with crop marks and registration targets and keep the 36px gutter for them.",
-      "Do keep labels in plain English even where the visual vocabulary is prepress."
+      "Do keep the brand gradient to the header and the start hero band.",
+      "Do use purple for the active tool, the primary action and text layers; turquoise for canvas selection and focus; yellow for crop only.",
+      "Do keep the white Export pill as the one filled control on the gradient.",
+      "Do give every new tool icon a 24px grid, 1.75 stroke and exactly one \"duo\" shape.",
+      "Do keep the post sheet and its overlays light in both themes.",
+      "Do define every chrome colour as a CSS variable in both `:root` and `.dark`, so a theme switch is one repaint with transitions paused for a frame.",
+      "Do set measurements, ratios, hex and zoom in Geist Mono with tabular figures."
     ],
     "donts": [
-      "Don't add a brand accent colour outside the three process inks; the purple-accent grey editor is the rejected world.",
-      "Don't give one ink two jobs (for example a cyan button or a magenta selection ring).",
-      "Don't add shadows to bars, rails, panels or cards; only the proof sheet lifts.",
-      "Don't use poster typefaces from `src/lib/editor/fonts.ts` in the interface.",
-      "Don't round the canvas sheet or crop frame."
+      "Don't add crop marks, registration targets, CMYK strips or proof-slug labels; that world is retired.",
+      "Don't put shadows on docked chrome (rail, panel, header).",
+      "Don't use turquoise for primary actions or purple for selection rings.",
+      "Don't hard-code chrome colours outside the post sheet; theme variables only.",
+      "Don't uppercase headings other than the start h1.",
+      "Don't put small uppercase kicker labels above headings."
     ]
   }
 }

@@ -1,6 +1,6 @@
 // Bubble Studio desktop shell: serves the static web build from a private app:// origin
 // and keeps itself up to date from GitHub Releases.
-const { app, BrowserWindow, Menu, dialog, ipcMain, protocol, session, shell } = require("electron");
+const { app, BrowserWindow, Menu, dialog, ipcMain, nativeTheme, protocol, session, shell } = require("electron");
 const fs = require("node:fs");
 const path = require("node:path");
 const { Readable } = require("node:stream");
@@ -125,6 +125,18 @@ function writeSettings(next) {
   return merged;
 }
 
+/** Subfolders of the master export folder. Keep in sync with EXPORT_FOLDERS in src/lib/editor/save.ts. */
+const EXPORT_FOLDERS = { reels: "Reels", photos: "Photos", audios: "Audios", merged: "Merged Videos" };
+
+/** Fallback when the page didn't say: sort by file type. */
+function kindFromName(name) {
+  const ext = path.extname(name).toLowerCase();
+  if ([".mp3", ".m4a", ".wav", ".aac", ".ogg", ".opus"].includes(ext)) return "audios";
+  if ([".mp4", ".webm", ".mov"].includes(ext)) return /merged/i.test(name) ? "merged" : "reels";
+  if (ext === ".zip") return /reel/i.test(name) ? "reels" : "photos";
+  return "photos";
+}
+
 /** A path in `dir` that doesn't overwrite an existing file: name.ext, name (2).ext, ... */
 function uniquePath(dir, filename) {
   const ext = path.extname(filename);
@@ -143,6 +155,26 @@ function send(channel, payload) {
   if (win && !win.isDestroyed()) win.webContents.send(channel, payload);
 }
 
+/* -------------------------------------------------------------------- theme */
+
+// Workspace colours of the light and dark themes, shown before the page paints.
+const WINDOW_BG = { light: "#ebecf0", dark: "#0f1014" };
+const windowBg = () => (nativeTheme.shouldUseDarkColors ? WINDOW_BG.dark : WINDOW_BG.light);
+
+function setupTheme() {
+  const saved = readSettings().theme;
+  nativeTheme.themeSource = saved === "light" || saved === "dark" ? saved : "system";
+  // Window frame, title bar and startup colour follow the app's theme.
+  nativeTheme.on("updated", () => {
+    if (win && !win.isDestroyed()) win.setBackgroundColor(windowBg());
+  });
+  ipcMain.handle("theme:set", (_e, pref) => {
+    const value = pref === "light" || pref === "dark" ? pref : "system";
+    nativeTheme.themeSource = value;
+    writeSettings({ theme: value });
+  });
+}
+
 function createWindow() {
   win = new BrowserWindow({
     width: 1440,
@@ -151,7 +183,7 @@ function createWindow() {
     minHeight: 680,
     show: false,
     title: "Bubble Studio",
-    backgroundColor: "#ebecf0",
+    backgroundColor: windowBg(),
     icon: path.join(__dirname, "icon.png"),
     autoHideMenuBar: true,
     webPreferences: {
@@ -224,9 +256,22 @@ function setupUpdates() {
 function setupDownloads() {
   // Exports arrive as normal downloads. With a default folder they save there straight away
   // (never overwriting); otherwise Electron shows the native Save As dialog.
+  // The page says what kind of file comes next (photos, reels, audios, merged) just before it
+  // downloads, so the master folder stays organised.
+  let nextKind = null;
+  ipcMain.handle("download:kind", (_e, kind) => {
+    nextKind = Object.hasOwn(EXPORT_FOLDERS, kind) ? kind : null;
+  });
+
   session.defaultSession.on("will-download", (_event, item) => {
-    const dir = readSettings().downloadDir;
-    if (dir && fs.existsSync(dir)) item.setSavePath(uniquePath(dir, item.getFilename()));
+    const master = readSettings().downloadDir;
+    const kind = nextKind ?? kindFromName(item.getFilename());
+    nextKind = null;
+    if (master && fs.existsSync(master)) {
+      const dir = path.join(master, EXPORT_FOLDERS[kind]);
+      fs.mkdirSync(dir, { recursive: true });
+      item.setSavePath(uniquePath(dir, item.getFilename()));
+    }
     item.once("done", (_e, state) => {
       if (state !== "completed") return;
       const saved = item.getSavePath();
@@ -306,6 +351,7 @@ if (!app.requestSingleInstanceLock()) {
     );
     protocol.handle("app", serve);
     setupDownloads();
+    setupTheme();
     createWindow();
     setupUpdates();
   });

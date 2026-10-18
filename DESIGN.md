@@ -1,223 +1,316 @@
 ---
 name: Bubble Studio
-description: A Facebook post and reel editor in a Canva-style palette, framed as a proof on the workbench.
+description: A Canva-clean Facebook post and reel editor; the post floats on a calm workspace under one purple-to-turquoise brand gradient.
 colors:
-  make-ready-table: "#ebecf0"
-  proof-sheet: "#ffffff"
-  hairline-rule: "#dcdee4"
-  input-rule: "oklch(0.83 0.008 250)"
-  press-ink: "#0e1318"
-  soft-ink: "#5e6573"
-  muted-sheet: "oklch(0.945 0.005 250)"
-  aqua: "#00c4cc"
-  aqua-ink: "#00737a"
-  aqua-wash: "#e3f8f9"
+  workspace: "#ebecf0"
+  sheet: "#ffffff"
+  raised: "#ffffff"
+  tile: "#f2f3f6"
+  rule: "#e2e4ea"
+  input-rule: "#cfd2da"
+  ink: "#0e1318"
+  ink-soft: "#5b6270"
   brand: "#7d2ae8"
   brand-ink: "#6420c7"
   brand-wash: "#f1e9fd"
-  process-yellow: "oklch(0.89 0.17 98)"
-  destructive-red: "oklch(0.55 0.21 27)"
+  aqua: "#00c4cc"
+  aqua-ink: "#00737a"
+  aqua-wash: "#e1f7f8"
+  crop-yellow: "oklch(0.89 0.17 98)"
+  yellow-wash: "oklch(0.97 0.06 98)"
+  destructive: "oklch(0.55 0.21 27)"
+  gradient-start: "#5b1fc4"
+  gradient-teal: "#0d9aa5"
+  cta-ink: "#4b19ad"
+  dark-workspace: "#0f1014"
+  dark-sheet: "#1a1b20"
+  dark-raised: "#23242b"
+  dark-tile: "#25272e"
+  dark-rule: "#2c2e36"
+  dark-ink: "#eef0f4"
+  dark-ink-soft: "#a2a8b5"
+  dark-brand: "#8b3dff"
+  dark-aqua: "#19d3da"
 typography:
+  display:
+    fontFamily: "Poppins, Inter, ui-sans-serif, sans-serif"
+    fontSize: "clamp(26px, 4vw, 42px)"
+    fontWeight: 700
+    lineHeight: 1.25
+    letterSpacing: "0.01em"
+  headline:
+    fontFamily: "Poppins, Inter, ui-sans-serif, sans-serif"
+    fontSize: "24px"
+    fontWeight: 600
+    lineHeight: 1.3
   title:
     fontFamily: "Poppins, Inter, ui-sans-serif, sans-serif"
-    fontSize: "15px"
+    fontSize: "18px"
     fontWeight: 600
-    letterSpacing: "-0.01em"
+    lineHeight: 1.4
   section:
     fontFamily: "Poppins, Inter, ui-sans-serif, sans-serif"
-    fontSize: "13px"
+    fontSize: "14px"
     fontWeight: 600
+    lineHeight: 1.5
   body:
     fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif"
     fontSize: "14px"
     fontWeight: 400
+    lineHeight: 1.5
   label:
     fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif"
     fontSize: "13px"
-    fontWeight: 400
+    fontWeight: 500
+    lineHeight: 1.4
+  rail-label:
+    fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "11px"
+    fontWeight: 500
+    lineHeight: 1.4
   readout:
     fontFamily: "Geist Mono, ui-monospace, monospace"
-    fontSize: "12px"
+    fontSize: "11px"
     fontWeight: 400
-    fontFeature: "tnum"
-  slug:
-    fontFamily: "Poppins, Inter, sans-serif"
-    fontSize: "12px"
-    fontWeight: 500
-    letterSpacing: "0.06em"
+    lineHeight: 1.4
+    fontFeature: "\"tnum\" 1"
 rounded:
   swatch: "3px"
-  sm: "3.6px"
-  md: "4.8px"
-  lg: "6px"
+  sm: "4.8px"
+  md: "6.4px"
+  lg: "8px"
+  xl: "11.2px"
+  2xl: "14.4px"
+  pill: "9999px"
 spacing:
   xs: "4px"
   sm: "8px"
-  md: "16px"
-  lg: "20px"
-  gutter: "36px"
+  md: "12px"
+  lg: "16px"
+  xl: "20px"
+  2xl: "32px"
+  header: "56px"
+  rail: "76px"
+  panel: "328px"
 components:
+  header:
+    backgroundColor: "{colors.brand}"
+    textColor: "{colors.sheet}"
+    height: "{spacing.header}"
+  button-export:
+    backgroundColor: "{colors.sheet}"
+    textColor: "{colors.cta-ink}"
+    rounded: "{rounded.lg}"
+    height: "36px"
+    padding: "0 14px"
+  button-export-hover:
+    backgroundColor: "#f3edff"
   button-primary:
     backgroundColor: "{colors.brand}"
-    textColor: "#ffffff"
+    textColor: "{colors.sheet}"
     rounded: "{rounded.lg}"
-    height: "32px"
-    padding: "0 12px"
+    padding: "0 10px"
   button-primary-hover:
     backgroundColor: "{colors.brand-ink}"
-  button-ghost:
-    backgroundColor: "transparent"
-    textColor: "{colors.press-ink}"
-    rounded: "{rounded.lg}"
-    size: "32px"
-  tool-rail-item:
-    backgroundColor: "transparent"
-    textColor: "{colors.soft-ink}"
-    rounded: "{rounded.md}"
-    size: "56px"
-  tool-rail-item-active:
-    backgroundColor: "{colors.aqua-wash}"
-    textColor: "{colors.aqua-ink}"
-  input:
-    backgroundColor: "{colors.proof-sheet}"
-    textColor: "{colors.press-ink}"
-    rounded: "{rounded.lg}"
+  rail-tool:
+    textColor: "{colors.ink-soft}"
+    typography: "{typography.rail-label}"
+    rounded: "{rounded.xl}"
+    width: "58px"
+  rail-tool-active:
+    backgroundColor: "{colors.brand-wash}"
+    textColor: "{colors.brand}"
+    rounded: "{rounded.xl}"
+    size: "40px"
+  size-chip:
+    backgroundColor: "{colors.sheet}"
+    textColor: "{colors.ink}"
+    typography: "{typography.label}"
+    rounded: "{rounded.pill}"
+    height: "36px"
+    padding: "0 14px 0 10px"
+  size-chip-hover:
+    backgroundColor: "{colors.brand-wash}"
+  create-card:
+    backgroundColor: "{colors.sheet}"
+    rounded: "{rounded.2xl}"
+    padding: "20px"
+  tool-tile:
+    backgroundColor: "{colors.sheet}"
+    rounded: "{rounded.xl}"
+    padding: "12px"
+  status-pill:
+    backgroundColor: "{colors.raised}"
+    textColor: "{colors.ink-soft}"
+    rounded: "{rounded.pill}"
     height: "32px"
-    padding: "4px 10px"
-  panel:
-    backgroundColor: "{colors.proof-sheet}"
-    textColor: "{colors.press-ink}"
+    padding: "0 14px"
+  panel-section:
+    backgroundColor: "{colors.sheet}"
+    textColor: "{colors.ink}"
     padding: "16px 16px 20px"
+  layer-row-selected:
+    backgroundColor: "{colors.aqua-wash}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.lg}"
 ---
 
 # Design System: Bubble Studio
 
 ## Overview
 
-**Creative North Star: "The Press Proof on the Make-Ready Table"**
+**Creative North Star: "The Calm Workspace"**
 
-The editor is a print shop's proofing bench. The post sits as a cool paper-white sheet on a light grey make-ready ground, framed by crop marks and registration targets, and the chrome around it (top bar, tool rail, properties panel) is the same paper, divided by hairline rules. Type is press ink. Colour follows the Canva palette (turquoise, purple, near-black on a light grey workspace, chosen by the user) and is reserved: each accent carries one job, so colour in the UI always means something.
+Bubble Studio is a Canva-clean editor. The post floats on a quiet grey workspace (dark: a near-black one), plain sheet panels sit beside it with hairline rules and 8px corners, and the tools run down a left rail in the order you use them. All the brand energy lives in one purple-to-turquoise gradient: the 56px header across the top of every screen, continued into the hero band on the start screen. Everything else is calm, so the post is the most colourful thing on screen.
 
-Density is calm and tool-like: 13px labels, tabular readouts, generous panel padding, no decoration that competes with the photo. The world rejects the generic grey editor with a single purple accent; its identity comes from prepress material (marks, ink roles, the CMYK colour bar), while every label stays in plain English.
+Colour carries meaning, not decoration. Purple is the brand and marks what you are doing: the active tool, the primary action, text layers. Turquoise marks what is selected on the canvas and where keyboard focus is. Yellow means crop. Neutrals do the rest. The system ships in light and dark, switched by a `dark` class on `<html>` that swaps CSS variables only; transitions pause for one frame during the switch so the whole app recolours at once. The post sheet, and anything drawn on it, stays light in both themes because it is the user's artwork, not chrome.
+
+This world rejects the print-proof costume it replaced (crop marks, registration targets, CMYK strips, proof slugs) and the grey editor with a single lonely accent.
 
 **Key Characteristics:**
-- Paper sheet on grey table; chrome is flat paper separated by 1px rules.
-- Aqua (Canva turquoise) = selection and active tool; Brand (Canva purple) = text layers and the primary action; yellow = crop.
-- Crop marks and registration targets frame the canvas; a CMYK colour bar leads the status strip.
-- Numbers are tabular mono readouts; the status label is a condensed-caps slug.
+- One brand gradient, in exactly two places: the header and the start hero band.
+- Plain sheet panels with hairline rules, 8px base radius, soft ambient shadows only on floating things.
+- Purple = active / primary / text; turquoise = selection / focus; yellow = crop.
+- An authored duotone icon set whose "duo" shape fills purple on the active tool.
+- Poppins headings, Inter UI, Geist Mono for numeric readouts.
+- Light and dark by CSS variables alone; the post sheet stays light in both.
 
 ## Colors
 
-A near-neutral base (Canva's #ebecf0 workspace, white panels, #0e1318 text) with Canva turquoise and purple, plus a crop yellow, used strictly as functional signals. 
+A cool neutral workspace with three meaning-bearing accents and one brand gradient.
 
 ### Primary
-- **Brand Purple** (`brand`): the Export button, the Download button, the empty-state "Choose a photo" action, the text-layer glyph in the layer list, centre snap guides while dragging text, and the input caret. Hovers deepen to **Brand Ink**; **Brand Wash** is the hover fill on text-style tiles.
+- **Bubble Purple** (brand; dark theme lifts to dark-brand): the active rail tool (icon tile wash plus duo fill), the primary in-panel action ("Add a photo"), text-layer glyphs in Layers and the Text panel, drag drop-lines, centre guides, chip hover borders, the caret. Its pressed/hover state is **Deep Purple** (brand-ink); its tint is **Lilac Wash** (brand-wash), used behind the active tool, icon tiles and hovered cards.
 
 ### Secondary
-- **Aqua** (`aqua`, Canva turquoise): selection and focus. Selected text-layer ring, focus rings, slider thumb border, selected swatch/filter ring, drop-target outline. **Aqua Wash** fills the active tool and selected list row; **Aqua Ink** is the active-tool label, selected filter name, and a slider value that differs from its default.
+- **Canvas Turquoise** (aqua; dark theme lifts to dark-aqua): selection on the canvas (layer rings, corner handles, dashed move outline), every `:focus-visible` ring, the selected swatch ring. **Turquoise Ink** (aqua-ink) is its readable text form; **Turquoise Wash** (aqua-wash) fills the selected Layers row, text selection and the drop-to-replace overlay.
 
 ### Tertiary
-- **Process Yellow** (`process-yellow`): crop only. The crop frame border and its four corner handles.
+- **Crop Yellow** (crop-yellow): the crop frame and its handles, nothing else. **Yellow Wash** (yellow-wash) backs advisory notes (bulk and media-tool hints).
 
 ### Neutral
-- **Make-Ready Table** (`make-ready-table`): app background behind the canvas.
-- **Proof Sheet** (`proof-sheet`): top bar, tool rail, properties panel, popovers, inputs, the canvas sheet.
-- **Hairline Rule** (`hairline-rule`): every divider and panel border; **Input Rule** is the slightly darker field stroke.
-- **Press Ink** (`press-ink`): headings, body, crop marks, the slider fill, the brand mark.
-- **Soft Ink** (`soft-ink`): labels, secondary text, inactive tools, readouts at rest.
-- **Muted Sheet** (`muted-sheet`): hover fill for rail and list items, slider track.
-- **Destructive Red** (`destructive-red`): remove/delete actions only.
+- **Workspace** (workspace / dark-workspace): the app background the post floats on.
+- **Sheet** (sheet / dark-sheet): rail, tool panel, cards, tiles.
+- **Raised** (raised / dark-raised): popovers, the status pill, a dragged layer row.
+- **Tile** (tile / dark-tile): icon wells, thumbnails, zoom chip, rail hover.
+- **Hairline** (rule / dark-rule): every divider and card/chip border; **Input Rule** for field strokes.
+- **Ink** and **Soft Ink** (ink / ink-soft, with dark equivalents): primary text and secondary text, labels and readouts.
+- **Destructive Red**: remove actions only.
+
+### The Brand Gradient
+`linear-gradient(90deg, gradient-start 0%, brand 42%, gradient-teal 100%)` in light; a deeper `#2d1170 → #43169a → #0b5f67` in dark. Text and controls on it are white; the Export pill is the only filled control.
 
 ### Named Rules
-**The One Accent, One Job Rule.** Each accent has exactly one meaning. Never use aqua for an action, purple for selection, or yellow outside crop. Nothing else in the chrome is coloured.
+**The Two Places Rule.** The brand gradient appears in the header and the start hero band, and nowhere else. No gradient buttons, panels, text or borders.
 
-**The Accent Is Not Paint Rule.** Accents are signals, not decoration: no accent-coloured panels, headers or gradients.
+**The Meaning Rule.** Purple says "this is what you are doing", turquoise says "this is what is selected or focused", yellow says "crop". Never swap them, and never use one for decoration.
+
+**The Light Sheet Rule.** The post sheet and everything drawn on it (selection handles, empty-state buttons, the empty-state icon disc) stay light in both themes, using literal light values rather than theme variables.
 
 ## Typography
 
-**Heading Font:** Poppins 500-700 for headings, panel titles and the wordmark (chosen by the user)
-**UI Font:** Inter for body copy, labels and controls (chosen by the user)
-**Readout Font:** Geist Mono, tabular numerals
-**Slug Font:** Poppins 500, uppercase, 0.05em tracking
+**Display Font:** Poppins (with Inter, ui-sans-serif)
+**Body Font:** Inter (with ui-sans-serif, system-ui)
+**Label/Mono Font:** Geist Mono (with ui-monospace)
 
-**Character:** Inter does the work; Poppins gives headings and the wordmark a rounder, friendlier voice; mono tabular numerals make every measurement read like a gauge; the uppercase slug is the one prepress voice.
+**Character:** Poppins gives headings a friendly geometric roundness that matches the bubble mark; Inter keeps dense panel UI legible; Geist Mono with tabular figures makes sizes, ratios, hex values and zoom read like instrument readouts.
 
 ### Hierarchy
-- **Title** (600, 15px, -0.01em): the product name in the top bar.
-- **Empty-state heading** (600, 18px): "Start with a photo" only.
-- **Section** (600, 13px): panel section headings and popover titles (14px).
-- **Body** (400, 14px): helper text, layer names; `text-pretty`.
-- **Label** (400, 13px, Soft Ink): field labels above controls. Tool rail labels are 11px/500.
-- **Readout** (400, 11-12px mono, tabular): slider values, hex values, size and zoom readouts, file extension.
-- **Slug** (600, 12px, uppercase, 0.06em): the status-strip label ("Facebook post", "Crop · drag the frame").
+- **Display** (700, 26px mobile to 42px desktop, 1.25, 0.01em, uppercase): the start-screen h1 only, white on the hero gradient.
+- **Headline** (600, 20px mobile to 24px desktop): start-screen section headings ("Continue designing", "More tools").
+- **Title** (600, 18px; 15px for tool tiles): create-card titles, tile titles, Settings app name.
+- **Section** (600, 14px): tool-panel section headings.
+- **Body** (400, 14px; 15px to 16px in the hero subline, max 52ch): descriptions, layer names, panel copy.
+- **Label** (500, 13px): size chips, field labels, menu items.
+- **Rail Label** (500, 11px; 600 when active): text under rail icons.
+- **Readout** (Geist Mono, 11px to 12px, tabular): pixel dimensions, ratios, zoom %, hex values (uppercase), version numbers, shortcut keys.
 
 ### Named Rules
-**The Tabular Gauge Rule.** Any number that changes as the user works is mono with tabular numerals, so it never jitters.
+**The Heading Face Rule.** h1 to h3 are always Poppins; UI text is always Inter. Uppercase belongs to the start h1 alone.
 
-**The Plain English Slug Rule.** Condensed caps carry prepress tone, but the words stay ordinary. No prepress jargon in labels.
-
-Poster typefaces in `src/lib/editor/fonts.ts` are user content for the post, not UI fonts; they never style chrome.
+**The Readout Rule.** Any number the user reads as a measurement (px, ratio, %, hex, version) is Geist Mono with tabular figures.
 
 ## Layout
 
-Three-zone app shell, full-height with no page scroll: a 56px top bar; on desktop (md, 768px+) a 76px left tool rail, a flexible centre canvas, and a 320px right properties panel. Below md the rail drops to a bottom bar, the canvas takes min(56vh, 460px), and the panel stacks beneath it. The sheet is fitted at the post's ratio (1:1, 3:4, 16:9 or 9:16) into the centre with a 36px gutter on every side reserved for crop marks and registration targets; a 36px status strip sits under it. Panels are a stack of sections (16px sides, 16px top, 20px bottom) divided by hairline rules; controls inside use 8-20px gaps.
+The editor is a fixed shell: the 56px gradient header, then on desktop a 76px icon rail, a 328px tool panel, and the workspace that fills the rest with the post centred at its true ratio and a floating status pill beneath it. On mobile the order becomes header, canvas, panel, then the rail as a horizontally scrolling bottom bar of 58px-minimum buttons; Settings drops to the bottom of the rail on desktop.
+
+The start screen is a centred column (max 72rem, 16px gutters mobile, 32px desktop). The hero band is a rounded gradient block; the two create cards overlap its bottom edge by 56px to 64px and sit two-up from md. "Continue designing" recents run in a 2 / 3 / 5 column grid; "More tools" tiles in 1 / 2 / 4 columns; a hairline-topped footer closes the page.
+
+Spacing runs on a 4px base: 8px between chips, 12px to 16px between tiles and cards, 16px panel padding (20px bottom), 40px to 48px between start-screen sections.
 
 ## Elevation & Depth
 
-Flat chrome, one lifted object. Bars, rails and panels have no shadow and separate by hairline rules and the paper/table value step. Only the proof sheet itself is lifted off the table.
+Mostly flat with tonal layering (workspace, sheet, raised, tile). Shadows are soft and ambient, reserved for things that float: the post sheet, cards and tiles on the start screen, the status pill, popovers, a dragged layer row. Panels and the rail never carry shadows; they are separated by hairlines. Dark mode deepens the same shadows rather than lightening surfaces.
 
 ### Shadow Vocabulary
-- **Sheet lift** (`box-shadow: 0 1px 2px oklch(0.2 0.02 260 / 0.12), 0 12px 32px -12px oklch(0.2 0.02 260 / 0.28)`): the canvas sheet only.
-- **Crop frame keyline** (`box-shadow: 0 0 0 1px oklch(0.2 0.012 260 / 0.5)`): dark keyline so the yellow crop frame reads on light photos.
+- **Sheet** (`0 1px 2px rgb(14 19 24 / 0.08), 0 16px 40px -16px rgb(14 19 24 / 0.28)`; dark `0 1px 2px rgb(0 0 0 / 0.5), 0 18px 44px -14px rgb(0 0 0 / 0.75)`): the post, card art, recent thumbnails.
+- **Float** (`0 1px 2px rgb(14 19 24 / 0.06), 0 8px 24px -8px rgb(14 19 24 / 0.22)`; dark `0 1px 2px rgb(0 0 0 / 0.4), 0 10px 28px -8px rgb(0 0 0 / 0.7)`): create cards, tool tiles, status pill, overflow buttons, dragged rows.
+- **CTA lift** (`0 1px 2px rgb(0 0 0 / 0.18)`): the white Export pill on the gradient.
 
 ### Named Rules
-**The One Sheet Rule.** Only the proof sheet casts a shadow. Popovers and tooltips use the shadcn defaults; no new shadows on chrome.
+**The Float-Only Rule.** Only floating objects cast shadows. Docked chrome (rail, panel, header) is separated by hairlines or the gradient.
 
 ## Shapes
 
-Small, square-ish corners: 6px on buttons and inputs, 4.8px on rail items and list rows, 3px on swatches and filter thumbnails. The canvas sheet and crop frame are hard-cornered, like paper. Lines are 1px hairlines; selection rings are 1.5-2px; the crop frame is 2px with 4px corner handles.
+Gently rounded throughout from an 8px base radius (0.5rem), scaled: 4.8px, 6.4px, 8px, 11.2px, 14.4px. Buttons and rows use 8px; rail icon tiles and tool tiles use 11.2px; create cards and the hero band use 14.4px. Pills (size chips, the status pill, the Star link) are fully round. Colour swatches and thumbnail images keep a tight 3px so artwork reads square-edged. Borders are 1px hairlines; selection is drawn as 1.5px turquoise rings with 10px square white handles.
 
 ## Components
 
-### Buttons
-- **Shape:** gently squared (6px), 32px tall; the dialog download button is 36px.
-- **Primary:** Brand Purple with white text, 12px sides, Download/Export icon leading. Hover to Brand Ink. Used for Export and the first action of an empty state, nothing else.
-- **Ghost / icon:** transparent 32px squares for undo and redo; hover to Muted Sheet. Disabled at 50% opacity.
-- **Outline:** sheet background with hairline border, for secondary actions and toggle groups (JPG/PNG).
+### Header
+The gradient bar (56px). White ghost controls: transparent at rest, 16% white on hover or while their menu is open, 2px white focus ring. Left: home mark (30px icon) with wordmark, size menu, New, save status (dimmed to 72%). Right: undo, redo, theme toggle, Layers, Export.
 
-### Tool Rail
-- 56px square items, icon over an 11px label, Soft Ink at rest, Muted Sheet on hover. Active is Aqua Wash with Aqua Ink and a heavier icon stroke. Tooltips show the single-key shortcut in mono.
+### Buttons
+- **Shape:** gently rounded (8px).
+- **Export pill (signature primary):** white fill, deep purple ink (cta-ink), weight 600, 36px tall, CTA lift shadow; hover tints to `#f3edff`. In dark it is `#f4f0ff` with `#3a1488` ink. It is the only filled control on the gradient.
+- **Primary (in panels and empty states):** Bubble Purple fill, white text, hover Deep Purple.
+- **Ghost / outline:** shared shadcn variants on sheet surfaces; focus is a turquoise ring.
+
+### Chips
+- **Size chips:** fully round, 36px, hairline border on sheet, a small purple outline glyph of the shape, the name, then a mono ratio in soft ink. Hover: purple border on lilac wash.
+
+### Cards / Containers
+- **Create cards:** sheet, 14.4px radius, Float shadow, 16px to 20px padding; a 112px to 128px tile well holding tilted miniature art that straightens on hover; a purple ring when the New menu points at it.
+- **Tool tiles:** sheet, 11.2px radius, Float shadow, 48px lilac icon well with a purple duotone icon; lift 2px on hover and the arrow turns purple.
+- **Recent designs:** 4:3 tile well (lilac on hover) holding the saved thumbnail with Sheet shadow, a "Private" badge, a hover-revealed overflow menu, name in 14px semibold and a size and time line.
+- **Panel sections:** hairline-separated blocks, 16px padding, Poppins 14px heading.
 
 ### Inputs / Fields
-- **Style:** 32px, 6px corners, Input Rule stroke on Proof Sheet, purple caret.
-- **Focus:** aqua ring.
-- **Range field:** label left in Soft Ink, mono readout right (turns Aqua Ink when changed from default), Muted Sheet track with Press Ink fill and a white thumb ringed aqua; bipolar sliders show a centre tick; double-click the label resets.
-- **Colour field:** row of 24px swatches (3px corners, faint ink keyline), selected gets a aqua ring offset from the sheet; the last swatch is a turquoise-purple-yellow conic wheel for a custom colour.
+- **Range fields:** label in 13px soft ink, value as a mono readout.
+- **Colour fields:** 24px swatches with 3px corners and an inset 15% ink ring, a conic turquoise-purple-yellow custom swatch, and a Palettes toggle. The selected swatch takes a 2px turquoise ring offset by 1px.
+- **Focus:** turquoise `:focus-visible` ring everywhere; caret is purple.
 
-### Filter Thumbnails
-- Square live-rendered previews of the photo, 3px corners, three to a row; selected shows an offset aqua ring and a Aqua Ink semibold name.
+### Navigation (Tool Rail)
+76px sheet column (mobile: bottom scroller). Each tool is a 40px rounded icon tile over an 11px label. Rest: soft ink; hover: tile fill; active: lilac wash tile, purple icon whose duo shape fills with 26% purple, semibold label. Tooltips to the right show the shortcut in mono.
 
-### Proof Marks (signature)
-- Corner crop marks (18px strokes offset 8px from the sheet, Press Ink, 1px; 2px in crop mode) and registration targets at the top, left and right midpoints (Press Ink at 50%). The brand mark is the Bubble Studio "B" app icon (/public/favicon.png: white B on a purple rounded square), shown at 28px with 7px corners; it is also the favicon.
+### Duotone Tool Icons (signature)
+Authored outline icons on a 24px grid, 1.75 stroke, round caps and joins, each with exactly one shape marked "duo". The duo is transparent at rest, takes a 10% currentColor fill on hover, and fills `color-mix(brand 26%)` when the tool is active (150ms ease-out). Used in the rail, tool tiles and the merge glyph.
 
-### Crop Frame (signature)
-- In crop mode the full photo is shown with a 2px Process Yellow frame, dark keyline, rule-of-thirds lines in white at 40%, and four L-shaped yellow corner handles.
+### Layers
+Rows with a grip, a 36px checkerboard thumbnail and the name; the selected row is turquoise wash, text layers show a purple T glyph. Dragging lifts the row (raised, Float shadow, faint purple ring) and a 3px purple drop-line with a ring-headed end marks the slot.
 
-### Status Strip (signature)
-- 36px strip under the canvas: a four-chip colour bar (12px squares: aqua, brand purple, yellow, ink), the slug label, then size and zoom readouts in mono.
+### Canvas Overlays
+- **Status pill:** raised, fully round, 32px, Float shadow; label, a hairline, mono dimensions, and a tile-chip mono zoom %.
+- **Empty sheet:** on the always-light sheet: a white 48px disc with a purple icon, dark heading, a purple primary button and a white outline button, all in literal light values.
+- **Selection:** 1.5px turquoise ring, 10px white square handles; crop uses the yellow frame.
+
+### Settings
+Theme as a three-way radio group (Light, Dark, System) where the chosen option's icon turns purple; app identity with mono version; export folder and update status (turquoise spinner).
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** keep chrome on Proof Sheet against the Make-Ready Table, divided by 1px Hairline Rules.
-- **Do** use aqua for every selection and focus state, brand purple for the one primary action and text layers, yellow only for crop.
-- **Do** set every live number in Geist Mono with tabular numerals.
-- **Do** frame the canvas with crop marks and registration targets and keep the 36px gutter for them.
-- **Do** keep labels in plain English even where the visual vocabulary is prepress.
+- **Do** keep the brand gradient to the header and the start hero band.
+- **Do** use purple for the active tool, the primary action and text layers; turquoise for canvas selection and focus; yellow for crop only.
+- **Do** keep the white Export pill as the one filled control on the gradient.
+- **Do** give every new tool icon a 24px grid, 1.75 stroke and exactly one "duo" shape.
+- **Do** keep the post sheet and its overlays light in both themes.
+- **Do** define every chrome colour as a CSS variable in both `:root` and `.dark`, so a theme switch is one repaint with transitions paused for a frame.
+- **Do** set measurements, ratios, hex and zoom in Geist Mono with tabular figures.
 
 ### Don't:
-- **Don't** add accent colours beyond aqua, brand purple and crop yellow.
-- **Don't** give one accent two jobs (for example an aqua button or a purple selection ring).
-- **Don't** add shadows to bars, rails, panels or cards; only the proof sheet lifts.
-- **Don't** use poster typefaces from `src/lib/editor/fonts.ts` in the interface.
-- **Don't** round the canvas sheet or crop frame.
+- **Don't** add crop marks, registration targets, CMYK strips or proof-slug labels; that world is retired.
+- **Don't** put shadows on docked chrome (rail, panel, header).
+- **Don't** use turquoise for primary actions or purple for selection rings.
+- **Don't** hard-code chrome colours outside the post sheet; theme variables only.
+- **Don't** uppercase headings other than the start h1.
+- **Don't** put small uppercase kicker labels above headings.

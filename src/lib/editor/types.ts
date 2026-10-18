@@ -198,7 +198,7 @@ export const DEFAULT_STATE: PostState = {
   adjust: DEFAULT_ADJUSTMENTS,
   orientation: { rotation: 0, flipX: false, flipY: false },
   crop: null,
-  background: { kind: "solid", from: "#f4efe6", to: "#d9c7ae" },
+  background: { kind: "solid", from: "#ffffff", to: "#e9e2fb" },
   regions: [],
   stickers: [],
   texts: [],

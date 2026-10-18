@@ -471,7 +471,7 @@ export function TextPanel({
       {state.texts.length > 0 && (
         <PanelSection title="Text on this post">
           <ul className="grid gap-1">
-            {[...state.texts].reverse().map((t) => (
+            {[...state.texts].sort((a, b) => b.z - a.z).map((t) => (
               <li key={t.id}>
                 <button
                   type="button"

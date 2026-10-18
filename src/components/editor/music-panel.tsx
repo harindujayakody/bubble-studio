@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Music, Pause, Play, Trash2, Upload, Volume2, VolumeX } from "lucide-react";
+import { Film, Music, Pause, Play, Trash2, Upload, Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
@@ -53,12 +53,15 @@ export function MusicSection({
   library,
   onPick,
   onUpload,
+  onFromVideo,
 }: {
   state: PostState;
   update: Update;
   library: LibraryTrack[];
   onPick: (track: LibraryTrack) => void;
   onUpload: () => void;
+  /** Use the sound of another video file as the music. */
+  onFromVideo: () => void;
 }) {
   const clip = state.video;
   const music = state.music;
@@ -141,9 +144,14 @@ export function MusicSection({
           Pick a track. It&apos;s cut to your reel&apos;s length automatically.
         </p>
         <MusicLibrary library={library} current={music?.id ?? null} onPick={onPick} />
-        <Button variant="outline" size="sm" className="mt-3" onClick={onUpload}>
-          <Upload /> Upload your own
-        </Button>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={onUpload}>
+            <Upload /> Upload audio
+          </Button>
+          <Button variant="outline" size="sm" onClick={onFromVideo}>
+            <Film /> Audio from a video
+          </Button>
+        </div>
       </PanelSection>
     </>
   );

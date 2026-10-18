@@ -54,3 +54,6 @@ next-env.d.ts
 /desktop/icon.png
 /desktop/node_modules/
 /dist-desktop/
+
+# Impeccable review captures
+.impeccable/review/

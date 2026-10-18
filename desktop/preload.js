@@ -9,6 +9,7 @@ const subscribe = (channel) => (callback) => {
 
 contextBridge.exposeInMainWorld("bubbleDesktop", {
   getVersion: () => ipcRenderer.invoke("app:version"),
+  setTheme: (pref) => ipcRenderer.invoke("theme:set", pref),
   checkForUpdates: () => ipcRenderer.invoke("update:check"),
   installUpdate: () => ipcRenderer.invoke("update:install"),
   openDownload: () => ipcRenderer.invoke("update:openDownload"),
@@ -20,6 +21,7 @@ contextBridge.exposeInMainWorld("bubbleDesktop", {
   openDownloadDir: () => ipcRenderer.invoke("shell:openFolder"),
   showInFolder: (file) => ipcRenderer.invoke("shell:showItem", file),
   onDownloadDone: subscribe("download:done"),
+  setDownloadKind: (kind) => ipcRenderer.invoke("download:kind", kind),
 
   clearCache: () => ipcRenderer.invoke("storage:clearCache"),
   resetAll: () => ipcRenderer.invoke("storage:resetAll"),

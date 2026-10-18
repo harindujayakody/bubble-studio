@@ -52,3 +52,14 @@ export function restack(state: PostState, id: string, to: 1 | -1 | "top" | "bott
   order.splice(target, 0, id);
   return withZ(state, new Map(order.map((layerId, i) => [layerId, i + 1])));
 }
+
+/** Move a text or sticker to `index` in the drawing order (0 = bottom), e.g. after a drag in the layer list. */
+export function moveLayer(state: PostState, id: string, index: number): PostState {
+  const order = stackOrder(state).map((i) => i.id);
+  const from = order.indexOf(id);
+  const target = Math.max(0, Math.min(order.length - 1, index));
+  if (from < 0 || target === from) return state;
+  order.splice(from, 1);
+  order.splice(target, 0, id);
+  return withZ(state, new Map(order.map((layerId, i) => [layerId, i + 1])));
+}

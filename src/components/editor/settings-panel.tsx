@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, Download, FolderOpen, HardDrive, LoaderCircle, RefreshCw, RotateCcw, Trash2, TriangleAlert } from "lucide-react";
+import { CheckCircle2, Download, Folder, FolderOpen, HardDrive, LoaderCircle, Monitor, Moon, RefreshCw, RotateCcw, Sun, Trash2, TriangleAlert } from "lucide-react";
+import { setThemePref, useThemePref, type ThemePref } from "@/lib/theme";
+import { canPickFolder, chooseWebFolder, clearWebFolder, EXPORT_FOLDERS, useWebFolder } from "@/lib/editor/save";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { PanelSection } from "./controls";
+import { GithubMark, REPO_URL } from "./start-screen";
 import { deleteDraft, setAutosave } from "@/lib/editor/draft";
 import { clearPhrases } from "@/lib/editor/phrases";
 import { checkForUpdatesNow, useIsDesktop, useUpdateStatus, type DesktopSettings } from "./desktop-updates";
@@ -46,8 +49,9 @@ export function SettingsPanel() {
 
   return (
     <>
+      <AppearanceSection />
       {desktop && <UpdatesSection version={version} />}
-      {desktop && <DownloadsSection settings={settings} onChange={setSettings} />}
+      <DownloadsSection settings={settings} onChange={setSettings} />
       <StorageSection usage={usage} desktop={desktop} onCleared={refreshUsage} />
       <PanelSection title="About">
         <div className="flex items-center gap-3">
@@ -81,6 +85,45 @@ export function SettingsPanel() {
         </div>
       </PanelSection>
     </>
+  );
+}
+
+const THEMES: { value: ThemePref; label: string; icon: typeof Monitor }[] = [
+  { value: "system", label: "System", icon: Monitor },
+  { value: "light", label: "Light", icon: Sun },
+  { value: "dark", label: "Dark", icon: Moon },
+];
+
+function AppearanceSection() {
+  const pref = useThemePref();
+  return (
+    <PanelSection title="Appearance">
+      <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Theme">
+        {THEMES.map(({ value, label, icon: Icon }) => {
+          const on = pref === value;
+          return (
+            <button
+              key={value}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              onClick={() => setThemePref(value)}
+              className={cn(
+                "flex flex-col items-center gap-1.5 rounded-xl border py-3 text-[13px] font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-aqua",
+                on ? "border-brand bg-brand-wash text-ink" : "border-rule text-ink-soft hover:bg-tile hover:text-ink",
+              )}
+            >
+              <Icon className={cn("size-5", on && "text-brand")} />
+              {label}
+            </button>
+          );
+        })}
+      </div>
+      <p className="mt-2.5 text-xs text-pretty text-ink-soft">
+        {pref === "system" ? "Follows your computer's light or dark setting." : `Always ${pref}.`} Press{" "}
+        <kbd className="font-mono text-[11px]">Shift D</kbd> to switch.
+      </p>
+    </PanelSection>
   );
 }
 
@@ -154,32 +197,68 @@ function DownloadsSection({
   onChange: (s: DesktopSettings) => void;
 }) {
   const bridge = typeof window === "undefined" ? undefined : window.bubbleDesktop;
-  if (!bridge) return null;
-  const dir = settings?.downloadDir ?? null;
+  const webFolder = useWebFolder();
+  const web = !bridge && canPickFolder();
+  const dir = bridge ? (settings?.downloadDir ?? null) : webFolder;
+
+  if (!bridge && !web) {
+    return (
+      <PanelSection title="Export folder">
+        <p className="-mt-1 text-[13px] text-pretty text-ink-soft">
+          Exports go to your browser&apos;s downloads. Open Bubble Studio in Chrome or Edge, or use the desktop app, to
+          save into one organised folder.
+        </p>
+      </PanelSection>
+    );
+  }
+
+  const choose = async () => {
+    if (bridge) onChange(await bridge.chooseDownloadDir());
+    else await chooseWebFolder().catch(() => {});
+  };
+  const clear = async () => {
+    if (bridge) onChange(await bridge.clearDownloadDir());
+    else await clearWebFolder();
+  };
+
   return (
-    <PanelSection title="Downloads">
+    <PanelSection title="Export folder">
       <p className="-mt-1 mb-3 text-[13px] text-pretty text-ink-soft">
         {dir
-          ? "Exports save straight to this folder. Existing files are never overwritten; a number is added."
-          : "You choose where each export goes when you save it."}
+          ? "Every export is sorted into a folder by type. Existing files are never overwritten; a number is added."
+          : bridge
+            ? "Choose one master folder and exports are sorted into it by type. Until then you pick a place each time."
+            : "Choose one master folder and exports are sorted into it by type. Until then they go to your downloads."}
       </p>
-      <div className="flex items-center gap-2.5 rounded-lg border border-rule bg-muted/40 px-3 py-2.5">
-        <FolderOpen className="size-4 shrink-0 text-ink-soft" />
-        <span className="min-w-0 flex-1 truncate text-[13px] text-ink" title={dir ?? ""}>
-          {dir ?? "Ask every time"}
-        </span>
+      <div className="rounded-lg border border-rule bg-tile/50 px-3 py-2.5">
+        <div className="flex items-center gap-2.5">
+          <FolderOpen className="size-4 shrink-0 text-brand" />
+          <span className="min-w-0 flex-1 truncate text-[13px] font-medium text-ink" title={dir ?? ""}>
+            {dir ?? "No folder chosen"}
+          </span>
+        </div>
+        <ul className="mt-2 grid gap-1 border-l border-rule pl-3 ml-2" aria-label="Subfolders">
+          {Object.values(EXPORT_FOLDERS).map((name) => (
+            <li key={name} className="flex items-center gap-2 text-xs text-ink-soft">
+              <Folder className="size-3.5 shrink-0" />
+              {name}
+            </li>
+          ))}
+        </ul>
       </div>
       <div className="mt-3 grid gap-2">
-        <Button className="bg-brand text-white hover:bg-brand-ink" onClick={async () => onChange(await bridge.chooseDownloadDir())}>
+        <Button className="bg-brand text-white hover:bg-brand-ink" onClick={() => void choose()}>
           {dir ? "Change folder…" : "Choose a folder…"}
         </Button>
         {dir && (
-          <div className="grid grid-cols-2 gap-2">
-            <Button variant="outline" onClick={() => void bridge.openDownloadDir()}>
-              Open folder
-            </Button>
-            <Button variant="ghost" onClick={async () => onChange(await bridge.clearDownloadDir())}>
-              Ask every time
+          <div className={cn("grid gap-2", bridge ? "grid-cols-2" : "grid-cols-1")}>
+            {bridge && (
+              <Button variant="outline" onClick={() => void bridge.openDownloadDir()}>
+                Open folder
+              </Button>
+            )}
+            <Button variant="ghost" onClick={() => void clear()}>
+              {bridge ? "Ask every time" : "Use downloads"}
             </Button>
           </div>
         )}
@@ -312,16 +391,5 @@ function ClearRow({ label, detail, onClear }: { label: string; detail: string; o
         <Trash2 /> Clear
       </Button>
     </li>
-  );
-}
-
-const REPO_URL = "https://github.com/harindujayakody/bubble-studio";
-
-/** GitHub's mark (lucide has no brand icons). */
-function GithubMark({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 16 16" aria-hidden="true" fill="currentColor" className={className}>
-      <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
-    </svg>
   );
 }

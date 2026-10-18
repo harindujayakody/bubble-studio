@@ -14,6 +14,8 @@ type SavedFile = { path: string; name: string; folder: string };
 
 export type DesktopBridge = {
   getVersion: () => Promise<string>;
+  /** Match the window frame and startup colour to the app theme. Missing on builds before 1.0. */
+  setTheme?: (pref: "system" | "light" | "dark") => Promise<void>;
   checkForUpdates: () => Promise<void>;
   installUpdate: () => Promise<void>;
   /** macOS: open the release page, since unsigned Mac apps can't install updates themselves. */
@@ -25,6 +27,8 @@ export type DesktopBridge = {
   openDownloadDir: () => Promise<void>;
   showInFolder: (file: string) => Promise<void>;
   onDownloadDone: (cb: (f: SavedFile) => void) => () => void;
+  /** Which subfolder of the master folder the next download goes to. Missing before 1.1. */
+  setDownloadKind?: (kind: "photos" | "reels" | "audios" | "merged") => Promise<void>;
   clearCache: () => Promise<{ updates: number }>;
   resetAll: () => Promise<void>;
 };

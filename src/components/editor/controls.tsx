@@ -52,7 +52,7 @@ export function PanelSection({
   return (
     <section className={cn("border-b border-rule px-4 pt-4 pb-5 last:border-b-0", className)}>
       <div className="mb-3 flex min-h-6 items-center justify-between gap-2">
-        <h3 className="text-[13px] font-semibold text-ink">{title}</h3>
+        <h3 className="font-heading text-[14px] font-semibold text-ink">{title}</h3>
         {action}
       </div>
       {children}

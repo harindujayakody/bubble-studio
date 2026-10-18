@@ -24,6 +24,7 @@ export function VideoPanel({
   musicLibrary,
   onPickMusic,
   onUploadMusic,
+  onMusicFromVideo,
 }: {
   state: PostState;
   update: Update;
@@ -33,6 +34,7 @@ export function VideoPanel({
   musicLibrary: LibraryTrack[];
   onPickMusic: (track: LibraryTrack) => void;
   onUploadMusic: () => void;
+  onMusicFromVideo: () => void;
 }) {
   const clip = state.video;
   const setClip = (p: Partial<VideoClip>, key?: string) =>
@@ -101,7 +103,7 @@ export function VideoPanel({
       </PanelSection>
 
       <OriginalSound clip={clip} update={update} />
-      <MusicSection state={state} update={update} library={musicLibrary} onPick={onPickMusic} onUpload={onUploadMusic} />
+      <MusicSection state={state} update={update} library={musicLibrary} onPick={onPickMusic} onUpload={onUploadMusic} onFromVideo={onMusicFromVideo} />
     </>
   );
 }
@@ -206,7 +208,7 @@ export function Timeline({
   return (
     <div className="mx-auto w-full max-w-xl px-4 pt-1 pb-2">
       <div className="mb-1 flex items-baseline justify-between gap-3">
-        <span className="slug text-[11px] text-ink-soft">Timeline</span>
+        <span className="text-[11px] font-semibold text-ink-soft">Timeline</span>
         <span className="truncate text-[11px] text-ink-soft">Drag the ends of a bar to set when it shows</span>
       </div>
       <ul className="max-h-40 overflow-y-auto rounded-md border border-rule bg-sheet py-1" aria-label="Timeline">

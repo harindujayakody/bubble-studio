@@ -64,7 +64,7 @@ export function ElementsPanel({
                   type="button"
                   aria-label={`Add sticker ${i + 1}`}
                   onClick={() => onAddCustom(c.id, c.src)}
-                  className="grid aspect-square place-items-center rounded-md bg-[oklch(0.96_0.004_250)] p-2 outline-none hover:bg-brand-wash focus-visible:ring-2 focus-visible:ring-aqua"
+                  className="grid aspect-square place-items-center rounded-lg bg-tile p-2 outline-none hover:bg-brand-wash focus-visible:ring-2 focus-visible:ring-aqua"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={c.src} alt="" loading="lazy" className="max-h-full max-w-full object-contain" />

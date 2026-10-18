@@ -4,25 +4,35 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Check,
   ChevronDown,
-  Crop,
   Download,
-  Droplets,
   CloudAlert,
   CloudCheck,
   CloudOff,
   Film,
-  Images,
   LoaderCircle,
-  Settings,
+  Moon,
   Plus,
   ImageIcon,
   Redo2,
-  Shapes,
-  SlidersHorizontal,
-  Sparkles,
-  Type,
+  Sun,
   Undo2,
 } from "lucide-react";
+import {
+  AdjustIcon,
+  BlurIcon,
+  BulkIcon,
+  CropIcon,
+  ElementsIcon,
+  FiltersIcon,
+  PhotoIcon,
+  SettingsIcon,
+  TextIcon,
+  VideoIcon,
+  type ToolIcon,
+} from "./tool-icons";
+import { setThemePref, useResolvedTheme } from "@/lib/theme";
+import { saveExport, type ExportKind } from "@/lib/editor/save";
+import { extractAudio } from "@/lib/editor/media-tools";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -38,7 +48,7 @@ import {
 import {
   deleteDraft,
   loadDraft,
-  peekDraft,
+  listDrafts,
   saveDraft,
   setAutosave,
   useAutosave,
@@ -49,7 +59,8 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { CanvasStage, type RegionDefaults } from "./canvas-stage";
-import { SizePreview, StartScreen, type StartStep } from "./start-screen";
+import { SizePreview, StartScreen, type StartStep, type StartTool } from "./start-screen";
+import { ExtractAudioScreen, MergeVideosScreen } from "./media-tool-screens";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -86,7 +97,7 @@ import { RangeField } from "./controls";
 import { useHistory } from "@/lib/editor/use-history";
 import { canFastExport, fastExportReel, probeVideo } from "@/lib/editor/fast-export";
 import { SINHALA_RE } from "@/lib/editor/fonts";
-import { nextZ, restack } from "@/lib/editor/layers";
+import { moveLayer, nextZ, restack } from "@/lib/editor/layers";
 import { inkFor, mix } from "@/lib/editor/color";
 import {
   defaultCrop,
@@ -111,16 +122,16 @@ import {
   type ToolId,
 } from "@/lib/editor/types";
 
-const TOOLS: { id: ToolId; label: string; icon: typeof ImageIcon; key: string }[] = [
-  { id: "photo", label: "Photo", icon: ImageIcon, key: "P" },
-  { id: "filters", label: "Filters", icon: Sparkles, key: "F" },
-  { id: "adjust", label: "Adjust", icon: SlidersHorizontal, key: "A" },
-  { id: "crop", label: "Crop", icon: Crop, key: "C" },
-  { id: "text", label: "Text", icon: Type, key: "T" },
-  { id: "elements", label: "Elements", icon: Shapes, key: "E" },
-  { id: "blur", label: "Blur", icon: Droplets, key: "B" },
-  { id: "bulk", label: "Bulk", icon: Images, key: "M" },
-  { id: "settings", label: "Settings", icon: Settings, key: "S" },
+const TOOLS: { id: ToolId; label: string; icon: ToolIcon; key: string }[] = [
+  { id: "photo", label: "Photo", icon: PhotoIcon, key: "P" },
+  { id: "filters", label: "Filters", icon: FiltersIcon, key: "F" },
+  { id: "adjust", label: "Adjust", icon: AdjustIcon, key: "A" },
+  { id: "crop", label: "Crop", icon: CropIcon, key: "C" },
+  { id: "text", label: "Text", icon: TextIcon, key: "T" },
+  { id: "elements", label: "Elements", icon: ElementsIcon, key: "E" },
+  { id: "blur", label: "Blur", icon: BlurIcon, key: "B" },
+  { id: "bulk", label: "Bulk", icon: BulkIcon, key: "M" },
+  { id: "settings", label: "Settings", icon: SettingsIcon, key: "S" },
 ];
 
 /** Where new stickers land, so they don't pile up under the centred headline. */
@@ -159,7 +170,10 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
   const bulkClipRef = useRef<HTMLInputElement>(null);
   const autosave = useAutosave();
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
-  const [resume, setResume] = useState<DraftSummary | null>(null);
+  const [recents, setRecents] = useState<DraftSummary[]>([]);
+  const [startTool, setStartTool] = useState<StartTool | null>(null);
+  // Which saved design this is; a new one gets a fresh id, an opened one keeps its own.
+  const designId = useRef<string>("");
   const [tool, setTool] = useState<ToolId>("photo");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   /** Decoded images for the photo and uploaded stickers, keyed by id. Kept out of history. */
@@ -168,6 +182,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
   const stickerFileRef = useRef<HTMLInputElement>(null);
   const videoFileRef = useRef<HTMLInputElement>(null);
   const musicFileRef = useRef<HTMLInputElement>(null);
+  const musicVideoRef = useRef<HTMLInputElement>(null);
   /** Loaded music, keyed by track id (library URL or upload id). */
   const [tracks, setTracks] = useState<Record<string, HTMLAudioElement>>({});
   /** Loaded clips, keyed by id like photos. */
@@ -307,6 +322,19 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
     const id = crypto.randomUUID();
     files.current.set(id, file);
     void addTrack(id, file.name.replace(/\.[^.]+$/, ""), URL.createObjectURL(file));
+  };
+
+  /** Use the sound of a video (e.g. a song from a phone clip) as the reel's music. */
+  const loadMusicFromVideo = (file: File) => {
+    const name = file.name.replace(/\.[^.]+$/, "");
+    toast.promise(
+      extractAudio(file, "m4a", () => {}).then((blob) => loadMusicFile(new File([blob], `${name}.m4a`, { type: "audio/mp4" }))),
+      {
+        loading: "Taking the sound from the video…",
+        success: "Music added from the video",
+        error: (err) => (err instanceof Error ? err.message : "Couldn't take the sound from that video"),
+      },
+    );
   };
 
   const loadVideoFile = useCallback(
@@ -500,7 +528,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
   // Keyboard: undo/redo, delete, nudge, tool keys.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const el = e.target as HTMLElement;
+      const el = e.target instanceof HTMLElement ? e.target : document.body;
       const typing = el.closest("input, textarea, select, [contenteditable=true]");
       const mod = e.ctrlKey || e.metaKey;
       if (mod && e.key.toLowerCase() === "z") {
@@ -579,6 +607,11 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
         setSelectedId(null);
         return;
       }
+      if (e.shiftKey && e.key.toLowerCase() === "d") {
+        setThemePref(document.documentElement.classList.contains("dark") ? "light" : "dark");
+        return;
+      }
+      if (e.shiftKey) return;
       const t = TOOLS.find((x) => x.key.toLowerCase() === e.key.toLowerCase());
       if (t && !el.closest("[role=radiogroup], [role=listbox]")) setTool(t.id);
     };
@@ -593,35 +626,40 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
 
   // Auto-save: shortly after each change, store the design and the files it uses in this browser.
   useEffect(() => {
-    if (!started || !autosave) return;
+    if (!started || !autosave || showEmpty || !designId.current) return;
     const timer = window.setTimeout(async () => {
       setSaveStatus("saving");
       try {
         // Very large uploads are skipped; on resume the user is asked to add them again.
         const small = new Map([...files.current].filter(([, blob]) => blob.size <= MAX_SAVED_FILE));
-        await saveDraft(buildDraft(state), small);
+        await saveDraft(buildDraft(state, designId.current), small);
         setSaveStatus("saved");
       } catch {
         setSaveStatus("error");
       }
     }, 800);
     return () => window.clearTimeout(timer);
-  }, [state, started, autosave]);
+  }, [state, started, autosave, showEmpty]);
 
-  // Offer to continue the saved post on the start screen.
+  // Recent designs for the start screen.
   useEffect(() => {
     if (started) return;
     let alive = true;
-    void peekDraft().then((d) => alive && setResume(d));
+    void listDrafts().then((d) => alive && setRecents(d));
     return () => {
       alive = false;
     };
   }, [started, autosave]);
 
-  /** Rebuild the saved post: its design plus every photo, video, sticker and track it used. */
-  const resumeDraft = async () => {
+  const removeRecent = async (id: string) => {
+    await deleteDraft(id);
+    setRecents(await listDrafts());
+  };
+
+  /** Rebuild a saved design: its layout plus every photo, video, sticker and track it used. */
+  const resumeDraft = async (id: string) => {
     try {
-      const saved = await loadDraft();
+      const saved = await loadDraft(id);
       if (!saved) {
         toast.error("There's no saved post to continue");
         return;
@@ -669,7 +707,8 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
         }
       }
 
-      for (const [id, blob] of stored) files.current.set(id, blob);
+      for (const [fileId, blob] of stored) files.current.set(fileId, blob);
+      designId.current = draft.id;
       setPhotos(nextPhotos);
       setVideos(nextVideos);
       setTracks(nextTracks);
@@ -689,11 +728,11 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
   const toggleAutosave = (on: boolean) => {
     setAutosave(on);
     if (on) {
-      toast.success("Auto-save is on", { description: "Your last post is kept in this browser only." });
+      toast.success("Auto-save is on", { description: "Your 5 latest designs are kept in this browser only." });
     } else {
       void deleteDraft();
       setSaveStatus("idle");
-      toast("Auto-save is off", { description: "The saved post was deleted from this browser." });
+      toast("Auto-save is off", { description: "Saved designs were deleted from this browser." });
     }
   };
 
@@ -820,21 +859,34 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
   if (!started) {
     return (
       <div className="flex h-full min-h-0 flex-col">
-        <header className="flex h-14 shrink-0 items-center gap-2.5 border-b border-rule bg-sheet px-3 md:px-4">
+        <header className="app-header flex h-14 shrink-0 items-center gap-2.5 px-3 md:px-4">
           <BrandMark />
-          <span className="font-heading text-[15px] font-semibold tracking-[-0.01em] text-ink">Bubble Studio</span>
+          <span className="font-heading text-[15px] font-semibold tracking-[-0.01em]">Bubble Studio</span>
+          <div className="ml-auto">
+            <ThemeToggle />
+          </div>
           <DesktopUpdateListener />
         </header>
-        <StartScreen
-          key={startStep}
-          initialStep={startStep}
-          resume={resume}
-          onResume={resumeDraft}
-          onPick={(media, size) => {
-            reset({ ...DEFAULT_STATE, media, size });
-            setStarted(true);
-          }}
-        />
+        {startTool === "merge" ? (
+          <MergeVideosScreen onBack={() => setStartTool(null)} />
+        ) : startTool === "extract" ? (
+          <ExtractAudioScreen onBack={() => setStartTool(null)} />
+        ) : (
+          <StartScreen
+            key={startStep}
+            onTool={setStartTool}
+            initialStep={startStep}
+            recents={recents}
+            onOpen={resumeDraft}
+            onRemove={removeRecent}
+            onPick={(media, size, openTool) => {
+              designId.current = crypto.randomUUID();
+              reset({ ...DEFAULT_STATE, media, size });
+              if (openTool) setTool(openTool);
+              setStarted(true);
+            }}
+          />
+        )}
       </div>
     );
   }
@@ -871,6 +923,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
               setTool("photo");
             }}
             onRestack={(id, dir) => update((s) => restack(s, id, dir))}
+            onMove={(id, index) => update((s) => moveLayer(s, id, index))}
             onDelete={(id) => {
               update((s) => ({
                 ...s,
@@ -887,7 +940,10 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
       <div className="flex min-h-0 flex-1 flex-col md:flex-row">
         <ToolRail tool={tool} onTool={setTool} media={state.media} />
 
-        <main className="flex h-[min(56vh,460px)] min-w-0 shrink-0 flex-col pt-3 md:h-auto md:min-h-0 md:flex-1 md:pt-4" aria-label="Canvas">
+        <main
+          className="order-1 flex h-[min(56vh,480px)] min-w-0 shrink-0 flex-col pt-2 md:order-3 md:h-auto md:min-h-0 md:flex-1 md:pt-3"
+          aria-label="Canvas"
+        >
           <CanvasStage
             source={source}
             assets={photos}
@@ -940,7 +996,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
         </main>
 
         <aside
-          className="min-h-0 flex-1 overflow-y-auto border-t border-rule bg-sheet md:w-[320px] md:flex-none md:shrink-0 md:border-t-0 md:border-l"
+          className="order-2 min-h-0 flex-1 overflow-y-auto border-t border-rule bg-sheet md:w-[328px] md:flex-none md:shrink-0 md:border-t-0 md:border-r"
           aria-label={`${TOOLS.find((t) => t.id === tool)?.label} settings`}
         >
           {tool === "photo" && state.media === "video" && (
@@ -956,6 +1012,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
               musicLibrary={musicLibrary}
               onPickMusic={(t) => void addTrack(t.id, t.name, t.src)}
               onUploadMusic={() => musicFileRef.current?.click()}
+              onMusicFromVideo={() => musicVideoRef.current?.click()}
             />
           )}
           {tool === "photo" && state.media === "photo" && (
@@ -1090,6 +1147,19 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
         }}
       />
       <input
+        ref={musicVideoRef}
+        type="file"
+        accept={ACCEPT_VIDEO}
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) loadMusicFromVideo(f);
+          e.target.value = "";
+        }}
+      />
+      <input
         ref={musicFileRef}
         type="file"
         accept="audio/*"
@@ -1136,11 +1206,11 @@ function ToolRail({ tool, onTool, media }: { tool: ToolId; onTool: (t: ToolId) =
   return (
     <nav
       aria-label="Tools"
-      className="order-last flex shrink-0 justify-around border-t border-rule bg-sheet px-1 py-1 md:order-first md:w-[76px] md:flex-col md:justify-start md:gap-1 md:border-t-0 md:border-r md:px-2 md:py-3"
+      className="order-3 flex shrink-0 gap-0.5 overflow-x-auto border-t border-rule bg-sheet px-1.5 py-1 [scrollbar-width:none] md:order-1 md:w-[76px] md:flex-col md:gap-1 md:overflow-x-visible md:overflow-y-auto md:border-t-0 md:border-r md:px-1.5 md:py-2.5"
     >
       {TOOLS.map((tool_) => {
         // In a reel the first tool holds the video instead of a photo.
-        const t = media === "video" && tool_.id === "photo" ? { ...tool_, label: "Video", icon: Film } : tool_;
+        const t = media === "video" && tool_.id === "photo" ? { ...tool_, label: "Video", icon: VideoIcon } : tool_;
         const active = t.id === tool;
         const Icon = t.icon;
         return (
@@ -1150,17 +1220,26 @@ function ToolRail({ tool, onTool, media }: { tool: ToolId; onTool: (t: ToolId) =
                 <button
                   type="button"
                   aria-current={active ? "page" : undefined}
+                  data-active={active || undefined}
+                  ref={active ? (el) => el?.scrollIntoView({ block: "nearest", inline: "nearest" }) : undefined}
                   onClick={() => onTool(t.id)}
                   className={cn(
                     t.id === "settings" && "md:mt-auto",
-                    "group relative flex h-14 min-w-11 flex-col md:min-w-14 items-center justify-center gap-1 rounded-md text-[11px] font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-aqua",
-                    active ? "bg-aqua-wash text-aqua-ink" : "text-ink-soft hover:bg-muted hover:text-ink",
+                    "tool-button group flex min-w-[58px] flex-1 flex-col items-center gap-1 rounded-lg py-1 text-[11px] font-medium outline-none focus-visible:ring-2 focus-visible:ring-aqua md:flex-none",
+                    active ? "text-ink" : "text-ink-soft hover:text-ink",
                   )}
                 />
               }
             >
-              <Icon className="size-5" strokeWidth={active ? 2.1 : 1.75} />
-              {t.label}
+              <span
+                className={cn(
+                  "grid size-10 place-items-center rounded-xl transition-colors duration-150",
+                  active ? "bg-brand-wash text-brand" : "group-hover:bg-tile",
+                )}
+              >
+                <Icon className="size-[22px]" />
+              </span>
+              <span className={cn(active && "font-semibold")}>{t.label}</span>
             </TooltipTrigger>
             <TooltipContent side="right" className="hidden md:inline-flex">
               {t.label} <kbd className="font-mono text-[10px] opacity-70">{t.key}</kbd>
@@ -1169,6 +1248,24 @@ function ToolRail({ tool, onTool, media }: { tool: ToolId; onTool: (t: ToolId) =
         );
       })}
     </nav>
+  );
+}
+
+/** One click between light and dark. "Follow the system" lives in Settings. */
+function ThemeToggle() {
+  const theme = useResolvedTheme();
+  const next = theme === "dark" ? "light" : "dark";
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <Button variant="ghost" size="icon" aria-label={`Switch to ${next} mode`} onClick={() => setThemePref(next)} />
+        }
+      >
+        {theme === "dark" ? <Sun /> : <Moon />}
+      </TooltipTrigger>
+      <TooltipContent>{theme === "dark" ? "Light mode" : "Dark mode"}</TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -1208,30 +1305,29 @@ function TopBar({
   layers: React.ReactNode;
 }) {
   return (
-    <header className="flex h-14 shrink-0 items-center gap-3 border-b border-rule bg-sheet px-3 md:px-4">
+    <header className="app-header flex h-14 shrink-0 items-center gap-1.5 px-2.5 sm:gap-2 md:px-4">
       <button
         type="button"
         onClick={onHome}
-        title="Start something new"
-        className="flex items-center gap-2.5 rounded-md outline-none focus-visible:ring-2 focus-visible:ring-aqua"
+        title="Home: start something new"
+        className="flex shrink-0 items-center gap-2.5 rounded-lg p-0.5 pr-1.5 outline-none hover:bg-white/15 focus-visible:ring-2 focus-visible:ring-white"
       >
         <BrandMark />
-        <span className="font-heading text-[15px] font-semibold tracking-[-0.01em] text-ink">Bubble Studio</span>
+        <span className="hidden font-heading text-[15px] font-semibold tracking-[-0.01em] lg:inline">Bubble Studio</span>
       </button>
-      <span className="hidden h-5 w-px bg-rule sm:block" aria-hidden />
+      <span className="hidden h-5 w-px bg-white/25 sm:block" aria-hidden />
       <SizeMenu
         value={state.size}
         custom={state.custom}
-        options={state.media === "video" ? ["story", "original"] : ["square", "portrait", "landscape", "story", "original"]}
+        options={state.media === "video" ? ["story", "landscape", "original"] : ["square", "portrait", "landscape", "story", "original"]}
         reel={state.media === "video"}
         onChange={onSize}
       />
 
-      <div className="ml-auto flex items-center gap-1">
-        {autosave}
-        <NewMenu onNew={onNew} />
-        {layers}
-        <span className="mx-1 h-5 w-px bg-rule" aria-hidden />
+      <NewMenu onNew={onNew} />
+      <div className="hidden sm:block">{autosave}</div>
+
+      <div className="ml-auto flex items-center gap-0.5 sm:gap-1">
         <Tooltip>
           <TooltipTrigger render={<Button variant="ghost" size="icon" aria-label="Undo" disabled={!canUndo} onClick={onUndo} />}>
             <Undo2 />
@@ -1244,7 +1340,12 @@ function TopBar({
           </TooltipTrigger>
           <TooltipContent>Redo <kbd className="font-mono text-[10px] opacity-70">Ctrl Shift Z</kbd></TooltipContent>
         </Tooltip>
-        <span className="mx-1.5 h-5 w-px bg-rule" aria-hidden />
+        <span className="mx-1 hidden h-5 w-px bg-white/25 sm:block" aria-hidden />
+        <div className="hidden sm:block">
+          <ThemeToggle />
+        </div>
+        {layers}
+        <span className="w-1" aria-hidden />
         {state.media === "video" ? (
           <ReelExportButton
             video={video}
@@ -1281,15 +1382,11 @@ function ExportButton({
     setBusy(true);
     try {
       const blob = await exportPost(source, assets, state, format, quality);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
       const base = name.trim().replace(/[\\/:*?"<>|]+/g, "-") || "facebook-post";
-      a.href = url;
-      a.download = `${base}.${format === "jpeg" ? "jpg" : "png"}`;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 2000);
+      const filename = `${base}.${format === "jpeg" ? "jpg" : "png"}`;
+      const where = await saveExport(blob, filename, "photos");
       setOpen(false);
-      toast.success("Post downloaded", { description: `${a.download} · ${formatBytes(blob.size)}` });
+      if (!window.bubbleDesktop) toast.success("Post saved", { description: `${where ?? filename} · ${formatBytes(blob.size)}` });
     } catch (err) {
       toast.error("Export failed", { description: err instanceof Error ? err.message : "Please try again." });
     } finally {
@@ -1299,7 +1396,7 @@ function ExportButton({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger render={<Button className="bg-brand px-3 text-white hover:bg-brand-ink" />}>
+      <PopoverTrigger render={<Button className="cta h-9 px-3.5" />}>
         <Download /> Export
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 gap-0 p-0">
@@ -1374,14 +1471,7 @@ function ReelExportButton({
   const length = clip ? clip.trimEnd - clip.trimStart : 0;
 
   const fileBase = () => name.trim().replace(/[\\/:*?"<>|]+/g, "-") || "facebook-reel";
-  const save = (blob: Blob, filename: string) => {
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 4000);
-  };
+  const save = (blob: Blob, filename: string, kind: ExportKind = "reels") => saveExport(blob, filename, kind);
 
   const record = async () => {
     if (!video || !frame || !clip) return;
@@ -1411,9 +1501,9 @@ function ReelExportButton({
       }
       const { blob, ext } = result;
       const filename = `${fileBase()}.${ext}`;
-      save(blob, filename);
+      const where = await save(blob, filename);
       setOpen(false);
-      toast.success("Reel downloaded", { description: `${filename} · ${formatBytes(blob.size)}` });
+      if (!window.bubbleDesktop) toast.success("Reel saved", { description: `${where ?? filename} · ${formatBytes(blob.size)}` });
       if (note) toast(note);
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") toast("Export cancelled");
@@ -1426,13 +1516,13 @@ function ReelExportButton({
 
   const saveFrame = async () => {
     const blob = await exportPost(frame, assets, state, "jpeg", 92, video?.currentTime);
-    save(blob, `${fileBase()}-frame.jpg`);
+    await save(blob, `${fileBase()}-frame.jpg`, "photos");
     toast.success("Frame saved", { description: formatBytes(blob.size) });
   };
 
   return (
     <Popover open={open} onOpenChange={(o) => !busy && setOpen(o)}>
-      <PopoverTrigger render={<Button className="bg-brand px-3 text-white hover:bg-brand-ink" />}>
+      <PopoverTrigger render={<Button className="cta h-9 px-3.5" />}>
         <Download /> Export
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 gap-0 p-0">
@@ -1500,7 +1590,15 @@ type SaveStatus = "idle" | "saving" | "saved" | "error";
 const MAX_SAVED_FILE = 500 * 1024 * 1024;
 
 /** The design plus the list of uploaded files it depends on. */
-function buildDraft(state: typeof DEFAULT_STATE): Draft {
+/** A name for the recent-designs card: the top text, else the file, else "Untitled". */
+function designName(state: typeof DEFAULT_STATE) {
+  const top = [...state.texts].sort((a, b) => b.z - a.z).find((t) => t.text.trim());
+  const name = top?.text.trim().replace(/\s+/g, " ") ?? state.photoName ?? state.video?.name;
+  if (!name) return state.media === "video" ? "Untitled reel" : "Untitled post";
+  return name.length > 40 ? `${name.slice(0, 39)}…` : name;
+}
+
+function buildDraft(state: typeof DEFAULT_STATE, id: string): Draft & { id: string } {
   const assets: DraftAsset[] = [];
   if (state.photoId) assets.push({ id: state.photoId, kind: "image" });
   for (const s of state.stickers) {
@@ -1508,7 +1606,7 @@ function buildDraft(state: typeof DEFAULT_STATE): Draft {
   }
   if (state.video) assets.push({ id: state.video.id, kind: "video", name: state.video.name });
   if (state.music && !state.music.src.startsWith("/")) assets.push({ id: state.music.id, kind: "audio", name: state.music.name });
-  return { state, savedAt: Date.now(), thumb: snapshotThumb(), assets };
+  return { id, name: designName(state), state, savedAt: Date.now(), thumb: snapshotThumb(), assets };
 }
 
 /** A small picture of the post for the "Continue" card. */
@@ -1538,7 +1636,7 @@ function AutosaveMenu({ on, status, onToggle }: { on: boolean; status: SaveStatu
           <Button
             variant="ghost"
             size="sm"
-            className={cn("gap-1.5 px-2", on && status !== "error" ? "text-aqua-ink" : "text-ink-soft")}
+            className={cn("gap-1.5 px-2", !(on && status !== "error") && "dim")}
             aria-label={`Auto-save: ${label}`}
           />
         }
@@ -1549,10 +1647,10 @@ function AutosaveMenu({ on, status, onToggle }: { on: boolean; status: SaveStatu
       <DropdownMenuContent align="end" className="w-72 p-1">
         <DropdownMenuCheckboxItem checked={on} onCheckedChange={(v) => onToggle(!!v)} className="items-start py-2">
           <span className="flex flex-col gap-0.5">
-            <span className="text-sm font-medium text-ink">Keep my last post in this browser</span>
+            <span className="text-sm font-medium text-ink">Keep my recent designs</span>
             <span className="text-[11px] text-pretty text-ink-soft">
-              Saves automatically, including your photos and videos, on this computer only. Turning it off deletes the
-              saved post.
+              Saves your 5 latest designs automatically, with their photos and videos, on this computer only. Turning
+              it off deletes them.
             </span>
           </span>
         </DropdownMenuCheckboxItem>
@@ -1570,7 +1668,7 @@ function AutosaveMenu({ on, status, onToggle }: { on: boolean; status: SaveStatu
 function NewMenu({ onNew }: { onNew: (step: StartStep) => void }) {
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger render={<Button variant="outline" size="sm" className="gap-1.5 px-2.5" aria-label="Create new" />}>
+      <DropdownMenuTrigger render={<Button variant="ghost" size="sm" className="gap-1.5 px-2" aria-label="Create new" />}>
         <Plus />
         <span className="hidden md:inline">New</span>
       </DropdownMenuTrigger>
@@ -1634,12 +1732,12 @@ function SizeMenu({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        render={<Button variant="ghost" size="sm" className="gap-2 px-2 text-ink" aria-label={`Post size: ${current.label}`} />}
+        render={<Button variant="ghost" size="sm" className="gap-1.5 px-2" aria-label={`Post size: ${current.label}`} />}
       >
-        {reel && <Film className="text-ink-soft" />}
+        {reel && <Film className="dim" />}
         <span className="hidden sm:inline">{current.label}</span>
-        <span className="font-mono text-xs text-ink-soft tabular">{current.ratio}</span>
-        <ChevronDown className="text-ink-soft" />
+        <span className="dim font-mono text-xs tabular">{current.ratio}</span>
+        <ChevronDown className="dim" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-72 p-1">
         {options.map((id) => {
@@ -1648,7 +1746,7 @@ function SizeMenu({
             <DropdownMenuItem
               key={id}
               onClick={() => onChange(id)}
-              className={cn("gap-3 py-2", id === value && "bg-aqua-wash")}
+              className={cn("gap-3 py-2", id === value && "bg-brand-wash")}
             >
               <span className="grid w-10 shrink-0 place-items-center">
                 <SizePreview w={s.w} h={s.h} max={26} dashed={id === "original" && !custom} />
@@ -1657,7 +1755,7 @@ function SizeMenu({
                 <span className="text-sm font-medium text-ink">{s.label}</span>
                 <span className="font-mono text-[11px] text-ink-soft tabular">{s.detail}</span>
               </span>
-              {id === value && <Check className="text-aqua-ink" />}
+              {id === value && <Check className="text-brand" />}
             </DropdownMenuItem>
           );
         })}
@@ -1669,7 +1767,7 @@ function SizeMenu({
 function BrandMark() {
   return (
     // eslint-disable-next-line @next/next/no-img-element
-    <img src="/favicon.png" alt="" width={28} height={28} className="size-7 shrink-0 rounded-[7px]" />
+    <img src="/favicon.png" alt="" width={30} height={30} className="size-[30px] shrink-0 rounded-[8px] ring-1 ring-white/30" />
   );
 }
 

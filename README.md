@@ -36,7 +36,7 @@ npm run desktop:dist   # build the installer into dist-desktop/
 
 ### Automatic updates
 
-Every push to `main` runs `.github/workflows/desktop-release.yml`, which builds the installer with a new version number (`0.2.<run>`) and publishes it under this repo's **Releases**. Installed apps check for a newer version a few seconds after starting and every four hours, download it in the background, and offer **Restart now**. You can also check from the version menu in the top bar.
+Every push to `main` runs `.github/workflows/desktop-release.yml`, which builds the installers and publishes them under this repo's **Releases**. Versions are `<VERSION>.<commits since VERSION changed>`: the `VERSION` file holds the major and minor number (`1.0`), so the first release after changing it is `x.y.0`. The web build shows the same number in Settings → About. Installed apps check for a newer version a few seconds after starting and every four hours, install it in the background, and offer **Restart now**. You can also check from Settings → Updates.
 
 No secrets are needed: the workflow uses GitHub's built-in token. The repo must stay public for installed apps to read the releases.
 

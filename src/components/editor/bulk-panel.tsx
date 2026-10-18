@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Download, ImagePlus, Images, PencilLine, X } from "lucide-react";
+import { saveExport } from "@/lib/editor/save";
 import { zipSync } from "fflate";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -106,13 +107,9 @@ export function BulkPanel({
       // Images are already compressed, so store them without zipping again.
       const zip = zipSync(files, { level: 0 });
       const blob = new Blob([zip as BlobPart], { type: "application/zip" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `bubble-studio-${photos.length}-posts.zip`;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 4000);
-      toast.success(`${photos.length} posts exported`, { description: `${a.download} · ${(blob.size / 1048576).toFixed(1)} MB` });
+      const filename = `bubble-studio-${photos.length}-posts.zip`;
+      await saveExport(blob, filename, "photos");
+      toast.success(`${photos.length} posts exported`, { description: `${filename} · ${(blob.size / 1048576).toFixed(1)} MB` });
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") toast("Bulk export cancelled");
       else toast.error("Bulk export failed", { description: err instanceof Error ? err.message : undefined });
@@ -332,14 +329,10 @@ export function BulkReelPanel({
       // Videos are already compressed; store them as-is.
       const zip = zipSync(files, { level: 0 });
       const blob = new Blob([zip as BlobPart], { type: "application/zip" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `bubble-studio-${clips.length}-reels.zip`;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      const filename = `bubble-studio-${clips.length}-reels.zip`;
+      await saveExport(blob, filename, "reels");
       toast.success(`${clips.length} reels exported`, {
-        description: `${a.download} · ${(blob.size / 1048576).toFixed(1)} MB`,
+        description: `${filename} · ${(blob.size / 1048576).toFixed(1)} MB`,
       });
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") toast("Bulk export cancelled");

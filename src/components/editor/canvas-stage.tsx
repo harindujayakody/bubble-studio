@@ -52,8 +52,8 @@ type Props = {
   onDropFile: (file: File) => void;
 };
 
-/** Space reserved around the sheet for crop marks and registration targets. */
-const GUTTER = 36;
+/** Breathing room between the post and the edges of the workspace. */
+const GUTTER = 28;
 const SNAP = 0.012;
 
 export function CanvasStage(props: Props) {
@@ -155,8 +155,6 @@ export function CanvasStage(props: Props) {
       >
         {side > 0 && (
           <div className="relative" style={{ width: side, height: sideY }}>
-            <ProofMarks active={cropping || panning} w={side} h={sideY} />
-
             {cropping ? (
               <CropView
                 source={source!}
@@ -167,7 +165,7 @@ export function CanvasStage(props: Props) {
               />
             ) : (
               <div
-                className="relative size-full bg-sheet shadow-[0_1px_2px_oklch(0.2_0.02_260/0.12),0_12px_32px_-12px_oklch(0.2_0.02_260/0.28)]"
+                className="relative size-full bg-white shadow-sheet"
                 onPointerDown={(e) => {
                   if (e.target === e.currentTarget || e.target === canvasRef.current) props.onSelect(null);
                 }}
@@ -294,8 +292,8 @@ export function CanvasStage(props: Props) {
             )}
 
             {dragOver && (
-              <div className="pointer-events-none absolute inset-0 grid place-items-center bg-aqua-wash/85 ring-2 ring-aqua ring-inset">
-                <p className="text-sm font-semibold text-aqua-ink">
+              <div className="pointer-events-none absolute inset-0 grid place-items-center bg-aqua-wash/90 ring-2 ring-aqua ring-inset">
+                <p className="px-4 text-center text-sm font-semibold text-aqua-ink">
                   {state.media === "video" ? "Drop a video, or an image to add as a sticker" : "Drop to use this photo"}
                 </p>
               </div>
@@ -304,7 +302,7 @@ export function CanvasStage(props: Props) {
         )}
       </div>
 
-      <ColourBar
+      <StatusPill
         zoom={zoom}
         dims={`${exportDims(state).w} × ${exportDims(state).h} px`}
         label={
@@ -542,7 +540,7 @@ function RegionLayer({
                     ref.current!.setPointerCapture(e.pointerId);
                     action.current = { type: "resize", id: r.id, corner: i, px: e.clientX, py: e.clientY, start: r };
                   }}
-                  className={cn("absolute size-2.5 bg-sheet ring-[1.5px] ring-aqua after:absolute after:-inset-2", c.pos, c.cursor)}
+                  className={cn("absolute size-2.5 bg-white ring-[1.5px] ring-aqua after:absolute after:-inset-2", c.pos, c.cursor)}
                 />
               ))}
           </div>
@@ -744,7 +742,7 @@ function LayerHandle({
               onPointerCancel={() => (scaleDrag.current = null)}
               onDoubleClick={(e) => e.stopPropagation()}
               className={cn(
-                "absolute size-2.5 touch-none bg-sheet ring-[1.5px] ring-aqua after:absolute after:-inset-2 hover:bg-aqua",
+                "absolute size-2.5 touch-none bg-white ring-[1.5px] ring-aqua after:absolute after:-inset-2 hover:bg-aqua",
                 c.pos,
                 c.cursor,
               )}
@@ -765,54 +763,16 @@ function sameBoxes(a: TextBox[], b: TextBox[]) {
   });
 }
 
-/** Corner crop marks and registration targets, as on a press proof. */
-function ProofMarks({ active, w, h }: { active: boolean; w: number; h: number }) {
-  // In crop mode the marks thicken to echo the live crop frame.
-  const stroke = "var(--ink)";
-  const width = active ? 2 : 1;
-  const len = 18;
-  const off = 8;
-  const corners = [
-    { x: 0, y: 0, sx: -1, sy: -1 },
-    { x: w, y: 0, sx: 1, sy: -1 },
-    { x: 0, y: h, sx: -1, sy: 1 },
-    { x: w, y: h, sx: 1, sy: 1 },
-  ];
-  const targets = [
-    { x: w / 2, y: -22 },
-    { x: -22, y: h / 2 },
-    { x: w + 22, y: h / 2 },
-  ];
+/** Floating readout under the canvas: what the pointer does now, the export size and the zoom. */
+function StatusPill({ zoom, label, dims }: { zoom: number; label: string; dims: string }) {
   return (
-    <svg aria-hidden className="pointer-events-none absolute inset-0 size-full overflow-visible">
-      {corners.map((c, i) => (
-        <g key={i} transform={`translate(${c.x} ${c.y})`}>
-          <line x1={c.sx * off} y1={0} x2={c.sx * (off + len)} y2={0} stroke={stroke} strokeWidth={width} />
-          <line x1={0} y1={c.sy * off} x2={0} y2={c.sy * (off + len)} stroke={stroke} strokeWidth={width} />
-        </g>
-      ))}
-      {targets.map((t, i) => (
-        <g key={`t${i}`} transform={`translate(${t.x} ${t.y})`} stroke="var(--ink)" strokeOpacity={0.5} strokeWidth={1} fill="none">
-          <circle r={6} />
-          <line x1={-10} y1={0} x2={10} y2={0} />
-          <line x1={0} y1={-10} x2={0} y2={10} />
-        </g>
-      ))}
-    </svg>
-  );
-}
-
-function ColourBar({ zoom, label, dims }: { zoom: number; label: string; dims: string }) {
-  return (
-    <div className="flex h-9 shrink-0 items-center justify-center gap-4 overflow-hidden px-4 text-ink-soft">
-      <div aria-hidden className="flex shrink-0">
-        {["var(--aqua)", "var(--brand)", "var(--yellow)", "var(--ink)"].map((c) => (
-          <span key={c} className="size-3" style={{ background: c }} />
-        ))}
+    <div className="flex h-12 shrink-0 items-center justify-center px-3">
+      <div className="flex h-8 max-w-full items-center gap-3 overflow-hidden rounded-full bg-raised px-3.5 text-[12px] text-ink-soft shadow-float">
+        <span className="truncate text-ink">{label}</span>
+        <span aria-hidden className="h-3.5 w-px shrink-0 bg-rule" />
+        <span className="hidden shrink-0 font-mono text-[11px] tabular sm:inline">{dims}</span>
+        <span className="shrink-0 rounded-full bg-tile px-2 py-0.5 font-mono text-[11px] text-ink tabular">{zoom}%</span>
       </div>
-      <span className="slug truncate text-[12px]">{label}</span>
-      <span className="hidden font-mono text-[11px] tabular sm:inline">{dims}</span>
-      <span className="font-mono text-[11px] tabular">{zoom}%</span>
     </div>
   );
 }
@@ -831,25 +791,25 @@ function EmptySheet({
 }) {
   const Icon = video ? Film : ImagePlus;
   return (
-    <div className="absolute inset-0 grid place-items-center p-6">
+    <div className="@container absolute inset-0 grid place-items-center p-4">
       <div className="flex max-w-xs flex-col items-center text-center">
-        <span className="mb-4 grid size-12 place-items-center rounded-full bg-sheet text-brand ring-1 ring-ink/10">
+        <span className="mb-4 grid size-12 @max-xs:hidden place-items-center rounded-full bg-white text-[#7d2ae8] shadow-[0_2px_8px_rgb(0_0_0/0.12)]">
           <Icon className="size-5" />
         </span>
-        <h2 className={cn("text-lg font-semibold text-balance", tone === "dark" ? "text-ink" : "text-white")}>
+        <h2 className={cn("text-lg font-semibold text-balance", tone === "dark" ? "text-[#0e1318]" : "text-white")}>
           {video ? "Start with a video" : "Start with a photo"}
         </h2>
-        <p className={cn("mt-1.5 text-sm text-pretty", tone === "dark" ? "text-ink-soft" : "text-white/80")}>
+        <p className={cn("mt-1.5 text-sm text-pretty @max-xs:hidden", tone === "dark" ? "text-[#0e1318]/70" : "text-white/80")}>
           {video
             ? "Drop a clip here, or pick one from your computer. MP4 and WebM work best. Nothing is uploaded."
             : "Drop an image here, or pick one from your computer. JPG, PNG and WebP work. Nothing is uploaded."}
         </p>
-        <div className="mt-5 flex flex-wrap justify-center gap-2">
+        <div className="mt-5 flex flex-wrap justify-center gap-2 @max-xs:mt-3">
           <Button onClick={onPickPhoto} className="bg-brand text-white hover:bg-brand-ink">
             <Icon /> {video ? "Choose video" : "Choose photo"}
           </Button>
           {!video && (
-            <Button variant="outline" onClick={onStartBlank}>
+            <Button variant="outline" onClick={onStartBlank} className="border-black/10 bg-white text-[#0e1318] hover:bg-white/90 hover:text-[#0e1318] dark:border-black/10 dark:bg-white dark:hover:bg-white/90">
               <Palette /> Use a colour
             </Button>
           )}
