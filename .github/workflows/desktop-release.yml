@@ -62,7 +62,7 @@ jobs:
           npm --prefix desktop ci
 
       - name: Set version
-        run: npm --prefix desktop version "${{ needs.version.outputs.version }}" --no-git-tag-version
+        run: npm --prefix desktop version "${{ needs.version.outputs.version }}" --no-git-tag-version --allow-same-version
 
       - name: Build installer
         run: npm run ${{ matrix.script }}
