@@ -7,6 +7,18 @@ const { Readable } = require("node:stream");
 const { autoUpdater } = require("electron-updater");
 
 const WEB_ROOT = path.join(__dirname, "web");
+
+/** Small log in the user data folder (Help: %APPDATA%/Bubble Studio/logs/main.log) for update troubleshooting. */
+function log(...parts) {
+  try {
+    const dir = path.join(app.getPath("userData"), "logs");
+    fs.mkdirSync(dir, { recursive: true });
+    fs.appendFileSync(path.join(dir, "main.log"), `${new Date().toISOString()} ${parts.join(" ")}
+`);
+  } catch {
+    // Logging must never break the app.
+  }
+}
 const ORIGIN = "app://bubble";
 
 // A standard, secure scheme gives the page a stable origin, so localStorage and IndexedDB
@@ -133,6 +145,7 @@ function createWindow() {
 /* ------------------------------------------------------------------ updates */
 
 function setupUpdates() {
+  autoUpdater.logger = { info: (m) => log("[updater]", m), warn: (m) => log("[updater] warn", m), error: (m) => log("[updater] error", m), debug: () => {} };
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
 
@@ -152,7 +165,11 @@ function setupUpdates() {
   };
 
   ipcMain.handle("update:check", () => check());
-  ipcMain.handle("update:install", () => autoUpdater.quitAndInstall());
+  ipcMain.handle("update:install", (event) => {
+    log("install requested by", event.senderFrame?.url ?? "unknown");
+    // Silent install, then reopen the app: an update shouldn't walk the user through the setup wizard again.
+    autoUpdater.quitAndInstall(true, true);
+  });
   ipcMain.handle("app:version", () => app.getVersion());
 
   // Check shortly after launch, then every four hours while the app stays open.
@@ -178,5 +195,10 @@ if (!app.requestSingleInstanceLock()) {
     setupUpdates();
   });
 
-  app.on("window-all-closed", () => app.quit());
+  app.on("window-all-closed", () => {
+    log("all windows closed, quitting");
+    app.quit();
+  });
+  app.on("before-quit", () => log("before-quit"));
+  app.on("render-process-gone", (_e, _w, d) => log("renderer gone", d.reason));
 }
