@@ -2,11 +2,15 @@
   "name": "bubble-studio",
   "productName": "Bubble Studio",
   "version": "0.2.0",
-  "description": "Create Facebook posts and reels. Runs on your computer; nothing is uploaded.",
-  "author": "Harindu Jayakody",
+  "description": "Create Facebook posts and reels. Made by Harindu Jayakody. A product of Infiax.com.",
+  "author": {
+    "name": "Infiax.com",
+    "url": "https://infiax.com"
+  },
   "main": "main.js",
   "private": true,
   "dependencies": {
     "electron-updater": "^6.8.9"
-  }
+  },
+  "homepage": "https://infiax.com"
 }

@@ -1,22 +1,26 @@
-# Windows installer for Bubble Studio. Build with `npm run desktop:dist`.
+# Installers for Bubble Studio. Windows: `npm run desktop:dist`. macOS (Apple Silicon): `npm run desktop:dist:mac`.
+# Keep appId unchanged: Windows uses it to recognise updates to an installed copy.
 appId: com.harindujayakody.bubblestudio
 productName: Bubble Studio
-copyright: Copyright © Harindu Jayakody
+# The publisher shown by Windows comes from desktop/package.json "author" (Infiax.com).
+copyright: Copyright © 2026 Infiax.com. Made by Harindu Jayakody.
 
 directories:
   app: desktop          # two-package layout: only the shell + static web build are packaged
   output: dist-desktop
-  buildResources: public
+  buildResources: desktop-assets
 
 files:
   - "**/*"
 
+# ------------------------------------------------------------------ Windows
 win:
   target:
     - target: nsis
       arch: [x64]
   icon: public/favicon.png
   artifactName: Bubble-Studio-Setup-${version}.${ext}
+  legalTrademarks: Bubble Studio is a product of Infiax.com
 
 nsis:
   oneClick: false
@@ -25,7 +29,46 @@ nsis:
   createDesktopShortcut: always
   createStartMenuShortcut: true
   shortcutName: Bubble Studio
+  runAfterFinish: true
   deleteAppDataOnUninstall: false
+  installerIcon: desktop-assets/icon.ico
+  uninstallerIcon: desktop-assets/icon.ico
+  installerHeaderIcon: desktop-assets/icon.ico
+  installerSidebar: desktop-assets/installer-sidebar.bmp
+  uninstallerSidebar: desktop-assets/installer-sidebar.bmp
+  installerHeader: desktop-assets/installer-header.bmp
+  uninstallDisplayName: Bubble Studio
+
+# -------------------------------------------------------- macOS (M1, M2, M3)
+mac:
+  target:
+    - target: dmg
+      arch: [arm64]
+    - target: zip       # read by the update check
+      arch: [arm64]
+  icon: public/favicon.png
+  category: public.app-category.graphics-design
+  artifactName: Bubble-Studio-${version}-${arch}.${ext}
+  # Ad-hoc signature: required to run on Apple Silicon without a paid Developer ID.
+  identity: "-"
+  hardenedRuntime: false
+  gatekeeperAssess: false
+
+dmg:
+  title: Bubble Studio ${version}
+  background: desktop-assets/dmg-background.png
+  window:
+    width: 540
+    height: 380
+  iconSize: 96
+  contents:
+    - x: 140
+      y: 180
+      type: file
+    - x: 400
+      y: 180
+      type: link
+      path: /Applications
 
 # Installers and update metadata are published as GitHub Releases of this (public) repo,
 # which installed apps read to find updates.

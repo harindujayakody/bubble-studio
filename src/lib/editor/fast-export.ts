@@ -11,7 +11,7 @@ import {
   getFirstEncodableAudioCodec,
   getFirstEncodableVideoCodec,
 } from "mediabunny";
-import { ensureFonts, exportDims, renderPost, type Assets } from "./render";
+import { ensureFonts, exportDims, fitExport, renderPost, type Assets } from "./render";
 import type { Orientation, PostState } from "./types";
 
 const FPS = 30;
@@ -200,4 +200,48 @@ export async function fastExportReel(opts: {
   onProgress(1);
   const buffer = (output.target as BufferTarget).buffer!;
   return { blob: new Blob([buffer], { type: "video/mp4" }), ext: "mp4" };
+}
+
+/** Length, size and a poster frame of a video file, read without playing it. */
+export async function probeVideo(file: Blob): Promise<{ duration: number; width: number; height: number; poster: HTMLCanvasElement }> {
+  const input = new Input({ source: new BlobSource(file), formats: ALL_FORMATS });
+  try {
+    const track = await input.getPrimaryVideoTrack();
+    if (!track || !(await track.canDecode())) throw new Error("This video can't be decoded here. Try an MP4 (H.264) file.");
+    const duration = await input.computeDuration();
+    const first = await track.getFirstTimestamp();
+    const sample = await new VideoSampleSink(track).getSample(Math.max(first, Math.min(1, duration / 2)));
+    const poster = document.createElement("canvas");
+    if (sample) {
+      poster.width = sample.displayWidth;
+      poster.height = sample.displayHeight;
+      sample.draw(poster.getContext("2d")!, 0, 0, poster.width, poster.height);
+      sample.close();
+    }
+    return { duration, width: poster.width, height: poster.height, poster };
+  } finally {
+    input.dispose?.();
+  }
+}
+
+/** The reel's design applied to another clip: same look, text, stickers, music and sound settings. */
+export function reelDesignFor(
+  state: PostState,
+  clip: { id: string; name: string; duration: number; width: number; height: number },
+): PostState {
+  return {
+    ...state,
+    video: {
+      id: clip.id,
+      name: clip.name,
+      duration: clip.duration,
+      trimStart: 0,
+      trimEnd: Math.min(clip.duration, 90),
+      audio: state.video?.audio ?? true,
+      volume: state.video?.volume ?? 100,
+    },
+    crop: null,
+    orientation: { rotation: 0, flipX: false, flipY: false },
+    custom: fitExport(clip.width, clip.height),
+  };
 }

@@ -8,15 +8,28 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 
 type UpdateStatus =
   | { state: "checking" | "dev" }
-  | { state: "available" | "none" | "ready"; version?: string }
+  | { state: "available" | "none" | "ready" | "manual"; version?: string }
   | { state: "downloading"; percent: number }
   | { state: "error"; message: string };
 
-type DesktopBridge = {
+export type DesktopSettings = { downloadDir: string | null; platform: string };
+type SavedFile = { path: string; name: string; folder: string };
+
+export type DesktopBridge = {
   getVersion: () => Promise<string>;
   checkForUpdates: () => Promise<void>;
   installUpdate: () => Promise<void>;
+  /** macOS: open the release page, since unsigned Mac apps can't install updates themselves. */
+  openDownload: () => Promise<void>;
   onUpdate: (cb: (s: UpdateStatus) => void) => () => void;
+  getSettings: () => Promise<DesktopSettings>;
+  chooseDownloadDir: () => Promise<DesktopSettings>;
+  clearDownloadDir: () => Promise<DesktopSettings>;
+  openDownloadDir: () => Promise<void>;
+  showInFolder: (file: string) => Promise<void>;
+  onDownloadDone: (cb: (f: SavedFile) => void) => () => void;
+  clearCache: () => Promise<{ updates: number }>;
+  resetAll: () => Promise<void>;
 };
 
 declare global {
@@ -27,7 +40,7 @@ declare global {
 
 const noop = () => () => {};
 /** True only inside the desktop app (the preload script adds the bridge). */
-function useIsDesktop() {
+export function useIsDesktop() {
   return useSyncExternalStore(noop, () => !!window.bubbleDesktop, () => false);
 }
 
@@ -46,10 +59,24 @@ export function DesktopUpdates() {
     const bridge = window.bubbleDesktop;
     if (!bridge) return;
     void bridge.getVersion().then(setVersion);
-    return bridge.onUpdate((s) => {
+    // Every finished export: say where it went and offer to reveal it.
+    const offSaved = bridge.onDownloadDone((f) => {
+      toast.success(`Saved ${f.name}`, {
+        description: f.folder,
+        action: { label: "Show in folder", onClick: () => void bridge.showInFolder(f.path) },
+      });
+    });
+    const offUpdate = bridge.onUpdate((s) => {
       setStatus(s);
       if (s.state === "available") {
         toast(`Downloading Bubble Studio ${s.version ?? "update"}`, { description: "You can keep working." });
+      } else if (s.state === "manual") {
+        manual.current = false;
+        toast(`Bubble Studio ${s.version ?? ""} is available`, {
+          description: "Download the new version and drag it into Applications.",
+          duration: Infinity,
+          action: { label: "Download", onClick: () => void bridge.openDownload() },
+        });
       } else if (s.state === "ready") {
         manual.current = false;
         toast.success(`Bubble Studio ${s.version ?? ""} is ready`, {
@@ -68,6 +95,10 @@ export function DesktopUpdates() {
         toast("Updates are off in development builds");
       }
     });
+    return () => {
+      offSaved();
+      offUpdate();
+    };
   }, []);
 
   if (!desktop) return null;
@@ -78,6 +109,8 @@ export function DesktopUpdates() {
       ? `Downloading ${status.percent}%`
       : status?.state === "ready"
         ? "Restart to update"
+        : status?.state === "manual"
+          ? `Download ${status.version ?? "update"}`
         : status?.state === "checking"
           ? "Checking…"
           : "Check for updates";
@@ -102,6 +135,10 @@ export function DesktopUpdates() {
             if (!bridge) return;
             if (status?.state === "ready") {
               void bridge.installUpdate();
+              return;
+            }
+            if (status?.state === "manual") {
+              void bridge.openDownload();
               return;
             }
             manual.current = true;

@@ -61,7 +61,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { LayersMenu } from "./layers-menu";
 import { DesktopUpdates } from "./desktop-updates";
-import { BulkPanel, type BulkPhoto } from "./bulk-panel";
+import { SettingsDialog } from "./settings-dialog";
+import { BulkPanel, BulkReelPanel, type BulkClip, type BulkPhoto } from "./bulk-panel";
 import { Timeline, VideoBar, VideoPanel } from "./reel";
 import {
   applyClipVolume,
@@ -82,7 +83,7 @@ import { BlurPanel, ElementsPanel, type NewSticker } from "./panels-extra";
 import { AdjustPanel, CropPanel, FiltersPanel, PhotoPanel, TextPanel } from "./panels";
 import { RangeField } from "./controls";
 import { useHistory } from "@/lib/editor/use-history";
-import { canFastExport, fastExportReel } from "@/lib/editor/fast-export";
+import { canFastExport, fastExportReel, probeVideo } from "@/lib/editor/fast-export";
 import { SINHALA_RE } from "@/lib/editor/fonts";
 import { nextZ, restack } from "@/lib/editor/layers";
 import { inkFor, mix } from "@/lib/editor/color";
@@ -151,6 +152,9 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
   /** Photos queued for bulk editing with the current design. */
   const [bulkPhotos, setBulkPhotos] = useState<BulkPhoto[]>([]);
   const bulkFileRef = useRef<HTMLInputElement>(null);
+  /** Clips queued for bulk reels with the current reel design. */
+  const [bulkClips, setBulkClips] = useState<BulkClip[]>([]);
+  const bulkClipRef = useRef<HTMLInputElement>(null);
   const autosave = useAutosave();
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [resume, setResume] = useState<DraftSummary | null>(null);
@@ -574,11 +578,11 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
         return;
       }
       const t = TOOLS.find((x) => x.key.toLowerCase() === e.key.toLowerCase());
-      if (t && !(t.id === "bulk" && state.media === "video") && !el.closest("[role=radiogroup], [role=listbox]")) setTool(t.id);
+      if (t && !el.closest("[role=radiogroup], [role=listbox]")) setTool(t.id);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [selected, selectedKind, undo, redo, update, state.media]);
+  }, [selected, selectedKind, undo, redo, update]);
 
   const showEmpty =
     state.media === "video"
@@ -718,6 +722,31 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
     if (fresh.length) toast.success(`${fresh.length} photo${fresh.length === 1 ? "" : "s"} added`);
   };
 
+  /** Read several clips for bulk reels; the clip already in the reel joins them first. */
+  const addBulkClips = async (list: File[]) => {
+    const videos = list.filter((f) => f.type.startsWith("video/"));
+    if (videos.length < list.length) toast("Some files were skipped", { description: "Only video files can be added." });
+    const toProbe: { id: string; name: string; file: Blob }[] = [];
+    const mainBlob = state.video ? files.current.get(state.video.id) : undefined;
+    if (bulkClips.length === 0 && state.video && mainBlob) {
+      toProbe.push({ id: state.video.id, name: state.video.name, file: mainBlob });
+    }
+    for (const f of videos) toProbe.push({ id: crypto.randomUUID(), name: f.name, file: f });
+    const failed: string[] = [];
+    const loaded: BulkClip[] = [];
+    for (const item of toProbe) {
+      try {
+        loaded.push({ ...item, ...(await probeVideo(item.file)) });
+      } catch {
+        failed.push(item.name);
+      }
+    }
+    setBulkClips((current) => [...current, ...loaded]);
+    if (failed.length) toast.error(`Couldn't read ${failed.length} clip${failed.length === 1 ? "" : "s"}`, { description: failed.join(", ") });
+    const added = loaded.length - (bulkClips.length === 0 && state.video && mainBlob ? 1 : 0);
+    if (added > 0) toast.success(`${added} clip${added === 1 ? "" : "s"} added`);
+  };
+
   /** Make a bulk photo the one shown in the editor, to fine-tune the design on it. */
   const openBulkPhoto = (p: BulkPhoto) => {
     files.current.set(p.id, p.file);
@@ -741,6 +770,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
     for (const a of Object.values(tracks)) a.pause();
     setVideos({});
     setBulkPhotos([]);
+    setBulkClips([]);
     setSelectedId(null);
     setTool("photo");
     setStartedBlank(false);
@@ -791,8 +821,9 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
         <header className="flex h-14 shrink-0 items-center gap-2.5 border-b border-rule bg-sheet px-3 md:px-4">
           <BrandMark />
           <span className="font-heading text-[15px] font-semibold tracking-[-0.01em] text-ink">Bubble Studio</span>
-          <span className="ml-auto">
+          <span className="ml-auto flex items-center gap-1">
             <DesktopUpdates />
+            <SettingsDialog />
           </span>
         </header>
         <StartScreen
@@ -961,7 +992,18 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
               onUpload={() => stickerFileRef.current?.click()}
             />
           )}
-          {tool === "bulk" && (
+          {tool === "bulk" && state.media === "video" && (
+            <BulkReelPanel
+              state={state}
+              assets={photos}
+              clips={bulkClips}
+              onAdd={() => bulkClipRef.current?.click()}
+              onRemove={(id) => setBulkClips((list) => list.filter((c) => c.id !== id))}
+              onOpen={(c) => void loadVideoFile(new File([c.file], c.name, { type: c.file.type || "video/mp4" }))}
+              onClear={() => setBulkClips([])}
+            />
+          )}
+          {tool === "bulk" && state.media === "photo" && (
             <BulkPanel
               state={state}
               assets={photos}
@@ -1018,6 +1060,20 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
         </AlertDialogContent>
       </AlertDialog>
 
+      <input
+        ref={bulkClipRef}
+        type="file"
+        multiple
+        accept={ACCEPT_VIDEO}
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden
+        onChange={(e) => {
+          const list = Array.from(e.target.files ?? []);
+          if (list.length) void addBulkClips(list);
+          e.target.value = "";
+        }}
+      />
       <input
         ref={bulkFileRef}
         type="file"
@@ -1081,7 +1137,7 @@ function ToolRail({ tool, onTool, media }: { tool: ToolId; onTool: (t: ToolId) =
       aria-label="Tools"
       className="order-last flex shrink-0 justify-around border-t border-rule bg-sheet px-1 py-1 md:order-first md:w-[76px] md:flex-col md:justify-start md:gap-1 md:border-t-0 md:border-r md:px-2 md:py-3"
     >
-      {TOOLS.filter((t) => media === "photo" || t.id !== "bulk").map((tool_) => {
+      {TOOLS.map((tool_) => {
         // In a reel the first tool holds the video instead of a photo.
         const t = media === "video" && tool_.id === "photo" ? { ...tool_, label: "Video", icon: Film } : tool_;
         const active = t.id === tool;
@@ -1171,6 +1227,7 @@ function TopBar({
 
       <div className="ml-auto flex items-center gap-1">
         <DesktopUpdates />
+        <SettingsDialog />
         {autosave}
         <NewMenu onNew={onNew} />
         {layers}

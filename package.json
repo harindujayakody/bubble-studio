@@ -10,7 +10,8 @@
     "desktop:web": "node scripts/desktop-build.mjs",
     "desktop:dev": "node scripts/desktop-build.mjs && electron desktop",
     "desktop:dist": "node scripts/desktop-build.mjs && electron-builder --win --publish never",
-    "desktop:release": "node scripts/desktop-build.mjs && electron-builder --win --publish always"
+    "desktop:release": "node scripts/desktop-build.mjs && electron-builder --win --publish always",
+    "desktop:dist:mac": "node scripts/desktop-build.mjs && electron-builder --mac --publish never"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",

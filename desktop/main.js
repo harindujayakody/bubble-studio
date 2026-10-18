@@ -1,6 +1,6 @@
 // Bubble Studio desktop shell: serves the static web build from a private app:// origin
 // and keeps itself up to date from GitHub Releases.
-const { app, BrowserWindow, Menu, ipcMain, protocol, shell } = require("electron");
+const { app, BrowserWindow, Menu, dialog, ipcMain, protocol, session, shell } = require("electron");
 const fs = require("node:fs");
 const path = require("node:path");
 const { Readable } = require("node:stream");
@@ -99,6 +99,44 @@ function serve(request) {
   });
 }
 
+// Developers and tests can run a copy with its own data folder, separate from the installed app.
+if (process.env.BUBBLE_STUDIO_USER_DATA) app.setPath("userData", process.env.BUBBLE_STUDIO_USER_DATA);
+
+const IS_MAC = process.platform === "darwin";
+const RELEASES_URL = "https://github.com/harindujayakody/bubble-studio/releases/latest";
+
+/* ----------------------------------------------------------------- settings */
+
+// Desktop-only preferences, kept as a small JSON file in the user data folder.
+const settingsFile = () => path.join(app.getPath("userData"), "settings.json");
+
+function readSettings() {
+  try {
+    return { downloadDir: null, ...JSON.parse(fs.readFileSync(settingsFile(), "utf8")) };
+  } catch {
+    return { downloadDir: null };
+  }
+}
+
+function writeSettings(next) {
+  const merged = { ...readSettings(), ...next };
+  fs.mkdirSync(path.dirname(settingsFile()), { recursive: true });
+  fs.writeFileSync(settingsFile(), JSON.stringify(merged, null, 2));
+  return merged;
+}
+
+/** A path in `dir` that doesn't overwrite an existing file: name.ext, name (2).ext, ... */
+function uniquePath(dir, filename) {
+  const ext = path.extname(filename);
+  const base = path.basename(filename, ext);
+  let candidate = path.join(dir, filename);
+  for (let n = 2; fs.existsSync(candidate); n++) candidate = path.join(dir, `${base} (${n})${ext}`);
+  return candidate;
+}
+
+/** Files this session saved, so "Show in folder" only ever reveals our own exports. */
+const savedFiles = new Set();
+
 let win = null;
 
 function send(channel, payload) {
@@ -138,7 +176,6 @@ function createWindow() {
     }
   });
 
-  // Exports use the normal download path, which Electron turns into a native Save As dialog.
   win.loadURL(`${ORIGIN}/`);
 }
 
@@ -146,11 +183,15 @@ function createWindow() {
 
 function setupUpdates() {
   autoUpdater.logger = { info: (m) => log("[updater]", m), warn: (m) => log("[updater] warn", m), error: (m) => log("[updater] error", m), debug: () => {} };
-  autoUpdater.autoDownload = true;
-  autoUpdater.autoInstallOnAppQuit = true;
+  // macOS only lets Developer ID-signed apps replace themselves, so the Mac build points the
+  // user at the download instead of installing; Windows downloads and installs on its own.
+  autoUpdater.autoDownload = !IS_MAC;
+  autoUpdater.autoInstallOnAppQuit = !IS_MAC;
 
   autoUpdater.on("checking-for-update", () => send("update:status", { state: "checking" }));
-  autoUpdater.on("update-available", (info) => send("update:status", { state: "available", version: info.version }));
+  autoUpdater.on("update-available", (info) =>
+    send("update:status", { state: IS_MAC ? "manual" : "available", version: info.version }),
+  );
   autoUpdater.on("update-not-available", (info) => send("update:status", { state: "none", version: info.version }));
   autoUpdater.on("download-progress", (p) => send("update:status", { state: "downloading", percent: Math.round(p.percent) }));
   autoUpdater.on("update-downloaded", (info) => send("update:status", { state: "ready", version: info.version }));
@@ -171,10 +212,77 @@ function setupUpdates() {
     autoUpdater.quitAndInstall(true, true);
   });
   ipcMain.handle("app:version", () => app.getVersion());
+  ipcMain.handle("update:openDownload", () => shell.openExternal(RELEASES_URL));
 
   // Check shortly after launch, then every four hours while the app stays open.
   setTimeout(check, 5000);
   setInterval(check, 4 * 60 * 60 * 1000);
+}
+
+/* ---------------------------------------------------- downloads and storage */
+
+function setupDownloads() {
+  // Exports arrive as normal downloads. With a default folder they save there straight away
+  // (never overwriting); otherwise Electron shows the native Save As dialog.
+  session.defaultSession.on("will-download", (_event, item) => {
+    const dir = readSettings().downloadDir;
+    if (dir && fs.existsSync(dir)) item.setSavePath(uniquePath(dir, item.getFilename()));
+    item.once("done", (_e, state) => {
+      if (state !== "completed") return;
+      const saved = item.getSavePath();
+      savedFiles.add(saved);
+      log("saved", saved);
+      send("download:done", { path: saved, name: path.basename(saved), folder: path.dirname(saved) });
+    });
+  });
+
+  ipcMain.handle("settings:get", () => ({ ...readSettings(), platform: process.platform }));
+  ipcMain.handle("settings:chooseDownloadDir", async () => {
+    const current = readSettings().downloadDir;
+    const result = await dialog.showOpenDialog(win, {
+      title: "Choose where exports are saved",
+      defaultPath: current ?? app.getPath("downloads"),
+      properties: ["openDirectory", "createDirectory"],
+    });
+    if (result.canceled || !result.filePaths[0]) return readSettings();
+    return writeSettings({ downloadDir: result.filePaths[0] });
+  });
+  ipcMain.handle("settings:clearDownloadDir", () => writeSettings({ downloadDir: null }));
+  ipcMain.handle("shell:showItem", (_e, file) => {
+    if (typeof file === "string" && savedFiles.has(file)) shell.showItemInFolder(file);
+  });
+  ipcMain.handle("shell:openFolder", () => {
+    const dir = readSettings().downloadDir;
+    if (dir && fs.existsSync(dir)) void shell.openPath(dir);
+  });
+
+  // Cache: the browser cache plus any update installers already downloaded.
+  ipcMain.handle("storage:clearCache", async () => {
+    await session.defaultSession.clearCache();
+    await session.defaultSession.clearCodeCaches({});
+    let updates = 0;
+    const dirs = [path.join(app.getPath("userData"), "..", "..", "Local", "bubble-studio-updater")];
+    if (process.env.LOCALAPPDATA) dirs.push(path.join(process.env.LOCALAPPDATA, "bubble-studio-updater"));
+    if (IS_MAC) dirs.push(path.join(app.getPath("home"), "Library", "Caches", "bubble-studio-updater"));
+    for (const dir of new Set(dirs)) {
+      const pending = path.join(dir, "pending");
+      if (fs.existsSync(pending)) {
+        for (const f of fs.readdirSync(pending)) updates += fs.statSync(path.join(pending, f)).size;
+        fs.rmSync(pending, { recursive: true, force: true });
+      }
+    }
+    log("cache cleared");
+    return { updates };
+  });
+
+  // Reset: wipe everything the app stored (saved post, phrases, preferences) and reload.
+  ipcMain.handle("storage:resetAll", async () => {
+    await session.defaultSession.clearStorageData();
+    await session.defaultSession.clearCache();
+    writeSettings({ downloadDir: null });
+    log("all data reset");
+    win?.webContents.reload();
+  });
 }
 
 /* --------------------------------------------------------------- lifecycle */
@@ -189,8 +297,15 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   app.whenReady().then(() => {
-    Menu.setApplicationMenu(null);
+    // Windows: no menu bar. macOS: the standard app, edit and window menus, which also give
+    // the usual shortcuts (copy, paste, undo in text fields, hide, quit).
+    Menu.setApplicationMenu(
+      IS_MAC
+        ? Menu.buildFromTemplate([{ role: "appMenu" }, { role: "editMenu" }, { role: "windowMenu" }])
+        : null,
+    );
     protocol.handle("app", serve);
+    setupDownloads();
     createWindow();
     setupUpdates();
   });

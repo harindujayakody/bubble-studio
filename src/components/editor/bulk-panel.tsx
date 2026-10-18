@@ -10,6 +10,8 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { PanelSection, RangeField } from "./controls";
 import { ensureFonts, exportDims, fitExport, orientImage, renderPost, type Assets } from "@/lib/editor/render";
 import type { PostState } from "@/lib/editor/types";
+import { canFastExport, fastExportReel, reelDesignFor } from "@/lib/editor/fast-export";
+import { formatTime } from "@/lib/editor/video";
 
 export type BulkPhoto = { id: string; name: string; img: HTMLImageElement; file: Blob };
 
@@ -232,6 +234,252 @@ export function BulkPanel({
                 </div>
               )}
             </div>
+          </PanelSection>
+        </>
+      )}
+    </>
+  );
+}
+
+/* ------------------------------------------------------------------ reels */
+
+export type BulkClip = {
+  id: string;
+  name: string;
+  file: Blob;
+  duration: number;
+  width: number;
+  height: number;
+  poster: HTMLCanvasElement;
+};
+
+/**
+ * Bulk reels: design one reel, then apply the same look, text, stickers, music and
+ * sound settings to many clips. Each is encoded frame by frame and all land in one ZIP.
+ */
+export function BulkReelPanel({
+  state,
+  assets,
+  clips,
+  onAdd,
+  onRemove,
+  onOpen,
+  onClear,
+}: {
+  state: PostState;
+  assets: Assets;
+  clips: BulkClip[];
+  onAdd: () => void;
+  onRemove: (id: string) => void;
+  onOpen: (clip: BulkClip) => void;
+  onClear: () => void;
+}) {
+  const [thumbs, setThumbs] = useState<Record<string, string>>({});
+  const [progress, setProgress] = useState<{ index: number; fraction: number } | null>(null);
+  const abort = useRef<AbortController | null>(null);
+  const supported = canFastExport();
+
+  // Live previews of each clip's poster frame with the current design.
+  useEffect(() => {
+    if (clips.length === 0) return;
+    const timer = window.setTimeout(async () => {
+      await ensureFonts(state);
+      const next: Record<string, string> = {};
+      for (const c of clips) {
+        const design = reelDesignFor(state, c);
+        const dims = exportDims(design);
+        const canvas = document.createElement("canvas");
+        canvas.width = 220;
+        canvas.height = Math.round((dims.h / dims.w) * 220);
+        renderPost(canvas.getContext("2d")!, {
+          source: c.poster,
+          assets,
+          state: design,
+          width: 220,
+          time: Math.min(1, c.duration / 2),
+        });
+        next[c.id] = canvas.toDataURL("image/jpeg", 0.75);
+      }
+      setThumbs(next);
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [state, assets, clips]);
+
+  const lengthOf = (c: BulkClip) => Math.min(c.duration, 90);
+  const total = clips.reduce((sum, c) => sum + lengthOf(c), 0);
+
+  const exportAll = async () => {
+    abort.current = new AbortController();
+    setProgress({ index: 0, fraction: 0 });
+    try {
+      const files: Record<string, Uint8Array> = {};
+      const used = new Set<string>();
+      for (let i = 0; i < clips.length; i++) {
+        const c = clips[i];
+        const { blob } = await fastExportReel({
+          file: c.file,
+          orientation: { rotation: 0, flipX: false, flipY: false },
+          assets,
+          state: reelDesignFor(state, c),
+          signal: abort.current.signal,
+          onProgress: (f) => setProgress({ index: i, fraction: f }),
+        });
+        let name = `${c.name.replace(/\.[^.]+$/, "").replace(/[\\/:*?"<>|]+/g, "-") || "reel"}-bubble`;
+        for (let n = 2; used.has(name); n++) name = `${name}-${n}`;
+        used.add(name);
+        files[`${name}.mp4`] = new Uint8Array(await blob.arrayBuffer());
+      }
+      // Videos are already compressed; store them as-is.
+      const zip = zipSync(files, { level: 0 });
+      const blob = new Blob([zip as BlobPart], { type: "application/zip" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `bubble-studio-${clips.length}-reels.zip`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 4000);
+      toast.success(`${clips.length} reels exported`, {
+        description: `${a.download} · ${(blob.size / 1048576).toFixed(1)} MB`,
+      });
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") toast("Bulk export cancelled");
+      else toast.error("Bulk export failed", { description: err instanceof Error ? err.message : undefined });
+    } finally {
+      setProgress(null);
+      abort.current = null;
+    }
+  };
+
+  const done = progress
+    ? clips.slice(0, progress.index).reduce((s, c) => s + lengthOf(c), 0) +
+      (clips[progress.index] ? lengthOf(clips[progress.index]) : 0) * progress.fraction
+    : 0;
+  const percent = (done / Math.max(0.1, total)) * 100;
+
+  return (
+    <>
+      <PanelSection title="Bulk reels">
+        <p className="-mt-1 mb-4 text-[13px] text-pretty text-ink-soft">
+          Design one reel, then add more clips. Each gets the same filters, text, stickers, music and sound settings,
+          and you download them all at once.
+        </p>
+        {!supported && (
+          <p className="mb-3 rounded-md bg-yellow-wash px-3 py-2 text-xs text-pretty text-ink">
+            Bulk reels need fast export, which this browser doesn&apos;t support. Use the desktop app or the latest
+            Chrome or Edge.
+          </p>
+        )}
+        <div className="flex flex-wrap gap-2">
+          <Button
+            onClick={onAdd}
+            className="bg-brand text-white hover:bg-brand-ink"
+            disabled={progress !== null || !supported}
+          >
+            <ImagePlus /> Add clips
+          </Button>
+          {clips.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="self-center text-destructive hover:text-destructive"
+              onClick={onClear}
+              disabled={progress !== null}
+            >
+              Clear all
+            </Button>
+          )}
+        </div>
+      </PanelSection>
+
+      {clips.length === 0 ? (
+        <div className="grid place-items-center px-6 py-10 text-center">
+          <Images className="mb-3 size-8 text-ink-soft/60" />
+          <p className="text-sm text-pretty text-ink-soft">
+            No clips yet. Pick several at once with Ctrl or Shift in the file window.
+          </p>
+        </div>
+      ) : (
+        <>
+          <PanelSection title={`${clips.length} clip${clips.length === 1 ? "" : "s"}`}>
+            <ul className="grid grid-cols-2 gap-2">
+              {clips.map((c) => (
+                <li key={c.id} className="group relative">
+                  <div
+                    className={cn(
+                      "overflow-hidden rounded-md bg-ink ring-1 ring-rule",
+                      state.video?.id === c.id && "ring-2 ring-aqua",
+                    )}
+                  >
+                    {thumbs[c.id] ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={thumbs[c.id]} alt={`Preview of ${c.name}`} className="block w-full" />
+                    ) : (
+                      <div className="aspect-[9/16] animate-pulse bg-muted" />
+                    )}
+                  </div>
+                  <p className="mt-1 flex justify-between gap-2 text-[11px] text-ink-soft">
+                    <span className="truncate" title={c.name}>
+                      {c.name}
+                    </span>
+                    <span className="shrink-0 font-mono tabular">{formatTime(lengthOf(c))}</span>
+                  </p>
+                  <div className="absolute top-1 right-1 flex gap-1 opacity-0 transition-opacity group-focus-within:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100">
+                    <button
+                      type="button"
+                      onClick={() => onOpen(c)}
+                      aria-label={`Edit ${c.name} in the editor`}
+                      title="Open in the editor"
+                      className="grid size-7 place-items-center rounded-full bg-sheet/95 text-ink shadow-sm outline-none hover:bg-aqua-wash focus-visible:ring-2 focus-visible:ring-aqua"
+                    >
+                      <PencilLine className="size-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onRemove(c.id)}
+                      aria-label={`Remove ${c.name}`}
+                      title="Remove"
+                      className="grid size-7 place-items-center rounded-full bg-sheet/95 text-ink-soft shadow-sm outline-none hover:bg-destructive/10 hover:text-destructive focus-visible:ring-2 focus-visible:ring-aqua"
+                    >
+                      <X className="size-3.5" />
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-xs text-pretty text-ink-soft">
+              Each clip uses its own length (up to 90 seconds) and the music is fitted to it.
+            </p>
+          </PanelSection>
+
+          <PanelSection title="Export all">
+            <p className="mb-3 font-mono text-xs text-ink-soft tabular">
+              {state.size === "original" ? "Each at its own size" : "1080 × 1920 each"} · {formatTime(total)} of video ·
+              one ZIP
+            </p>
+            {progress === null ? (
+              <Button
+                onClick={exportAll}
+                disabled={!supported}
+                className="h-9 w-full bg-brand text-white hover:bg-brand-ink"
+              >
+                <Download /> Export {clips.length} reel{clips.length === 1 ? "" : "s"}
+              </Button>
+            ) : (
+              <div className="grid gap-2" role="status" aria-live="polite">
+                <div className="flex items-baseline justify-between text-[13px]">
+                  <span className="text-ink">
+                    Reel {progress.index + 1} of {clips.length}
+                  </span>
+                  <span className="font-mono text-xs text-ink-soft tabular">{Math.round(percent)}%</span>
+                </div>
+                <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                  <div className="h-full bg-brand transition-[width] duration-200" style={{ width: `${percent}%` }} />
+                </div>
+                <Button variant="outline" onClick={() => abort.current?.abort()}>
+                  Cancel
+                </Button>
+              </div>
+            )}
           </PanelSection>
         </>
       )}
