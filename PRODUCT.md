@@ -34,7 +34,8 @@ Used at a desk or laptop between other business tasks. The output is uploaded ma
 - Sinhala and English fonts, with ready-made Sinhala phrases.
 - Everything runs in the user's browser. Photos, videos and audio are never uploaded; there is no backend (confirmed by the user). The only network use is loading fonts from Google Fonts.
 - Sticker and music libraries are read from /public/custom_icons and /public/music.
-- Undecided: saving projects between visits, templates.
+- Optional auto-save keeps the last post (design plus uploaded files) in the browser's IndexedDB, off by default; turning it off deletes it.
+- Undecided: templates, keeping more than one saved post.
 
 ## Brand Commitments
 

@@ -2,7 +2,7 @@ import { ensureFonts, exportDims, renderPost, type Assets } from "./render";
 import type { MusicTrack, Orientation, PostState, VideoClip } from "./types";
 
 /** Load a video file into a detached element ready for drawing. */
-export function loadVideo(file: File): Promise<HTMLVideoElement> {
+export function loadVideo(file: Blob): Promise<HTMLVideoElement> {
   return new Promise((resolve, reject) => {
     const video = document.createElement("video");
     video.playsInline = true;

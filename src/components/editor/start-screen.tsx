@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeft, Film, ImageIcon } from "lucide-react";
+import { ArrowLeft, ArrowRight, Film, ImageIcon } from "lucide-react";
+import type { DraftSummary } from "@/lib/editor/draft";
 import { POST_SIZES, type PostSizeId } from "@/lib/editor/types";
 
 const ORDER: PostSizeId[] = ["square", "portrait", "landscape", "story", "original"];
@@ -12,11 +13,17 @@ export type StartStep = "media" | "size" | "reel";
 export function StartScreen({
   onPick,
   initialStep = "media",
+  resume,
+  onResume,
 }: {
   onPick: (media: "photo" | "video", size: PostSizeId) => void;
   /** Open straight on the photo sizes or reel sizes, e.g. from the New menu. */
   initialStep?: StartStep;
+  /** A post saved in this browser that can be picked up again. */
+  resume?: DraftSummary | null;
+  onResume?: () => Promise<void> | void;
 }) {
+  const [opening, setOpening] = useState(false);
   const [step, setStep] = useState<StartStep>(initialStep);
 
   return (
@@ -24,6 +31,39 @@ export function StartScreen({
       <div className="w-full max-w-4xl">
         {step === "media" ? (
           <>
+            {resume && onResume && (
+              <button
+                type="button"
+                disabled={opening}
+                onClick={async () => {
+                  setOpening(true);
+                  try {
+                    await onResume();
+                  } finally {
+                    setOpening(false);
+                  }
+                }}
+                className="group mb-8 flex w-full items-center gap-4 rounded-lg border border-aqua/40 bg-sheet p-3 text-left outline-none transition-[border-color,box-shadow] hover:border-aqua hover:shadow-[0_8px_24px_-12px_oklch(0.2_0.02_260/0.35)] focus-visible:ring-2 focus-visible:ring-aqua disabled:opacity-70 sm:max-w-md"
+              >
+                <span className="checker grid size-16 shrink-0 place-items-center overflow-hidden rounded-md ring-1 ring-rule">
+                  {resume.thumb ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={resume.thumb} alt="" className="max-h-full max-w-full object-contain" />
+                  ) : resume.media === "video" ? (
+                    <Film className="size-5 text-ink-soft" />
+                  ) : (
+                    <ImageIcon className="size-5 text-ink-soft" />
+                  )}
+                </span>
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className="font-heading text-[15px] font-semibold text-ink">
+                    {opening ? "Opening…" : `Continue your last ${resume.media === "video" ? "reel" : "post"}`}
+                  </span>
+                  <span className="text-[13px] text-ink-soft">Saved {timeAgo(resume.savedAt)} in this browser</span>
+                </span>
+                <ArrowRight className="size-4 shrink-0 text-aqua-ink transition-transform group-hover:translate-x-0.5" />
+              </button>
+            )}
             <h1 className="text-2xl font-semibold tracking-[-0.02em] text-balance text-ink md:text-[28px]">
               What are you making today?
             </h1>
@@ -116,6 +156,16 @@ export function StartScreen({
       </div>
     </main>
   );
+}
+
+function timeAgo(t: number) {
+  const s = Math.max(0, Math.round((Date.now() - t) / 1000));
+  if (s < 60) return "just now";
+  const m = Math.round(s / 60);
+  if (m < 60) return `${m} minute${m === 1 ? "" : "s"} ago`;
+  const h = Math.round(m / 60);
+  if (h < 24) return `${h} hour${h === 1 ? "" : "s"} ago`;
+  return new Date(t).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
 }
 
 function BackLink({ onClick }: { onClick: () => void }) {

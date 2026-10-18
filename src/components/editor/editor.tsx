@@ -7,7 +7,11 @@ import {
   Crop,
   Download,
   Droplets,
+  CloudAlert,
+  CloudCheck,
+  CloudOff,
   Film,
+  LoaderCircle,
   Plus,
   ImageIcon,
   Redo2,
@@ -24,10 +28,22 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   DropdownMenu,
+  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  deleteDraft,
+  loadDraft,
+  peekDraft,
+  saveDraft,
+  setAutosave,
+  useAutosave,
+  type Draft,
+  type DraftAsset,
+  type DraftSummary,
+} from "@/lib/editor/draft";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { CanvasStage, type RegionDefaults } from "./canvas-stage";
@@ -125,6 +141,11 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
   /** Which start-screen step to open on, and a pending "new post" waiting for confirmation. */
   const [startStep, setStartStep] = useState<StartStep>("media");
   const [pendingNew, setPendingNew] = useState<StartStep | null>(null);
+  /** Original files behind uploads, kept so auto-save can store them. */
+  const files = useRef(new Map<string, Blob>());
+  const autosave = useAutosave();
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  const [resume, setResume] = useState<DraftSummary | null>(null);
   const [tool, setTool] = useState<ToolId>("photo");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   /** Decoded images for the photo and uploaded stickers, keyed by id. Kept out of history. */
@@ -269,7 +290,9 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
       toast.error("That file isn't audio", { description: "Choose an MP3, M4A or WAV file." });
       return;
     }
-    void addTrack(crypto.randomUUID(), file.name.replace(/\.[^.]+$/, ""), URL.createObjectURL(file));
+    const id = crypto.randomUUID();
+    files.current.set(id, file);
+    void addTrack(id, file.name.replace(/\.[^.]+$/, ""), URL.createObjectURL(file));
   };
 
   const loadVideoFile = useCallback(
@@ -277,6 +300,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
       try {
         const v = await loadVideo(file);
         const id = crypto.randomUUID();
+        files.current.set(id, file);
         setVideos((m) => ({ ...m, [id]: v }));
         update((s) => ({
           ...s,
@@ -338,6 +362,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
     const img = new Image();
     img.onload = () => {
       const id = crypto.randomUUID();
+      files.current.set(id, file);
       const next = { ...photos, [id]: img };
       setPhotos(next);
       addSticker({ kind: "image", value: id }, next);
@@ -383,6 +408,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
     const img = new Image();
     img.onload = () => {
       const id = crypto.randomUUID();
+      files.current.set(id, file);
       setPhotos((p) => ({ ...p, [id]: img }));
       update((s) => ({
         ...s,
@@ -551,6 +577,112 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
       ? !state.video
       : !state.photoId && state.texts.length === 0 && state.stickers.length === 0 && !startedBlank;
 
+  // Auto-save: shortly after each change, store the design and the files it uses in this browser.
+  useEffect(() => {
+    if (!started || !autosave) return;
+    const timer = window.setTimeout(async () => {
+      setSaveStatus("saving");
+      try {
+        // Very large uploads are skipped; on resume the user is asked to add them again.
+        const small = new Map([...files.current].filter(([, blob]) => blob.size <= MAX_SAVED_FILE));
+        await saveDraft(buildDraft(state), small);
+        setSaveStatus("saved");
+      } catch {
+        setSaveStatus("error");
+      }
+    }, 800);
+    return () => window.clearTimeout(timer);
+  }, [state, started, autosave]);
+
+  // Offer to continue the saved post on the start screen.
+  useEffect(() => {
+    if (started) return;
+    let alive = true;
+    void peekDraft().then((d) => alive && setResume(d));
+    return () => {
+      alive = false;
+    };
+  }, [started, autosave]);
+
+  /** Rebuild the saved post: its design plus every photo, video, sticker and track it used. */
+  const resumeDraft = async () => {
+    try {
+      const saved = await loadDraft();
+      if (!saved) {
+        toast.error("There's no saved post to continue");
+        return;
+      }
+      const { draft, files: stored } = saved;
+      let next = draft.state;
+      const nextPhotos: Assets = {};
+      const nextVideos: Record<string, HTMLVideoElement> = {};
+      const nextTracks: Record<string, HTMLAudioElement> = {};
+      const imageFrom = (src: string) =>
+        new Promise<HTMLImageElement>((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = reject;
+          img.src = src;
+        });
+      const missing: string[] = [];
+
+      if (next.photoId) {
+        const blob = stored.get(next.photoId);
+        if (blob) nextPhotos[next.photoId] = await imageFrom(URL.createObjectURL(blob));
+        else missing.push("photo");
+      }
+      for (const s of next.stickers) {
+        if (s.kind !== "image" || nextPhotos[s.value]) continue;
+        const blob = stored.get(s.value);
+        const library = stickers.find((l) => l.id === s.value);
+        const src = blob ? URL.createObjectURL(blob) : library?.src;
+        if (src) nextPhotos[s.value] = await imageFrom(src).catch(() => undefined as unknown as HTMLImageElement);
+      }
+      if (next.video) {
+        const blob = stored.get(next.video.id);
+        if (blob) nextVideos[next.video.id] = await loadVideo(blob);
+        else missing.push("video");
+      }
+      if (next.music) {
+        const blob = stored.get(next.music.id);
+        const src = blob ? URL.createObjectURL(blob) : next.music.src.startsWith("/") ? next.music.src : null;
+        if (src) {
+          nextTracks[next.music.id] = await loadAudio(src);
+          next = { ...next, music: { ...next.music, src } };
+        } else {
+          next = { ...next, music: null };
+          missing.push("music");
+        }
+      }
+
+      for (const [id, blob] of stored) files.current.set(id, blob);
+      setPhotos(nextPhotos);
+      setVideos(nextVideos);
+      setTracks(nextTracks);
+      reset(next);
+      setSelectedId(null);
+      setTool("photo");
+      setStartedBlank(true);
+      setStarted(true);
+      if (missing.length) {
+        toast("Some files weren't saved", { description: `Add the ${missing.join(" and ")} again.` });
+      }
+    } catch {
+      toast.error("The saved post couldn't be opened", { description: "Your browser may have cleared its storage." });
+    }
+  };
+
+  const toggleAutosave = (on: boolean) => {
+    setAutosave(on);
+    if (on) {
+      toast.success("Auto-save is on", { description: "Your last post is kept in this browser only." });
+    } else {
+      void deleteDraft();
+      setSaveStatus("idle");
+      toast("Auto-save is off", { description: "The saved post was deleted from this browser." });
+    }
+  };
+
   /** Clear the editor and go back to the start screen, at the given step. */
   const startNew = (step: StartStep) => {
     for (const v of Object.values(videos)) {
@@ -613,6 +745,8 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
         <StartScreen
           key={startStep}
           initialStep={startStep}
+          resume={resume}
+          onResume={resumeDraft}
           onPick={(media, size) => {
             reset({ ...DEFAULT_STATE, media, size });
             setStarted(true);
@@ -635,6 +769,9 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
         onSize={setSize}
         onHome={() => requestNew("media")}
         onNew={requestNew}
+        autosave={
+          <AutosaveMenu on={autosave} status={saveStatus} onToggle={toggleAutosave} />
+        }
         video={video}
         frame={frame}
         music={musicEl}
@@ -909,6 +1046,7 @@ function TopBar({
   onSize,
   onHome,
   onNew,
+  autosave,
   video,
   frame,
   music,
@@ -924,6 +1062,7 @@ function TopBar({
   onSize: (size: PostSizeId) => void;
   onHome: () => void;
   onNew: (step: StartStep) => void;
+  autosave: React.ReactNode;
   video: HTMLVideoElement | undefined;
   frame: HTMLCanvasElement | null;
   music: HTMLAudioElement | undefined;
@@ -950,6 +1089,7 @@ function TopBar({
       />
 
       <div className="ml-auto flex items-center gap-1">
+        {autosave}
         <NewMenu onNew={onNew} />
         {layers}
         <span className="mx-1 h-5 w-px bg-rule" aria-hidden />
@@ -1186,6 +1326,78 @@ function ReelExportButton({
         )}
       </PopoverContent>
     </Popover>
+  );
+}
+
+type SaveStatus = "idle" | "saving" | "saved" | "error";
+
+/** Largest upload we copy into browser storage; bigger videos would eat the quota. */
+const MAX_SAVED_FILE = 500 * 1024 * 1024;
+
+/** The design plus the list of uploaded files it depends on. */
+function buildDraft(state: typeof DEFAULT_STATE): Draft {
+  const assets: DraftAsset[] = [];
+  if (state.photoId) assets.push({ id: state.photoId, kind: "image" });
+  for (const s of state.stickers) {
+    if (s.kind === "image" && !s.value.startsWith("custom:")) assets.push({ id: s.value, kind: "image" });
+  }
+  if (state.video) assets.push({ id: state.video.id, kind: "video", name: state.video.name });
+  if (state.music && !state.music.src.startsWith("/")) assets.push({ id: state.music.id, kind: "audio", name: state.music.name });
+  return { state, savedAt: Date.now(), thumb: snapshotThumb(), assets };
+}
+
+/** A small picture of the post for the "Continue" card. */
+function snapshotThumb(): string | null {
+  const stage = document.querySelector<HTMLCanvasElement>('canvas[aria-label="Post preview"]');
+  if (!stage) return null;
+  const w = 240;
+  const c = document.createElement("canvas");
+  c.width = w;
+  c.height = Math.round((stage.height / stage.width) * w);
+  c.getContext("2d")?.drawImage(stage, 0, 0, c.width, c.height);
+  try {
+    return c.toDataURL("image/jpeg", 0.7);
+  } catch {
+    return null;
+  }
+}
+
+/** Top-bar switch and status for keeping the last post in this browser. */
+function AutosaveMenu({ on, status, onToggle }: { on: boolean; status: SaveStatus; onToggle: (on: boolean) => void }) {
+  const label = !on ? "Not saved" : status === "saving" ? "Saving…" : status === "error" ? "Not saved" : "Saved";
+  const Icon = !on ? CloudOff : status === "saving" ? LoaderCircle : status === "error" ? CloudAlert : CloudCheck;
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn("gap-1.5 px-2", on && status !== "error" ? "text-aqua-ink" : "text-ink-soft")}
+            aria-label={`Auto-save: ${label}`}
+          />
+        }
+      >
+        <Icon className={cn(status === "saving" && on && "animate-spin")} />
+        <span className="hidden lg:inline">{label}</span>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-72 p-1">
+        <DropdownMenuCheckboxItem checked={on} onCheckedChange={(v) => onToggle(!!v)} className="items-start py-2">
+          <span className="flex flex-col gap-0.5">
+            <span className="text-sm font-medium text-ink">Keep my last post in this browser</span>
+            <span className="text-[11px] text-pretty text-ink-soft">
+              Saves automatically, including your photos and videos, on this computer only. Turning it off deletes the
+              saved post.
+            </span>
+          </span>
+        </DropdownMenuCheckboxItem>
+        {on && status === "error" && (
+          <p className="px-2 pt-1 pb-2 text-[11px] text-pretty text-destructive">
+            The last save failed, usually because browser storage is full. Try removing a large video.
+          </p>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
