@@ -12,5 +12,10 @@
   "dependencies": {
     "electron-updater": "^6.8.9"
   },
-  "homepage": "https://infiax.com"
+  "homepage": "https://infiax.com",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/harindujayakody/bubble-studio.git"
+  }
 }

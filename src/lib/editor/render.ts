@@ -369,8 +369,8 @@ export function renderPost(ctx: CanvasRenderingContext2D, opts: RenderOptions): 
   const bg = state.background;
   if (bg.kind === "gradient") {
     const g = ctx.createLinearGradient(0, 0, width, height);
-    g.addColorStop(0, bg.from);
-    g.addColorStop(1, bg.to);
+    const stops = bg.stops?.length ? bg.stops : [bg.from, bg.to];
+    stops.forEach((c, i) => g.addColorStop(stops.length === 1 ? 0 : i / (stops.length - 1), c));
     ctx.fillStyle = g;
   } else {
     ctx.fillStyle = bg.from;

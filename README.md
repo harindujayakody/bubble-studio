@@ -41,3 +41,7 @@ Every push to `main` runs `.github/workflows/desktop-release.yml`, which builds 
 No secrets are needed: the workflow uses GitHub's built-in token. The repo must stay public for installed apps to read the releases.
 
 The installer isn't code-signed, so Windows SmartScreen shows a warning on first run (**More info → Run anyway**). A code-signing certificate removes it.
+
+## License
+
+MIT © Harindu Jayakody. See [LICENSE](LICENSE).

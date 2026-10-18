@@ -35,6 +35,7 @@ import {
 import { ColorField, IconAction, PanelSection, RangeField } from "./controls";
 import { SavedPhrases } from "./phrase-panel";
 import { FILTER_PRESETS } from "@/lib/editor/filters";
+import { GRADIENT_PRESETS, gradientCss } from "@/lib/editor/palettes";
 import { POSTER_FONTS, fontStack, getFont, nearestWeight } from "@/lib/editor/fonts";
 import { defaultCrop, postDims, renderPost, type Source } from "@/lib/editor/render";
 import { nextZ, restack } from "@/lib/editor/layers";
@@ -119,14 +120,49 @@ export function PhotoPanel({
           <ToggleGroupItem value="solid" className="px-3">Solid</ToggleGroupItem>
           <ToggleGroupItem value="gradient" className="px-3">Gradient</ToggleGroupItem>
         </ToggleGroup>
+        {bg.kind === "gradient" && (
+          <div className="mb-5">
+            <div className="mb-2 flex items-baseline justify-between">
+              <span className="text-[13px] text-ink-soft">Presets</span>
+              <span className="text-xs text-ink-soft">{bg.preset ?? "Custom"}</span>
+            </div>
+            <div className="grid grid-cols-5 gap-1.5" role="radiogroup" aria-label="Gradient presets">
+              {GRADIENT_PRESETS.map((g) => {
+                const active = bg.preset === g.name;
+                return (
+                  <button
+                    key={g.name}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    aria-label={g.name}
+                    title={g.name}
+                    onClick={() =>
+                      setBg({ kind: "gradient", stops: g.stops, preset: g.name, from: g.stops[0], to: g.stops[g.stops.length - 1] }, "bg:preset")
+                    }
+                    className={cn(
+                      "aspect-square rounded-md ring-1 ring-ink/10 outline-none transition-shadow focus-visible:ring-2 focus-visible:ring-aqua",
+                      active && "ring-2 ring-aqua ring-offset-2 ring-offset-sheet",
+                    )}
+                    style={{ background: gradientCss(g.stops) }}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        )}
         <div className="grid gap-4">
           <ColorField
             label={bg.kind === "gradient" ? "Start colour" : "Colour"}
             value={bg.from}
-            onChange={(c) => setBg({ from: c }, "bg:from")}
+            onChange={(c) => setBg({ from: c, stops: undefined, preset: undefined }, "bg:from")}
           />
           {bg.kind === "gradient" && (
-            <ColorField label="End colour" value={bg.to} onChange={(c) => setBg({ to: c }, "bg:to")} />
+            <ColorField
+              label="End colour"
+              value={bg.to}
+              onChange={(c) => setBg({ to: c, stops: undefined, preset: undefined }, "bg:to")}
+            />
           )}
         </div>
       </PanelSection>

@@ -125,6 +125,10 @@ export type Background = {
   kind: "solid" | "gradient";
   from: string;
   to: string;
+  /** Set by a gradient preset: every colour, in order. Overrides from/to until a colour is edited. */
+  stops?: string[];
+  /** Name of the preset the stops came from. */
+  preset?: string;
 };
 
 /** A video clip for reels. The element itself lives outside history, keyed by `id`. */

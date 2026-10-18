@@ -23,11 +23,14 @@ jobs:
       version: ${{ steps.v.outputs.version }}
     steps:
       - uses: actions/checkout@v4
-      # major.minor from desktop/package.json, patch = run number, so every release is newer.
+        with:
+          fetch-depth: 0 # full history, to count commits
+      # major.minor from desktop/package.json, patch = number of commits. The web build numbers
+      # itself the same way, so the website and the installers show the same version.
       - id: v
         run: |
           base=$(node -p "require('./desktop/package.json').version.split('.').slice(0,2).join('.')")
-          echo "version=$base.${{ github.run_number }}" >> "$GITHUB_OUTPUT"
+          echo "version=$base.$(git rev-list --count HEAD)" >> "$GITHUB_OUTPUT"
 
   build:
     needs: version
@@ -44,6 +47,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:

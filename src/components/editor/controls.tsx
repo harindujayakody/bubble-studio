@@ -1,6 +1,8 @@
 "use client";
 
-import { useId, type ReactNode } from "react";
+import { useId, useState, type ReactNode } from "react";
+import { ChevronDown } from "lucide-react";
+import { SOLID_PALETTES } from "@/lib/editor/palettes";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -150,6 +152,7 @@ export function ColorField({
   swatches?: string[];
 }) {
   const id = useId();
+  const [showPalettes, setShowPalettes] = useState(false);
   return (
     <div className="grid gap-2">
       <div className="flex items-baseline justify-between">
@@ -190,7 +193,45 @@ export function ColorField({
             aria-label={`${label}: custom colour`}
           />
         </label>
+        <button
+          type="button"
+          onClick={() => setShowPalettes((v) => !v)}
+          aria-expanded={showPalettes}
+          className="ml-auto inline-flex h-6 items-center gap-1 rounded-md px-1.5 text-xs text-ink-soft outline-none hover:bg-muted hover:text-ink focus-visible:ring-2 focus-visible:ring-aqua"
+        >
+          Palettes
+          <ChevronDown className={cn("size-3.5 transition-transform", showPalettes && "rotate-180")} />
+        </button>
       </div>
+      {showPalettes && (
+        <div className="grid gap-2.5 rounded-lg border border-rule bg-muted/30 p-2.5">
+          {SOLID_PALETTES.map((p) => (
+            <div key={p.name} className="grid gap-1">
+              <span className="text-[11px] text-ink-soft">{p.name}</span>
+              <div className="flex gap-1.5">
+                {p.colors.map((c) => {
+                  const active = value.toLowerCase() === c.hex.toLowerCase();
+                  return (
+                    <button
+                      key={c.hex + c.name}
+                      type="button"
+                      onClick={() => onChange(c.hex.toLowerCase())}
+                      aria-label={`${p.name}: ${c.name}`}
+                      aria-pressed={active}
+                      title={`${c.name} ${c.hex}`}
+                      className={cn(
+                        "h-6 flex-1 rounded-[3px] ring-1 ring-ink/15 ring-inset outline-none focus-visible:ring-2 focus-visible:ring-aqua",
+                        active && "ring-2 ring-aqua ring-offset-1 ring-offset-sheet",
+                      )}
+                      style={{ background: c.hex }}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
