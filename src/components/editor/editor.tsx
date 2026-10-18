@@ -13,6 +13,7 @@ import {
   Film,
   Images,
   LoaderCircle,
+  Settings,
   Plus,
   ImageIcon,
   Redo2,
@@ -60,8 +61,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { LayersMenu } from "./layers-menu";
-import { DesktopUpdates } from "./desktop-updates";
-import { SettingsDialog } from "./settings-dialog";
+import { DesktopUpdateListener } from "./desktop-updates";
+import { SettingsPanel } from "./settings-panel";
 import { BulkPanel, BulkReelPanel, type BulkClip, type BulkPhoto } from "./bulk-panel";
 import { Timeline, VideoBar, VideoPanel } from "./reel";
 import {
@@ -119,6 +120,7 @@ const TOOLS: { id: ToolId; label: string; icon: typeof ImageIcon; key: string }[
   { id: "elements", label: "Elements", icon: Shapes, key: "E" },
   { id: "blur", label: "Blur", icon: Droplets, key: "B" },
   { id: "bulk", label: "Bulk", icon: Images, key: "M" },
+  { id: "settings", label: "Settings", icon: Settings, key: "S" },
 ];
 
 /** Where new stickers land, so they don't pile up under the centred headline. */
@@ -821,10 +823,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
         <header className="flex h-14 shrink-0 items-center gap-2.5 border-b border-rule bg-sheet px-3 md:px-4">
           <BrandMark />
           <span className="font-heading text-[15px] font-semibold tracking-[-0.01em] text-ink">Bubble Studio</span>
-          <span className="ml-auto flex items-center gap-1">
-            <DesktopUpdates />
-            <SettingsDialog />
-          </span>
+          <DesktopUpdateListener />
         </header>
         <StartScreen
           key={startStep}
@@ -842,6 +841,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
 
   return (
     <div className="flex h-full min-h-0 flex-col">
+      <DesktopUpdateListener />
       <TopBar
         canUndo={canUndo}
         canRedo={canRedo}
@@ -1014,6 +1014,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
               onClear={() => setBulkPhotos([])}
             />
           )}
+          {tool === "settings" && <SettingsPanel />}
           {tool === "blur" && (
             <BlurPanel
               state={state}
@@ -1151,6 +1152,7 @@ function ToolRail({ tool, onTool, media }: { tool: ToolId; onTool: (t: ToolId) =
                   aria-current={active ? "page" : undefined}
                   onClick={() => onTool(t.id)}
                   className={cn(
+                    t.id === "settings" && "md:mt-auto",
                     "group relative flex h-14 min-w-11 flex-col md:min-w-14 items-center justify-center gap-1 rounded-md text-[11px] font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-aqua",
                     active ? "bg-aqua-wash text-aqua-ink" : "text-ink-soft hover:bg-muted hover:text-ink",
                   )}
@@ -1226,8 +1228,6 @@ function TopBar({
       />
 
       <div className="ml-auto flex items-center gap-1">
-        <DesktopUpdates />
-        <SettingsDialog />
         {autosave}
         <NewMenu onNew={onNew} />
         {layers}

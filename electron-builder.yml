@@ -38,6 +38,7 @@ nsis:
   uninstallerSidebar: desktop-assets/installer-sidebar.bmp
   installerHeader: desktop-assets/installer-header.bmp
   uninstallDisplayName: Bubble Studio
+  include: desktop-assets/installer.nsh   # welcome page with the credits
 
 # -------------------------------------------------------- macOS (M1, M2, M3)
 mac:
