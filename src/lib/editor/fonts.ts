@@ -33,16 +33,6 @@ export const POSTER_FONTS: PosterFont[] = [
   { family: "Stick No Bills", label: "Stick No Bills", weights: [400, 700, 800], fallback: "sans-serif", script: "sinhala" },
 ];
 
-export const POSTER_FONTS_HREF =
-  "https://fonts.googleapis.com/css2?" +
-  POSTER_FONTS.map((f) => {
-    const name = f.family.replace(/ /g, "+");
-    return f.weights.length === 1 && f.weights[0] === 400
-      ? `family=${name}`
-      : `family=${name}:wght@${f.weights.join(";")}`;
-  }).join("&") +
-  "&display=swap";
-
 export function getFont(family: string): PosterFont {
   return POSTER_FONTS.find((f) => f.family === family) ?? POSTER_FONTS[0];
 }

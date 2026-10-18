@@ -48,3 +48,9 @@ next-env.d.ts
 
 # local phrase lists for bulk import (kept off GitHub)
 /phrases/
+
+# desktop build output
+/desktop/web/
+/desktop/icon.png
+/desktop/node_modules/
+/dist-desktop/

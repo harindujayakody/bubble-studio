@@ -11,6 +11,7 @@ import {
   CloudCheck,
   CloudOff,
   Film,
+  Images,
   LoaderCircle,
   Plus,
   ImageIcon,
@@ -59,6 +60,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { LayersMenu } from "./layers-menu";
+import { DesktopUpdates } from "./desktop-updates";
+import { BulkPanel, type BulkPhoto } from "./bulk-panel";
 import { Timeline, VideoBar, VideoPanel } from "./reel";
 import {
   applyClipVolume,
@@ -79,6 +82,7 @@ import { BlurPanel, ElementsPanel, type NewSticker } from "./panels-extra";
 import { AdjustPanel, CropPanel, FiltersPanel, PhotoPanel, TextPanel } from "./panels";
 import { RangeField } from "./controls";
 import { useHistory } from "@/lib/editor/use-history";
+import { canFastExport, fastExportReel } from "@/lib/editor/fast-export";
 import { SINHALA_RE } from "@/lib/editor/fonts";
 import { nextZ, restack } from "@/lib/editor/layers";
 import { inkFor, mix } from "@/lib/editor/color";
@@ -113,6 +117,7 @@ const TOOLS: { id: ToolId; label: string; icon: typeof ImageIcon; key: string }[
   { id: "text", label: "Text", icon: Type, key: "T" },
   { id: "elements", label: "Elements", icon: Shapes, key: "E" },
   { id: "blur", label: "Blur", icon: Droplets, key: "B" },
+  { id: "bulk", label: "Bulk", icon: Images, key: "M" },
 ];
 
 /** Where new stickers land, so they don't pile up under the centred headline. */
@@ -143,6 +148,9 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
   const [pendingNew, setPendingNew] = useState<StartStep | null>(null);
   /** Original files behind uploads, kept so auto-save can store them. */
   const files = useRef(new Map<string, Blob>());
+  /** Photos queued for bulk editing with the current design. */
+  const [bulkPhotos, setBulkPhotos] = useState<BulkPhoto[]>([]);
+  const bulkFileRef = useRef<HTMLInputElement>(null);
   const autosave = useAutosave();
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [resume, setResume] = useState<DraftSummary | null>(null);
@@ -566,11 +574,11 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
         return;
       }
       const t = TOOLS.find((x) => x.key.toLowerCase() === e.key.toLowerCase());
-      if (t && !el.closest("[role=radiogroup], [role=listbox]")) setTool(t.id);
+      if (t && !(t.id === "bulk" && state.media === "video") && !el.closest("[role=radiogroup], [role=listbox]")) setTool(t.id);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [selected, selectedKind, undo, redo, update]);
+  }, [selected, selectedKind, undo, redo, update, state.media]);
 
   const showEmpty =
     state.media === "video"
@@ -683,6 +691,47 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
     }
   };
 
+  /** Load several photos for bulk editing; the photo already in the design joins them first. */
+  const addBulkPhotos = async (list: File[]) => {
+    const images = list.filter((f) => f.type.startsWith("image/"));
+    if (images.length < list.length) toast("Some files were skipped", { description: "Only JPG, PNG and WebP photos can be added." });
+    const loaded = await Promise.all(
+      images.map(
+        (file) =>
+          new Promise<BulkPhoto | null>((resolve) => {
+            const img = new Image();
+            img.onload = () => resolve({ id: crypto.randomUUID(), name: file.name, img, file });
+            img.onerror = () => resolve(null);
+            img.src = URL.createObjectURL(file);
+          }),
+      ),
+    );
+    const fresh = loaded.filter((p): p is BulkPhoto => !!p);
+    setBulkPhotos((current) => {
+      const start = [...current];
+      const mainBlob = state.photoId ? files.current.get(state.photoId) : undefined;
+      if (current.length === 0 && state.photoId && photos[state.photoId] && mainBlob) {
+        start.push({ id: state.photoId, name: state.photoName ?? "photo", img: photos[state.photoId], file: mainBlob });
+      }
+      return [...start, ...fresh];
+    });
+    if (fresh.length) toast.success(`${fresh.length} photo${fresh.length === 1 ? "" : "s"} added`);
+  };
+
+  /** Make a bulk photo the one shown in the editor, to fine-tune the design on it. */
+  const openBulkPhoto = (p: BulkPhoto) => {
+    files.current.set(p.id, p.file);
+    setPhotos((m) => ({ ...m, [p.id]: p.img }));
+    update((s) => ({
+      ...s,
+      photoId: p.id,
+      photoName: p.name,
+      crop: null,
+      orientation: { rotation: 0, flipX: false, flipY: false },
+      custom: fitExport(p.img.naturalWidth, p.img.naturalHeight),
+    }));
+  };
+
   /** Clear the editor and go back to the start screen, at the given step. */
   const startNew = (step: StartStep) => {
     for (const v of Object.values(videos)) {
@@ -691,6 +740,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
     }
     for (const a of Object.values(tracks)) a.pause();
     setVideos({});
+    setBulkPhotos([]);
     setSelectedId(null);
     setTool("photo");
     setStartedBlank(false);
@@ -741,6 +791,9 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
         <header className="flex h-14 shrink-0 items-center gap-2.5 border-b border-rule bg-sheet px-3 md:px-4">
           <BrandMark />
           <span className="font-heading text-[15px] font-semibold tracking-[-0.01em] text-ink">Bubble Studio</span>
+          <span className="ml-auto">
+            <DesktopUpdates />
+          </span>
         </header>
         <StartScreen
           key={startStep}
@@ -775,6 +828,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
         video={video}
         frame={frame}
         music={musicEl}
+        getVideoFile={() => (state.video ? files.current.get(state.video.id) : undefined)}
         layers={
           <LayersMenu
             state={state}
@@ -907,6 +961,17 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
               onUpload={() => stickerFileRef.current?.click()}
             />
           )}
+          {tool === "bulk" && (
+            <BulkPanel
+              state={state}
+              assets={photos}
+              photos={bulkPhotos}
+              onAdd={() => bulkFileRef.current?.click()}
+              onRemove={(id) => setBulkPhotos((list) => list.filter((p) => p.id !== id))}
+              onOpen={openBulkPhoto}
+              onClear={() => setBulkPhotos([])}
+            />
+          )}
           {tool === "blur" && (
             <BlurPanel
               state={state}
@@ -953,6 +1018,20 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
         </AlertDialogContent>
       </AlertDialog>
 
+      <input
+        ref={bulkFileRef}
+        type="file"
+        multiple
+        accept={ACCEPT}
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden
+        onChange={(e) => {
+          const list = Array.from(e.target.files ?? []);
+          if (list.length) void addBulkPhotos(list);
+          e.target.value = "";
+        }}
+      />
       <input
         ref={musicFileRef}
         type="file"
@@ -1002,7 +1081,7 @@ function ToolRail({ tool, onTool, media }: { tool: ToolId; onTool: (t: ToolId) =
       aria-label="Tools"
       className="order-last flex shrink-0 justify-around border-t border-rule bg-sheet px-1 py-1 md:order-first md:w-[76px] md:flex-col md:justify-start md:gap-1 md:border-t-0 md:border-r md:px-2 md:py-3"
     >
-      {TOOLS.map((tool_) => {
+      {TOOLS.filter((t) => media === "photo" || t.id !== "bulk").map((tool_) => {
         // In a reel the first tool holds the video instead of a photo.
         const t = media === "video" && tool_.id === "photo" ? { ...tool_, label: "Video", icon: Film } : tool_;
         const active = t.id === tool;
@@ -1050,6 +1129,7 @@ function TopBar({
   video,
   frame,
   music,
+  getVideoFile,
   layers,
 }: {
   canUndo: boolean;
@@ -1066,6 +1146,7 @@ function TopBar({
   video: HTMLVideoElement | undefined;
   frame: HTMLCanvasElement | null;
   music: HTMLAudioElement | undefined;
+  getVideoFile: () => Blob | undefined;
   layers: React.ReactNode;
 }) {
   return (
@@ -1089,6 +1170,7 @@ function TopBar({
       />
 
       <div className="ml-auto flex items-center gap-1">
+        <DesktopUpdates />
         {autosave}
         <NewMenu onNew={onNew} />
         {layers}
@@ -1107,7 +1189,14 @@ function TopBar({
         </Tooltip>
         <span className="mx-1.5 h-5 w-px bg-rule" aria-hidden />
         {state.media === "video" ? (
-          <ReelExportButton video={video} frame={frame} music={music} assets={assets} state={state} />
+          <ReelExportButton
+            video={video}
+            frame={frame}
+            music={music}
+            assets={assets}
+            state={state}
+            getVideoFile={getVideoFile}
+          />
         ) : (
           <ExportButton source={source} assets={assets} state={state} />
         )}
@@ -1207,13 +1296,17 @@ function ReelExportButton({
   music,
   assets,
   state,
+  getVideoFile,
 }: {
   video: HTMLVideoElement | undefined;
   frame: HTMLCanvasElement | null;
   music: HTMLAudioElement | undefined;
   assets: Assets;
   state: typeof DEFAULT_STATE;
+  /** The original clip file; with it the reel can be encoded frame by frame instead of recorded. */
+  getVideoFile: () => Blob | undefined;
 }) {
+  const fast = useMemo(() => canFastExport(), []);
   const [name, setName] = useState("facebook-reel");
   const [open, setOpen] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);
@@ -1236,22 +1329,35 @@ function ReelExportButton({
   const record = async () => {
     if (!video || !frame || !clip) return;
     abort.current = new AbortController();
+    const signal = abort.current.signal;
     setProgress(0);
+    const realtime = () =>
+      exportReel({ video, frame, orientation: state.orientation, assets, state, music, onProgress: setProgress, signal });
     try {
-      const { blob, ext } = await exportReel({
-        video,
-        frame,
-        orientation: state.orientation,
-        assets,
-        state,
-        music,
-        onProgress: setProgress,
-        signal: abort.current.signal,
-      });
+      const file = getVideoFile();
+      let result: { blob: Blob; ext: string };
+      let note: string | null = null;
+      if (fast && file) {
+        try {
+          const started = performance.now();
+          result = await fastExportReel({ file, orientation: state.orientation, assets, state, onProgress: setProgress, signal });
+          const seconds = (performance.now() - started) / 1000;
+          if (seconds < length) note = (`Exported in ${seconds.toFixed(1)} s, ${Math.max(1, Math.round(length / seconds))}× faster than real time.`);
+        } catch (err) {
+          if (err instanceof DOMException && err.name === "AbortError") throw err;
+          toast("Using real-time recording", { description: err instanceof Error ? err.message : undefined });
+          setProgress(0);
+          result = await realtime();
+        }
+      } else {
+        result = await realtime();
+      }
+      const { blob, ext } = result;
       const filename = `${fileBase()}.${ext}`;
       save(blob, filename);
       setOpen(false);
       toast.success("Reel downloaded", { description: `${filename} · ${formatBytes(blob.size)}` });
+      if (note) toast(note);
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") toast("Export cancelled");
       else toast.error("Export failed", { description: err instanceof Error ? err.message : "Please try again." });
@@ -1288,9 +1394,11 @@ function ReelExportButton({
         ) : (
           <div className="grid gap-4 px-4 py-4">
             <p className="text-xs text-pretty text-ink-soft">
-              Recording plays your clip once in real time, so it takes about {Math.ceil(length)} seconds. Keep this tab
-              open. {soundSummary(state)}
-              {format.ext === "webm" && " This browser saves WebM; Facebook accepts it."}
+              {fast
+                ? "Fast export: the reel is built frame by frame, usually several times faster than its length. "
+                : `Recording plays your clip once in real time, so it takes about ${Math.ceil(length)} seconds. Keep this window open. `}
+              {soundSummary(state)}
+              {!fast && format.ext === "webm" && " This browser saves WebM; Facebook accepts it."}
             </p>
             <div className="grid gap-2">
               <label htmlFor="reel-name" className="text-[13px] text-ink-soft">File name</label>

@@ -15,7 +15,7 @@ export const POST_SIZES: Record<PostSizeId, { label: string; ratio: string; w: n
 /** Largest side we export at when matching an upload, to stay inside browser canvas limits. */
 export const MAX_EXPORT_SIDE = 4096;
 
-export type ToolId = "photo" | "filters" | "adjust" | "crop" | "text" | "elements" | "blur";
+export type ToolId = "photo" | "filters" | "adjust" | "crop" | "text" | "elements" | "blur" | "bulk";
 
 export type Adjustments = {
   brightness: number; // -100..100

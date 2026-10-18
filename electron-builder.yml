@@ -1,0 +1,35 @@
+# Windows installer for Bubble Studio. Build with `npm run desktop:dist`.
+appId: com.harindujayakody.bubblestudio
+productName: Bubble Studio
+copyright: Copyright © Harindu Jayakody
+
+directories:
+  app: desktop          # two-package layout: only the shell + static web build are packaged
+  output: dist-desktop
+  buildResources: build
+
+files:
+  - "**/*"
+
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  icon: build/icon.png
+  artifactName: Bubble-Studio-Setup-${version}.${ext}
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: Bubble Studio
+  deleteAppDataOnUninstall: false
+
+# Installers and update metadata go to a public releases-only repo, so the source repo stays private.
+publish:
+  provider: github
+  owner: harindujayakody
+  repo: bubble-studio-releases
+  releaseType: release

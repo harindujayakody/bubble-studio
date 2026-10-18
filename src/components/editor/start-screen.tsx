@@ -152,7 +152,7 @@ export function StartScreen({
           </>
         )}
 
-        <p className="mt-6 text-xs text-ink-soft">Everything stays in your browser. Nothing is uploaded.</p>
+        <p className="mt-6 text-xs text-ink-soft">Everything stays on your computer. Nothing is uploaded.</p>
       </div>
     </main>
   );
