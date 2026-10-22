@@ -51,6 +51,8 @@ type Props = {
   onPickPhoto: () => void;
   onStartBlank: () => void;
   onDropFile: (file: File) => void;
+  /** When set (bulk edit), every dropped file goes here instead. */
+  onDropFiles?: (files: File[]) => void;
 };
 
 /** Breathing room between the post and the edges of the workspace. */
@@ -168,8 +170,9 @@ export function CanvasStage(props: Props) {
       onDrop={(e) => {
         e.preventDefault();
         setDragOver(false);
-        const file = e.dataTransfer.files[0];
-        if (file) props.onDropFile(file);
+        const files = Array.from(e.dataTransfer.files);
+        if (props.onDropFiles) props.onDropFiles(files);
+        else if (files[0]) props.onDropFile(files[0]);
       }}
     >
       <div
@@ -325,7 +328,11 @@ export function CanvasStage(props: Props) {
             {dragOver && (
               <div className="pointer-events-none absolute inset-0 grid place-items-center bg-aqua-wash/90 ring-2 ring-aqua ring-inset">
                 <p className="px-4 text-center text-sm font-semibold text-aqua-ink">
-                  {state.media === "video" ? "Drop a video, or an image to add as a sticker" : "Drop to use this photo"}
+                  {props.onDropFiles
+                    ? `Drop to add ${state.media === "video" ? "videos" : "photos"} to bulk edit`
+                    : state.media === "video"
+                      ? "Drop a video, or an image to add as a sticker"
+                      : "Drop to use this photo"}
                 </p>
               </div>
             )}

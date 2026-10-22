@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Download, ImagePlus, Images, PencilLine, X } from "lucide-react";
+import { Download, ImagePlus, Images, PencilLine, Upload, X } from "lucide-react";
 import { saveExport } from "@/lib/editor/save";
 import { zipSync } from "fflate";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { PanelSection, RangeField } from "./controls";
 import { ensureFonts, exportDims, fitExport, orientImage, renderPost, type Assets } from "@/lib/editor/render";
@@ -14,7 +15,14 @@ import type { PostState } from "@/lib/editor/types";
 import { canFastExport, fastExportReel, reelDesignFor } from "@/lib/editor/fast-export";
 import { formatTime } from "@/lib/editor/video";
 
-export type BulkPhoto = { id: string; name: string; img: HTMLImageElement; file: Blob };
+export type BulkPhoto = {
+  id: string;
+  name: string;
+  img: HTMLImageElement;
+  file: Blob;
+  /** Its own design, once edited on its own ("Edit each photo separately"). */
+  design?: PostState;
+};
 
 /** The current design applied to another photo: same look, text and stickers; the photo framed fresh. */
 function designFor(state: PostState, photo: BulkPhoto): PostState {
@@ -28,8 +36,16 @@ function designFor(state: PostState, photo: BulkPhoto): PostState {
   };
 }
 
-function render(state: PostState, photo: BulkPhoto, assets: Assets, width?: number) {
-  const design = designFor(state, photo);
+/** The design a photo exports with: its own when edited separately, otherwise the shared one. */
+export function bulkDesign(state: PostState, photo: BulkPhoto, separate: PostState | null): PostState {
+  if (!separate) return designFor(state, photo);
+  // The photo on the canvas is being edited now; others keep their own edits, or start from
+  // the design that was shared when separate editing was turned on.
+  if (state.photoId === photo.id) return state;
+  return photo.design ?? designFor(separate, photo);
+}
+
+function render(design: PostState, photo: BulkPhoto, assets: Assets, width?: number) {
   const source = orientImage(photo.img, design.orientation);
   const dims = exportDims(design);
   const w = width ?? dims.w;
@@ -38,6 +54,71 @@ function render(state: PostState, photo: BulkPhoto, assets: Assets, width?: numb
   canvas.height = Math.round((dims.h / dims.w) * w);
   renderPost(canvas.getContext("2d")!, { source, assets, state: design, width: w });
   return canvas;
+}
+
+/** Wraps a bulk panel so files dropped anywhere on it are added. */
+function DropArea({
+  accept,
+  label,
+  onFiles,
+  children,
+}: {
+  accept: (f: File) => boolean;
+  label: string;
+  onFiles: (files: File[]) => void;
+  children: React.ReactNode;
+}) {
+  const [over, setOver] = useState(false);
+  return (
+    <div
+      className="relative min-h-full"
+      onDragOver={(e) => {
+        if (!e.dataTransfer.types.includes("Files")) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "copy";
+        setOver(true);
+      }}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) setOver(false);
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        setOver(false);
+        const files = Array.from(e.dataTransfer.files);
+        const ok = files.filter(accept);
+        if (ok.length < files.length) toast("Some files were skipped", { description: `Only ${label} can be added here.` });
+        if (ok.length) onFiles(ok);
+      }}
+    >
+      {children}
+      {over && (
+        <div className="pointer-events-none absolute inset-2 z-20 grid place-items-center rounded-xl border-2 border-dashed border-aqua bg-aqua-wash/90">
+          <p className="flex items-center gap-2 text-sm font-semibold text-aqua-ink">
+            <Upload className="size-4" /> Drop {label} to add them
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** The empty state: a big target to click or drop on. */
+function EmptyDrop({ onClick, label, hint }: { onClick: () => void; label: string; hint: string }) {
+  return (
+    <div className="px-4 pt-1 pb-6">
+      <button
+        type="button"
+        onClick={onClick}
+        className="flex w-full flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-rule px-4 py-10 text-center outline-none transition-colors hover:border-brand hover:bg-brand-wash/50 focus-visible:ring-2 focus-visible:ring-aqua"
+      >
+        <span className="grid size-11 place-items-center rounded-full bg-brand-wash text-brand">
+          <Images className="size-5" />
+        </span>
+        <span className="font-heading text-[15px] font-semibold text-ink">{label}</span>
+        <span className="max-w-[30ch] text-[13px] text-pretty text-ink-soft">{hint}</span>
+      </button>
+    </div>
+  );
 }
 
 const toBlob = (canvas: HTMLCanvasElement, type: string, quality?: number) =>
@@ -53,7 +134,10 @@ export function BulkPanel({
   state,
   assets,
   photos,
+  separate,
+  onSeparate,
   onAdd,
+  onFiles,
   onRemove,
   onOpen,
   onClear,
@@ -61,7 +145,11 @@ export function BulkPanel({
   state: PostState;
   assets: Assets;
   photos: BulkPhoto[];
+  /** Each photo keeps its own edits; holds the shared design they start from. Null = one design for all. */
+  separate: PostState | null;
+  onSeparate: (on: boolean) => void;
   onAdd: () => void;
+  onFiles: (files: File[]) => void;
   onRemove: (id: string) => void;
   onOpen: (photo: BulkPhoto) => void;
   onClear: () => void;
@@ -78,24 +166,24 @@ export function BulkPanel({
     const timer = window.setTimeout(async () => {
       await ensureFonts(state);
       const next: Record<string, string> = {};
-      for (const p of photos) next[p.id] = render(state, p, assets, 220).toDataURL("image/jpeg", 0.75);
+      for (const p of photos) next[p.id] = render(bulkDesign(state, p, separate), p, assets, 220).toDataURL("image/jpeg", 0.75);
       setThumbs(next);
     }, 250);
     return () => window.clearTimeout(timer);
-  }, [state, assets, photos]);
+  }, [state, assets, photos, separate]);
 
   const exportAll = async () => {
     cancel.current = false;
     setProgress(0);
     try {
-      await ensureFonts(state);
+      for (const p of photos) await ensureFonts(bulkDesign(state, p, separate));
       const files: Record<string, Uint8Array> = {};
       const ext = format === "jpeg" ? "jpg" : "png";
       const used = new Set<string>();
       for (let i = 0; i < photos.length; i++) {
         if (cancel.current) throw new DOMException("Cancelled", "AbortError");
         const p = photos[i];
-        const blob = await toBlob(render(state, p, assets), `image/${format}`, format === "jpeg" ? quality / 100 : undefined);
+        const blob = await toBlob(render(bulkDesign(state, p, separate), p, assets), `image/${format}`, format === "jpeg" ? quality / 100 : undefined);
         let name = `${p.name.replace(/\.[^.]+$/, "").replace(/[\\/:*?"<>|]+/g, "-") || "photo"}-bubble`;
         for (let n = 2; used.has(name); n++) name = `${name}-${n}`;
         used.add(name);
@@ -119,14 +207,29 @@ export function BulkPanel({
   };
 
   const dims = exportDims(state);
+  const editedCount = photos.filter((p) => p.design).length;
 
   return (
-    <>
+    <DropArea accept={(f) => f.type.startsWith("image/") && f.type !== "image/svg+xml"} label="photos" onFiles={onFiles}>
       <PanelSection title="Bulk edit">
         <p className="-mt-1 mb-4 text-[13px] text-pretty text-ink-soft">
-          Design one post, then add more photos. Each gets the same filters, adjustments, text, stickers and size, and
-          you download them all at once.
+          {separate
+            ? "Each photo keeps its own edits. Click a photo to edit it; your changes stay with that photo."
+            : "Design one post, then add more photos. Each gets the same filters, adjustments, text, stickers and size, and you download them all at once."}
         </p>
+        <label className="mb-4 flex items-start justify-between gap-3 rounded-xl border border-rule bg-tile/50 px-3 py-2.5">
+          <span className="grid gap-0.5">
+            <span className="text-[13px] font-medium text-ink">Edit each photo separately</span>
+            <span className="text-xs text-pretty text-ink-soft">
+              {separate
+                ? editedCount
+                  ? `${editedCount} of ${photos.length} edited on their own`
+                  : "Click a photo to start editing it"
+                : "Off: one design for every photo"}
+            </span>
+          </span>
+          <Switch checked={!!separate} onCheckedChange={onSeparate} aria-label="Edit each photo separately" />
+        </label>
         <div className="flex flex-wrap gap-2">
           <Button onClick={onAdd} disabled={progress !== null}>
             <ImagePlus /> Add photos
@@ -140,26 +243,39 @@ export function BulkPanel({
       </PanelSection>
 
       {photos.length === 0 ? (
-        <div className="grid place-items-center px-6 py-10 text-center">
-          <Images className="mb-3 size-8 text-ink-soft/60" />
-          <p className="text-sm text-pretty text-ink-soft">
-            No photos yet. Pick several at once with Ctrl or Shift in the file window.
-          </p>
-        </div>
+        <EmptyDrop onClick={onAdd} label="Drop photos here" hint="or click to choose several at once with Ctrl or Shift" />
       ) : (
         <>
           <PanelSection title={`${photos.length} photo${photos.length === 1 ? "" : "s"}`}>
             <ul className="grid grid-cols-2 gap-2">
               {photos.map((p) => (
                 <li key={p.id} className="group relative">
-                  <div className={cn("checker overflow-hidden rounded-md ring-1 ring-rule", state.photoId === p.id && "ring-2 ring-aqua")}>
+                  <button
+                    type="button"
+                    onClick={() => onOpen(p)}
+                    aria-label={separate ? `Edit ${p.name}` : `Open ${p.name} in the editor`}
+                    className={cn(
+                      "checker relative block w-full overflow-hidden rounded-lg ring-1 ring-rule outline-none focus-visible:ring-2 focus-visible:ring-aqua",
+                      state.photoId === p.id && "ring-2 ring-aqua",
+                    )}
+                  >
                     {thumbs[p.id] ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={thumbs[p.id]} alt={`Preview of ${p.name}`} className="block w-full" />
                     ) : (
                       <div className="aspect-square animate-pulse bg-muted" />
                     )}
-                  </div>
+                    {separate && (state.photoId === p.id || p.design) && (
+                      <span
+                        className={cn(
+                          "absolute bottom-1 left-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
+                          state.photoId === p.id ? "bg-aqua text-white" : "bg-sheet/90 text-ink",
+                        )}
+                      >
+                        {state.photoId === p.id ? "Editing" : "Edited"}
+                      </span>
+                    )}
+                  </button>
                   <p className="mt-1 truncate text-[11px] text-ink-soft" title={p.name}>
                     {p.name}
                   </p>
@@ -187,7 +303,9 @@ export function BulkPanel({
               ))}
             </ul>
             <p className="mt-3 text-xs text-pretty text-ink-soft">
-              Each photo is centred in the frame. Use the pencil to open one in the editor and fine-tune it.
+              {separate
+                ? "Click a photo to edit it. Photos you haven't touched keep the shared design."
+                : "Each photo is centred in the frame. Drop more photos anywhere on this panel."}
             </p>
           </PanelSection>
 
@@ -234,7 +352,7 @@ export function BulkPanel({
           </PanelSection>
         </>
       )}
-    </>
+    </DropArea>
   );
 }
 
@@ -259,6 +377,7 @@ export function BulkReelPanel({
   assets,
   clips,
   onAdd,
+  onFiles,
   onRemove,
   onOpen,
   onClear,
@@ -267,6 +386,7 @@ export function BulkReelPanel({
   assets: Assets;
   clips: BulkClip[];
   onAdd: () => void;
+  onFiles: (files: File[]) => void;
   onRemove: (id: string) => void;
   onOpen: (clip: BulkClip) => void;
   onClear: () => void;
@@ -350,7 +470,7 @@ export function BulkReelPanel({
   const percent = (done / Math.max(0.1, total)) * 100;
 
   return (
-    <>
+    <DropArea accept={(f) => f.type.startsWith("video/") || /\.(mp4|mov|m4v|webm)$/i.test(f.name)} label="videos" onFiles={onFiles}>
       <PanelSection title="Bulk reels">
         <p className="-mt-1 mb-4 text-[13px] text-pretty text-ink-soft">
           Design one reel, then add more clips. Each gets the same filters, text, stickers, music and sound settings,
@@ -385,12 +505,7 @@ export function BulkReelPanel({
       </PanelSection>
 
       {clips.length === 0 ? (
-        <div className="grid place-items-center px-6 py-10 text-center">
-          <Images className="mb-3 size-8 text-ink-soft/60" />
-          <p className="text-sm text-pretty text-ink-soft">
-            No clips yet. Pick several at once with Ctrl or Shift in the file window.
-          </p>
-        </div>
+        supported && <EmptyDrop onClick={onAdd} label="Drop videos here" hint="or click to choose several at once with Ctrl or Shift" />
       ) : (
         <>
           <PanelSection title={`${clips.length} clip${clips.length === 1 ? "" : "s"}`}>
@@ -476,6 +591,6 @@ export function BulkReelPanel({
           </PanelSection>
         </>
       )}
-    </>
+    </DropArea>
   );
 }

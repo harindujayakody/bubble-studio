@@ -170,6 +170,8 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
   const files = useRef(new Map<string, Blob>());
   /** Photos queued for bulk editing with the current design. */
   const [bulkPhotos, setBulkPhotos] = useState<BulkPhoto[]>([]);
+  /** Separate bulk edits: the shared design every untouched photo starts from; null when off. */
+  const [bulkSeparate, setBulkSeparate] = useState<typeof DEFAULT_STATE | null>(null);
   const bulkFileRef = useRef<HTMLInputElement>(null);
   /** Clips queued for bulk reels with the current reel design. */
   const [bulkClips, setBulkClips] = useState<BulkClip[]>([]);
@@ -867,8 +869,21 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
   const openBulkPhoto = (p: BulkPhoto) => {
     files.current.set(p.id, p.file);
     setPhotos((m) => ({ ...m, [p.id]: p.img }));
+    setSelectedId(null);
+    if (bulkSeparate) {
+      // Keep the edits of the photo being left; the canvas design is that photo's own.
+      const leaving = state.photoId;
+      if (leaving && leaving !== p.id) {
+        setBulkPhotos((list) => list.map((x) => (x.id === leaving ? { ...x, design: state } : x)));
+      }
+    }
+    if (bulkSeparate && p.design) {
+      // Back to this photo's own edits.
+      update(() => p.design!);
+      return;
+    }
     update((s) => ({
-      ...s,
+      ...(bulkSeparate ?? s),
       photoId: p.id,
       photoName: p.name,
       crop: null,
@@ -886,6 +901,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
     for (const a of Object.values(tracks)) a.pause();
     setVideos({});
     setBulkPhotos([]);
+    setBulkSeparate(null);
     setBulkClips([]);
     setSelectedId(null);
     setTool("photo");
@@ -1046,6 +1062,9 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
               setTool("photo");
             }}
             onDropFile={loadFile}
+            onDropFiles={
+              tool === "bulk" ? (list) => void (state.media === "video" ? addBulkClips(list) : addBulkPhotos(list)) : undefined
+            }
           />
           {video && state.video && (
             <>
@@ -1136,6 +1155,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
               state={state}
               assets={photos}
               clips={bulkClips}
+              onFiles={(list) => void addBulkClips(list)}
               onAdd={() => bulkClipRef.current?.click()}
               onRemove={(id) => setBulkClips((list) => list.filter((c) => c.id !== id))}
               onOpen={(c) => void loadVideoFile(new File([c.file], c.name, { type: c.file.type || "video/mp4" }))}
@@ -1147,6 +1167,15 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
               state={state}
               assets={photos}
               photos={bulkPhotos}
+              separate={bulkSeparate}
+              onSeparate={(on) => {
+                setBulkSeparate(on ? state : null);
+                if (!on) setBulkPhotos((list) => list.map((p) => ({ ...p, design: undefined })));
+                toast(on ? "Editing photos separately" : "One design for every photo", {
+                  description: on ? "Click a photo to edit it on its own." : "Separate edits were cleared.",
+                });
+              }}
+              onFiles={(list) => void addBulkPhotos(list)}
               onAdd={() => bulkFileRef.current?.click()}
               onRemove={(id) => setBulkPhotos((list) => list.filter((p) => p.id !== id))}
               onOpen={openBulkPhoto}
