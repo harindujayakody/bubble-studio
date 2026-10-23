@@ -211,6 +211,19 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
   const photo = state.photoId ? photos[state.photoId] : undefined;
   const video = state.media === "video" && state.video ? videos[state.video.id] : undefined;
   const musicEl = state.media === "video" && state.music ? tracks[state.music.id] : undefined;
+
+  // Only the clip on the canvas may play: switching clips (e.g. in bulk reels) stops the others,
+  // and the music, so their sound doesn't carry on in the background.
+  useEffect(() => {
+    let stopped = false;
+    for (const v of Object.values(videos)) {
+      if (v !== video && !v.paused) {
+        v.pause();
+        stopped = true;
+      }
+    }
+    if (stopped) for (const a of Object.values(tracks)) a.pause();
+  }, [video, videos, tracks]);
   const { rotation, flipX, flipY } = state.orientation;
   const photoSource = useMemo(
     () => (photo ? orientImage(photo, { rotation, flipX, flipY }) : null),
