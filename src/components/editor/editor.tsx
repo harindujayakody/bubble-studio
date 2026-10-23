@@ -101,7 +101,7 @@ import { BlurPanel, ElementsPanel, type NewSticker } from "./panels-extra";
 import { AdjustPanel, CropPanel, FiltersPanel, PhotoPanel, TextPanel } from "./panels";
 import { RangeField } from "./controls";
 import { useHistory } from "@/lib/editor/use-history";
-import { canFastExport, fastExportReel, probeVideo } from "@/lib/editor/fast-export";
+import { canFastExport, fastExportReel, probeVideo, reelDesignFor } from "@/lib/editor/fast-export";
 import { SINHALA_RE } from "@/lib/editor/fonts";
 import { moveLayer, nextZ, restack } from "@/lib/editor/layers";
 import { inkFor, mix } from "@/lib/editor/color";
@@ -172,6 +172,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
   const [bulkPhotos, setBulkPhotos] = useState<BulkPhoto[]>([]);
   /** Separate bulk edits: the shared design every untouched photo starts from; null when off. */
   const [bulkSeparate, setBulkSeparate] = useState<typeof DEFAULT_STATE | null>(null);
+  const [bulkReelSeparate, setBulkReelSeparate] = useState<typeof DEFAULT_STATE | null>(null);
   const bulkFileRef = useRef<HTMLInputElement>(null);
   /** Clips queued for bulk reels with the current reel design. */
   const [bulkClips, setBulkClips] = useState<BulkClip[]>([]);
@@ -892,6 +893,30 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
     }));
   };
 
+  /** Open a bulk clip in the editor. With separate editing, each clip keeps its own design. */
+  const openBulkClip = async (c: BulkClip) => {
+    const base = bulkReelSeparate;
+    if (base) {
+      const leaving = state.video?.id;
+      if (leaving && leaving !== c.id && bulkClips.some((x) => x.id === leaving)) {
+        setBulkClips((list) => list.map((x) => (x.id === leaving ? { ...x, design: state } : x)));
+      }
+    }
+    try {
+      // Clips keep their own id, so their saved designs point at the right video.
+      if (!videos[c.id]) {
+        const v = await loadVideo(c.file);
+        setVideos((m) => ({ ...m, [c.id]: v }));
+      }
+      files.current.set(c.id, c.file);
+      setSelectedId(null);
+      if (base && c.design) update(() => c.design!);
+      else update((s) => reelDesignFor(base ?? s, c));
+    } catch (err) {
+      toast.error("This video couldn't be opened", { description: err instanceof Error ? err.message : undefined });
+    }
+  };
+
   /** Clear the editor and go back to the start screen, at the given step. */
   const startNew = (step: StartStep) => {
     for (const v of Object.values(videos)) {
@@ -902,6 +927,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
     setVideos({});
     setBulkPhotos([]);
     setBulkSeparate(null);
+    setBulkReelSeparate(null);
     setBulkClips([]);
     setSelectedId(null);
     setTool("photo");
@@ -1155,10 +1181,18 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
               state={state}
               assets={photos}
               clips={bulkClips}
+              separate={bulkReelSeparate}
+              onSeparate={(on) => {
+                setBulkReelSeparate(on ? state : null);
+                if (!on) setBulkClips((list) => list.map((c) => ({ ...c, design: undefined })));
+                toast(on ? "Editing clips separately" : "One design for every clip", {
+                  description: on ? "Click a clip to edit it on its own." : "Separate edits were cleared.",
+                });
+              }}
               onFiles={(list) => void addBulkClips(list)}
               onAdd={() => bulkClipRef.current?.click()}
               onRemove={(id) => setBulkClips((list) => list.filter((c) => c.id !== id))}
-              onOpen={(c) => void loadVideoFile(new File([c.file], c.name, { type: c.file.type || "video/mp4" }))}
+              onOpen={(c) => void openBulkClip(c)}
               onClear={() => setBulkClips([])}
             />
           )}

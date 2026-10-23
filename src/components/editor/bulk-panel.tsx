@@ -366,7 +366,16 @@ export type BulkClip = {
   width: number;
   height: number;
   poster: HTMLCanvasElement;
+  /** Its own design, once edited on its own ("Edit each clip separately"). */
+  design?: PostState;
 };
+
+/** The design a clip exports with: its own when edited separately, otherwise the shared one. */
+export function bulkReelDesign(state: PostState, clip: BulkClip, separate: PostState | null): PostState {
+  if (!separate) return reelDesignFor(state, clip);
+  if (state.video?.id === clip.id) return state;
+  return clip.design ?? reelDesignFor(separate, clip);
+}
 
 /**
  * Bulk reels: design one reel, then apply the same look, text, stickers, music and
@@ -376,6 +385,8 @@ export function BulkReelPanel({
   state,
   assets,
   clips,
+  separate,
+  onSeparate,
   onAdd,
   onFiles,
   onRemove,
@@ -385,6 +396,9 @@ export function BulkReelPanel({
   state: PostState;
   assets: Assets;
   clips: BulkClip[];
+  /** Each clip keeps its own edits; holds the shared design they start from. Null = one design for all. */
+  separate: PostState | null;
+  onSeparate: (on: boolean) => void;
   onAdd: () => void;
   onFiles: (files: File[]) => void;
   onRemove: (id: string) => void;
@@ -403,7 +417,7 @@ export function BulkReelPanel({
       await ensureFonts(state);
       const next: Record<string, string> = {};
       for (const c of clips) {
-        const design = reelDesignFor(state, c);
+        const design = bulkReelDesign(state, c, separate);
         const dims = exportDims(design);
         const canvas = document.createElement("canvas");
         canvas.width = 220;
@@ -420,9 +434,13 @@ export function BulkReelPanel({
       setThumbs(next);
     }, 250);
     return () => window.clearTimeout(timer);
-  }, [state, assets, clips]);
+  }, [state, assets, clips, separate]);
 
-  const lengthOf = (c: BulkClip) => Math.min(c.duration, 90);
+  const lengthOf = (c: BulkClip) => {
+    const v = bulkReelDesign(state, c, separate).video;
+    return v ? Math.max(0.1, v.trimEnd - v.trimStart) : Math.min(c.duration, 90);
+  };
+  const editedCount = clips.filter((c) => c.design).length;
   const total = clips.reduce((sum, c) => sum + lengthOf(c), 0);
 
   const exportAll = async () => {
@@ -433,11 +451,12 @@ export function BulkReelPanel({
       const used = new Set<string>();
       for (let i = 0; i < clips.length; i++) {
         const c = clips[i];
+        const design = bulkReelDesign(state, c, separate);
         const { blob } = await fastExportReel({
           file: c.file,
-          orientation: { rotation: 0, flipX: false, flipY: false },
+          orientation: design.orientation,
           assets,
-          state: reelDesignFor(state, c),
+          state: design,
           signal: abort.current.signal,
           onProgress: (f) => setProgress({ index: i, fraction: f }),
         });
@@ -476,6 +495,19 @@ export function BulkReelPanel({
           Design one reel, then add more clips. Each gets the same filters, text, stickers, music and sound settings,
           and you download them all at once.
         </p>
+        <label className="mb-4 flex items-start justify-between gap-3 rounded-xl border border-rule bg-tile/50 px-3 py-2.5">
+          <span className="grid gap-0.5">
+            <span className="text-[13px] font-medium text-ink">Edit each clip separately</span>
+            <span className="text-xs text-pretty text-ink-soft">
+              {separate
+                ? editedCount
+                  ? `${editedCount} of ${clips.length} edited on their own`
+                  : "Click a clip to start editing it"
+                : "Off: one design for every clip"}
+            </span>
+          </span>
+          <Switch checked={!!separate} onCheckedChange={onSeparate} aria-label="Edit each clip separately" />
+        </label>
         {!supported && (
           <p className="mb-3 rounded-md bg-yellow-wash px-3 py-2 text-xs text-pretty text-ink">
             Bulk reels need fast export, which this browser doesn&apos;t support. Use the desktop app or the latest
@@ -512,9 +544,12 @@ export function BulkReelPanel({
             <ul className="grid grid-cols-2 gap-2">
               {clips.map((c) => (
                 <li key={c.id} className="group relative">
-                  <div
+                  <button
+                    type="button"
+                    onClick={() => onOpen(c)}
+                    aria-label={separate ? `Edit ${c.name}` : `Open ${c.name} in the editor`}
                     className={cn(
-                      "overflow-hidden rounded-md bg-ink ring-1 ring-rule",
+                      "relative block w-full overflow-hidden rounded-lg bg-black ring-1 ring-rule outline-none focus-visible:ring-2 focus-visible:ring-aqua",
                       state.video?.id === c.id && "ring-2 ring-aqua",
                     )}
                   >
@@ -524,7 +559,17 @@ export function BulkReelPanel({
                     ) : (
                       <div className="aspect-[9/16] animate-pulse bg-muted" />
                     )}
-                  </div>
+                    {separate && (state.video?.id === c.id || c.design) && (
+                      <span
+                        className={cn(
+                          "absolute bottom-1 left-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold",
+                          state.video?.id === c.id ? "bg-aqua text-white" : "bg-sheet/90 text-ink",
+                        )}
+                      >
+                        {state.video?.id === c.id ? "Editing" : "Edited"}
+                      </span>
+                    )}
+                  </button>
                   <p className="mt-1 flex justify-between gap-2 text-[11px] text-ink-soft">
                     <span className="truncate" title={c.name}>
                       {c.name}
@@ -555,7 +600,9 @@ export function BulkReelPanel({
               ))}
             </ul>
             <p className="mt-3 text-xs text-pretty text-ink-soft">
-              Each clip uses its own length (up to 90 seconds) and the music is fitted to it.
+              {separate
+                ? "Click a clip to edit it, including its trim and music. Clips you haven't touched keep the shared design."
+                : "Each clip uses its own length (up to 90 seconds) and the music is fitted to it."}
             </p>
           </PanelSection>
 
