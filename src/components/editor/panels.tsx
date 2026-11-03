@@ -52,6 +52,7 @@ import {
   type PostState,
   type TextFill,
   type TextOutline,
+  type TextAnimationType,
   type TextLayer,
   type TextStyleId,
 } from "@/lib/editor/types";
@@ -350,6 +351,17 @@ export function FiltersPanel({
     </>
   );
 }
+
+const TEXT_ANIMATIONS: { id: TextAnimationType; label: string }[] = [
+  { id: "none", label: "None" },
+  { id: "fade", label: "Fade" },
+  { id: "pop", label: "Pop" },
+  { id: "slide", label: "Slide up" },
+  { id: "typewriter", label: "Type" },
+  { id: "wobble", label: "Wobble" },
+  { id: "bounce", label: "Bounce" },
+  { id: "pulse", label: "Pulse" },
+];
 
 /* ----------------------------------------------------------------- Adjust */
 
@@ -666,6 +678,46 @@ export function TextPanel({
               </Toggle>
             </div>
           </PanelSection>
+
+          {state.media === "video" && (
+            <PanelSection title="Animation">
+              <div className="grid grid-cols-4 gap-1.5" role="radiogroup" aria-label="Text animation">
+                {TEXT_ANIMATIONS.map((a) => {
+                  const on = (layer.anim?.type ?? "none") === a.id;
+                  return (
+                    <button
+                      key={a.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={on}
+                      onClick={() => patch({ anim: { type: a.id, speed: layer.anim?.speed ?? 1 } })}
+                      className={cn(
+                        "h-9 rounded-lg border text-[12px] font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-aqua",
+                        on ? "border-brand bg-brand-wash text-brand" : "border-rule text-ink hover:bg-tile",
+                      )}
+                    >
+                      {a.label}
+                    </button>
+                  );
+                })}
+              </div>
+              {layer.anim && layer.anim.type !== "none" && (
+                <div className="mt-4">
+                  <RangeField
+                    label="Speed"
+                    value={Math.round(layer.anim.speed * 100)}
+                    min={50}
+                    max={300}
+                    step={10}
+                    defaultValue={100}
+                    format={(v) => `${(v / 100).toFixed(1)}×`}
+                    onChange={(v) => patch({ anim: { type: layer.anim!.type, speed: v / 100 } }, `anim:${layer.id}`)}
+                  />
+                </div>
+              )}
+              <p className="mt-3 text-xs text-pretty text-ink-soft">Plays when the text appears in your reel, and in the export.</p>
+            </PanelSection>
+          )}
 
           <PanelSection title="Size and spacing">
             <div className="grid gap-5">

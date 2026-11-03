@@ -66,6 +66,9 @@ export type TextOutline = { on: boolean; width: number; color: "auto" | string }
 
 export const DEFAULT_OUTLINE: TextOutline = { on: false, width: 30, color: "auto" };
 
+export type TextAnimationType = "none" | "fade" | "pop" | "slide" | "typewriter" | "wobble" | "bounce" | "pulse";
+export type TextAnimation = { type: TextAnimationType; speed: number /* 0.5..3 */ };
+
 /** When a layer shows in a reel, in seconds of the source video. Unset means the whole clip. */
 export type Timing = { start?: number; end?: number };
 
@@ -88,6 +91,8 @@ export type TextLayer = {
   shadow: boolean;
   fill: TextFill;
   outline?: TextOutline;
+  /** Reels: how the text moves. Photos ignore it. */
+  anim?: TextAnimation;
   rotation: number; // degrees
   /** Stacking order shared with stickers; higher draws on top. */
   z: number;

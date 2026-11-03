@@ -80,7 +80,7 @@ import {
 import { LayersMenu } from "./layers-menu";
 import { DesktopUpdateListener } from "./desktop-updates";
 import { SettingsPanel } from "./settings-panel";
-import { BulkPanel, BulkReelPanel, type BulkClip, type BulkPhoto } from "./bulk-panel";
+import { BulkPanel, BulkReelPanel, NO_VARIATIONS, type BulkClip, type BulkPhoto, type BulkVariations } from "./bulk-panel";
 import { Timeline, VideoBar, VideoPanel } from "./reel";
 import {
   applyClipVolume,
@@ -173,6 +173,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
   /** Separate bulk edits: the shared design every untouched photo starts from; null when off. */
   const [bulkSeparate, setBulkSeparate] = useState<typeof DEFAULT_STATE | null>(null);
   const [bulkReelSeparate, setBulkReelSeparate] = useState<typeof DEFAULT_STATE | null>(null);
+  const [bulkVariations, setBulkVariations] = useState<BulkVariations>(NO_VARIATIONS);
   const bulkFileRef = useRef<HTMLInputElement>(null);
   /** Clips queued for bulk reels with the current reel design. */
   const [bulkClips, setBulkClips] = useState<BulkClip[]>([]);
@@ -323,7 +324,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
       if (!tracks[id]) setTracks((m) => ({ ...m, [id]: el }));
       update((s) => ({
         ...s,
-        music: { id, name, src, duration: el.duration, offset: 0, volume: 80, on: true, loop: true, fade: true },
+        music: { id, name, src, duration: el.duration, offset: 0, volume: lastMusicVolume(), on: true, loop: true, fade: true },
       }));
       const reel = state.video ? state.video.trimEnd - state.video.trimStart : 0;
       if (reel) {
@@ -1194,6 +1195,8 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
               state={state}
               assets={photos}
               clips={bulkClips}
+              variations={bulkVariations}
+              onVariations={setBulkVariations}
               separate={bulkReelSeparate}
               onSeparate={(on) => {
                 setBulkReelSeparate(on ? state : null);
@@ -1214,6 +1217,8 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
               state={state}
               assets={photos}
               photos={bulkPhotos}
+              variations={bulkVariations}
+              onVariations={setBulkVariations}
               separate={bulkSeparate}
               onSeparate={(on) => {
                 setBulkSeparate(on ? state : null);
@@ -2004,6 +2009,16 @@ function BrandMark() {
     // eslint-disable-next-line @next/next/no-img-element
     <img src="/favicon.png" alt="" width={30} height={30} className="size-[30px] shrink-0 rounded-[8px] ring-1 ring-white/30" />
   );
+}
+
+/** The music volume the user last chose (80 by default). */
+function lastMusicVolume() {
+  try {
+    const v = Number(localStorage.getItem("bubble-studio:music-volume"));
+    return Number.isFinite(v) && v > 0 && v <= 100 ? v : 80;
+  } catch {
+    return 80;
+  }
 }
 
 function formatBytes(n: number) {

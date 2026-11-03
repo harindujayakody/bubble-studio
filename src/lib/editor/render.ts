@@ -148,6 +148,45 @@ function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
   ctx.fill();
 }
 
+const easeOut = (t: number) => 1 - (1 - t) ** 3;
+const easeOutBack = (t: number) => 1 + 2.2 * (t - 1) ** 3 + 1.2 * (t - 1) ** 2;
+
+/** How an animated text layer looks `local` seconds after it appears. */
+function textMotion(type: string, local: number, fontSize: number) {
+  const m = { alpha: 1, dy: 0, rot: 0, scale: 1, chars: Infinity };
+  const t = Math.max(0, local);
+  switch (type) {
+    case "fade":
+      m.alpha = Math.min(1, t / 0.7);
+      break;
+    case "pop": {
+      const p = Math.min(1, t / 0.5);
+      m.scale = 0.55 + 0.45 * easeOutBack(p);
+      m.alpha = Math.min(1, t / 0.25);
+      break;
+    }
+    case "slide": {
+      const p = easeOut(Math.min(1, t / 0.7));
+      m.dy = (1 - p) * fontSize * 1.1;
+      m.alpha = p;
+      break;
+    }
+    case "typewriter":
+      m.chars = Math.floor(t * 16);
+      break;
+    case "wobble":
+      m.rot = Math.sin(t * Math.PI * 2 * 0.9) * 0.07;
+      break;
+    case "bounce":
+      m.dy = -Math.abs(Math.sin(t * Math.PI * 1.4)) * fontSize * 0.16;
+      break;
+    case "pulse":
+      m.scale = 1 + 0.045 * Math.sin(t * Math.PI * 2 * 0.8);
+      break;
+  }
+  return m;
+}
+
 function drawText(
   ctx: CanvasRenderingContext2D,
   layer: TextLayer,
@@ -155,6 +194,7 @@ function drawText(
   width: number,
   height: number,
   paint = true,
+  time?: number,
 ): TextBox {
   const { lines, lineHeight, boxW, boxH } = layoutText(ctx, layer, scale, width / scale);
   const fontSize = layer.fontSize * scale;
@@ -179,6 +219,25 @@ function drawText(
   ctx.save();
   ctx.translate(cx, cy);
   ctx.rotate((layer.rotation * Math.PI) / 180);
+  // Reels: animation relative to when the layer appears, at the chosen speed.
+  let chars = Infinity;
+  if (time !== undefined && layer.anim && layer.anim.type !== "none") {
+    const m = textMotion(layer.anim.type, (time - (layer.start ?? 0)) * layer.anim.speed, fontSize);
+    ctx.globalAlpha *= m.alpha;
+    ctx.translate(0, m.dy);
+    ctx.rotate(m.rot);
+    ctx.scale(m.scale, m.scale);
+    chars = m.chars;
+  }
+  // Typewriter: show the first `chars` characters across the lines.
+  let budget = chars;
+  const shown = (text: string) => {
+    if (budget === Infinity) return text;
+    const part = text.slice(0, Math.max(0, budget));
+    budget -= text.length;
+    return part;
+  };
+  const visible = lines.map((l) => shown(l.text));
   ctx.textBaseline = "middle";
   ctx.textAlign = "left";
 
@@ -197,7 +256,7 @@ function drawText(
     } else {
       const h = lineHeight + padY * 2;
       lines.forEach((line, i) => {
-        if (!line.text) return;
+        if (!visible[i]) return;
         roundRect(
           ctx,
           lineX(line.width) - padX,
@@ -224,13 +283,13 @@ function drawText(
     ctx.lineJoin = "round";
     ctx.miterLimit = 2;
     lines.forEach((line, i) => {
-      ctx.strokeText(line.text, lineX(line.width), top + (i + 0.5) * lineHeight);
+      ctx.strokeText(visible[i], lineX(line.width), top + (i + 0.5) * lineHeight);
     });
     ctx.shadowColor = "transparent";
   }
   ctx.fillStyle = layer.color;
   lines.forEach((line, i) => {
-    ctx.fillText(line.text, lineX(line.width), top + (i + 0.5) * lineHeight);
+    ctx.fillText(visible[i], lineX(line.width), top + (i + 0.5) * lineHeight);
   });
   ctx.restore();
   return box;
@@ -436,7 +495,7 @@ export function renderPost(ctx: CanvasRenderingContext2D, opts: RenderOptions): 
         const layer = item.layer;
         const hidden = layer.id === hideTextId;
         if (!layer.text.trim() && !hidden) continue;
-        boxes.push(drawText(ctx, layer, scale, width, height, !hidden));
+        boxes.push(drawText(ctx, layer, scale, width, height, !hidden, state.media === "video" ? time : undefined));
       }
     }
     const wm = getWatermark();

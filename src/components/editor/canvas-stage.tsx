@@ -116,7 +116,8 @@ export function CanvasStage(props: Props) {
 
     // Animated stickers in a paused reel keep moving in the preview, carrying on from the
     // paused frame. While the video plays, its own frames drive them.
-    const animated = state.media === "video" && state.stickers.some((s) => s.kind === "animated" || s.kind === "gif");
+    const animated = state.media === "video" && (state.stickers.some((s) => s.kind === "animated" || s.kind === "gif") ||
+        state.texts.some((t) => t.anim && t.anim.type !== "none"));
     let idle = 0;
     if (animated && getTime) {
       let from = performance.now();

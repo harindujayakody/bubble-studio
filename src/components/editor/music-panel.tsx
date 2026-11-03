@@ -114,7 +114,13 @@ export function MusicSection({
               max={100}
               defaultValue={80}
               format={(v) => `${v}%`}
-              onChange={(v) => set({ volume: v, on: v > 0 ? true : music.on }, "music:volume")}
+              onChange={(v) => {
+                set({ volume: v, on: v > 0 ? true : music.on }, "music:volume");
+                // The next track added starts at this level.
+                try {
+                  localStorage.setItem("bubble-studio:music-volume", String(v));
+                } catch {}
+              }}
             />
             <RangeField
               label="Start the song at"

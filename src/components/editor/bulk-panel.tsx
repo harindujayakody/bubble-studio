@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { PanelSection, RangeField } from "./controls";
 import { ensureFonts, exportDims, fitExport, orientImage, renderPost, type Assets } from "@/lib/editor/render";
@@ -36,13 +37,148 @@ function designFor(state: PostState, photo: BulkPhoto): PostState {
   };
 }
 
+/** Optional differences between bulk items, so a batch doesn't look copy-pasted. */
+export type BulkVariations = {
+  /** A different gentle filter on each item. */
+  randomLook: boolean;
+  /** Move text a little on each item. */
+  nudgeText: boolean;
+  /** One line per item, in order; replaces the chosen text layer's words. */
+  texts: string;
+  /** Which text layer the lines replace; defaults to the top one. */
+  textTarget: string | null;
+};
+
+export const NO_VARIATIONS: BulkVariations = { randomLook: false, nudgeText: false, texts: "", textTarget: null };
+
+// Soft looks only, at moderate strength, so no item comes out over-saturated.
+const GENTLE_LOOKS = ["vivid", "golden", "coastal", "film", "matte", "rosy", "clarendon", "gingham", "lark", "valencia", "crema", "tt-glow", "tt-soft", "sc-chill", "sc-sunny"];
+
+/** A stable number in [0, 1) for an item, so previews and exports pick the same variation. */
+function seeded(id: string, salt: number) {
+  let h = 2166136261 ^ salt;
+  for (let i = 0; i < id.length; i++) h = Math.imul(h ^ id.charCodeAt(i), 16777619);
+  return ((h >>> 0) % 100000) / 100000;
+}
+
+/** Apply the chosen variations to one item's copy of the shared design. */
+export function varyDesign(design: PostState, id: string, index: number, v: BulkVariations): PostState {
+  let next = design;
+  if (v.randomLook) {
+    next = {
+      ...next,
+      filter: GENTLE_LOOKS[Math.floor(seeded(id, 1) * GENTLE_LOOKS.length)],
+      filterStrength: 55 + Math.round(seeded(id, 2) * 25),
+    };
+  }
+  if (v.nudgeText) {
+    // A few percent at most, so text stays roughly where it was designed (and off faces).
+    const clamp = (n: number) => Math.min(0.94, Math.max(0.06, n));
+    next = {
+      ...next,
+      texts: next.texts.map((t, i) => ({
+        ...t,
+        x: clamp(t.x + (seeded(id, 10 + i) - 0.5) * 0.05),
+        y: clamp(t.y + (seeded(id, 30 + i) - 0.5) * 0.04),
+        rotation: t.rotation + (seeded(id, 50 + i) - 0.5) * 3,
+      })),
+    };
+  }
+  const line = v.texts.split("\n")[index]?.trim();
+  if (line && next.texts.length) {
+    const target = next.texts.find((t) => t.id === v.textTarget) ?? [...next.texts].sort((a, b) => b.z - a.z)[0];
+    next = { ...next, texts: next.texts.map((t) => (t.id === target.id ? { ...t, text: line } : t)) };
+  }
+  return next;
+}
+
 /** The design a photo exports with: its own when edited separately, otherwise the shared one. */
-export function bulkDesign(state: PostState, photo: BulkPhoto, separate: PostState | null): PostState {
-  if (!separate) return designFor(state, photo);
+export function bulkDesign(
+  state: PostState,
+  photo: BulkPhoto,
+  separate: PostState | null,
+  v: BulkVariations = NO_VARIATIONS,
+  index = 0,
+): PostState {
+  if (!separate) return varyDesign(designFor(state, photo), photo.id, index, v);
   // The photo on the canvas is being edited now; others keep their own edits, or start from
   // the design that was shared when separate editing was turned on.
   if (state.photoId === photo.id) return state;
-  return photo.design ?? designFor(separate, photo);
+  return photo.design ?? varyDesign(designFor(separate, photo), photo.id, index, v);
+}
+
+/** Variations: random look, nudged text and a text line per item. Shared by both bulk panels. */
+function VariationsSection({
+  state,
+  count,
+  noun,
+  value,
+  onChange,
+}: {
+  state: PostState;
+  count: number;
+  noun: string;
+  value: BulkVariations;
+  onChange: (v: BulkVariations) => void;
+}) {
+  const lines = value.texts.split("\n").filter((l) => l.trim()).length;
+  return (
+    <PanelSection title="Variations">
+      <div className="grid gap-3">
+        <label className="flex items-start justify-between gap-3">
+          <span className="grid gap-0.5">
+            <span className="text-[13px] font-medium text-ink">Random look</span>
+            <span className="text-xs text-pretty text-ink-soft">A different soft filter on each {noun}, never over the top.</span>
+          </span>
+          <Switch checked={value.randomLook} onCheckedChange={(randomLook) => onChange({ ...value, randomLook })} aria-label="Random look" />
+        </label>
+        <label className="flex items-start justify-between gap-3">
+          <span className="grid gap-0.5">
+            <span className="text-[13px] font-medium text-ink">Nudge text</span>
+            <span className="text-xs text-pretty text-ink-soft">Shifts text slightly on each {noun} so they don&apos;t look identical.</span>
+          </span>
+          <Switch checked={value.nudgeText} onCheckedChange={(nudgeText) => onChange({ ...value, nudgeText })} aria-label="Nudge text" />
+        </label>
+        <div className="grid gap-1.5">
+          <label htmlFor="bulk-texts" className="text-[13px] font-medium text-ink">
+            Text for each {noun}
+          </label>
+          {state.texts.length === 0 ? (
+            <p className="text-xs text-pretty text-ink-soft">Add a text to the design first; each line below then replaces it.</p>
+          ) : (
+            <>
+              {state.texts.length > 1 && (
+                <select
+                  value={value.textTarget ?? ""}
+                  onChange={(e) => onChange({ ...value, textTarget: e.target.value || null })}
+                  className="h-9 rounded-lg border border-input bg-sheet px-2 text-[13px] text-ink outline-none focus-visible:ring-2 focus-visible:ring-aqua"
+                  aria-label="Text layer to replace"
+                >
+                  <option value="">Top text layer</option>
+                  {state.texts.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.text.trim().slice(0, 32) || "Empty text"}
+                    </option>
+                  ))}
+                </select>
+              )}
+              <Textarea
+                id="bulk-texts"
+                rows={4}
+                value={value.texts}
+                onChange={(e) => onChange({ ...value, texts: e.target.value })}
+                placeholder={`Hello ${noun} 01\nHello ${noun} 02\n…`}
+                className="font-mono text-[13px]"
+              />
+              <p className="text-xs text-ink-soft">
+                One line per {noun}, in order · {lines} of {count} filled. Empty lines keep the design&apos;s text.
+              </p>
+            </>
+          )}
+        </div>
+      </div>
+    </PanelSection>
+  );
 }
 
 function render(design: PostState, photo: BulkPhoto, assets: Assets, width?: number) {
@@ -136,6 +272,8 @@ export function BulkPanel({
   photos,
   separate,
   onSeparate,
+  variations,
+  onVariations,
   onAdd,
   onFiles,
   onRemove,
@@ -144,6 +282,8 @@ export function BulkPanel({
 }: {
   state: PostState;
   assets: Assets;
+  variations: BulkVariations;
+  onVariations: (v: BulkVariations) => void;
   photos: BulkPhoto[];
   /** Each photo keeps its own edits; holds the shared design they start from. Null = one design for all. */
   separate: PostState | null;
@@ -166,24 +306,26 @@ export function BulkPanel({
     const timer = window.setTimeout(async () => {
       await ensureFonts(state);
       const next: Record<string, string> = {};
-      for (const p of photos) next[p.id] = render(bulkDesign(state, p, separate), p, assets, 220).toDataURL("image/jpeg", 0.75);
+      photos.forEach((p, i) => {
+        next[p.id] = render(bulkDesign(state, p, separate, variations, i), p, assets, 220).toDataURL("image/jpeg", 0.75);
+      });
       setThumbs(next);
     }, 250);
     return () => window.clearTimeout(timer);
-  }, [state, assets, photos, separate]);
+  }, [state, assets, photos, separate, variations]);
 
   const exportAll = async () => {
     cancel.current = false;
     setProgress(0);
     try {
-      for (const p of photos) await ensureFonts(bulkDesign(state, p, separate));
+      for (const p of photos) await ensureFonts(bulkDesign(state, p, separate, variations));
       const files: Record<string, Uint8Array> = {};
       const ext = format === "jpeg" ? "jpg" : "png";
       const used = new Set<string>();
       for (let i = 0; i < photos.length; i++) {
         if (cancel.current) throw new DOMException("Cancelled", "AbortError");
         const p = photos[i];
-        const blob = await toBlob(render(bulkDesign(state, p, separate), p, assets), `image/${format}`, format === "jpeg" ? quality / 100 : undefined);
+        const blob = await toBlob(render(bulkDesign(state, p, separate, variations, i), p, assets), `image/${format}`, format === "jpeg" ? quality / 100 : undefined);
         let name = `${p.name.replace(/\.[^.]+$/, "").replace(/[\\/:*?"<>|]+/g, "-") || "photo"}-bubble`;
         for (let n = 2; used.has(name); n++) name = `${name}-${n}`;
         used.add(name);
@@ -309,6 +451,8 @@ export function BulkPanel({
             </p>
           </PanelSection>
 
+          <VariationsSection state={state} count={photos.length} noun="photo" value={variations} onChange={onVariations} />
+
           <PanelSection title="Export all">
             <div className="grid gap-4">
               <ToggleGroup
@@ -371,10 +515,16 @@ export type BulkClip = {
 };
 
 /** The design a clip exports with: its own when edited separately, otherwise the shared one. */
-export function bulkReelDesign(state: PostState, clip: BulkClip, separate: PostState | null): PostState {
-  if (!separate) return reelDesignFor(state, clip);
+export function bulkReelDesign(
+  state: PostState,
+  clip: BulkClip,
+  separate: PostState | null,
+  v: BulkVariations = NO_VARIATIONS,
+  index = 0,
+): PostState {
+  if (!separate) return varyDesign(reelDesignFor(state, clip), clip.id, index, v);
   if (state.video?.id === clip.id) return state;
-  return clip.design ?? reelDesignFor(separate, clip);
+  return clip.design ?? varyDesign(reelDesignFor(separate, clip), clip.id, index, v);
 }
 
 /**
@@ -387,6 +537,8 @@ export function BulkReelPanel({
   clips,
   separate,
   onSeparate,
+  variations,
+  onVariations,
   onAdd,
   onFiles,
   onRemove,
@@ -396,6 +548,8 @@ export function BulkReelPanel({
   state: PostState;
   assets: Assets;
   clips: BulkClip[];
+  variations: BulkVariations;
+  onVariations: (v: BulkVariations) => void;
   /** Each clip keeps its own edits; holds the shared design they start from. Null = one design for all. */
   separate: PostState | null;
   onSeparate: (on: boolean) => void;
@@ -416,8 +570,8 @@ export function BulkReelPanel({
     const timer = window.setTimeout(async () => {
       await ensureFonts(state);
       const next: Record<string, string> = {};
-      for (const c of clips) {
-        const design = bulkReelDesign(state, c, separate);
+      for (const [i, c] of clips.entries()) {
+        const design = bulkReelDesign(state, c, separate, variations, i);
         const dims = exportDims(design);
         const canvas = document.createElement("canvas");
         canvas.width = 220;
@@ -434,7 +588,7 @@ export function BulkReelPanel({
       setThumbs(next);
     }, 250);
     return () => window.clearTimeout(timer);
-  }, [state, assets, clips, separate]);
+  }, [state, assets, clips, separate, variations]);
 
   const lengthOf = (c: BulkClip) => {
     const v = bulkReelDesign(state, c, separate).video;
@@ -451,7 +605,7 @@ export function BulkReelPanel({
       const used = new Set<string>();
       for (let i = 0; i < clips.length; i++) {
         const c = clips[i];
-        const design = bulkReelDesign(state, c, separate);
+        const design = bulkReelDesign(state, c, separate, variations, i);
         const { blob } = await fastExportReel({
           file: c.file,
           orientation: design.orientation,
@@ -605,6 +759,8 @@ export function BulkReelPanel({
                 : "Each clip uses its own length (up to 90 seconds) and the music is fitted to it."}
             </p>
           </PanelSection>
+
+          <VariationsSection state={state} count={clips.length} noun="clip" value={variations} onChange={onVariations} />
 
           <PanelSection title="Export all">
             <p className="mb-3 font-mono text-xs text-ink-soft tabular">
