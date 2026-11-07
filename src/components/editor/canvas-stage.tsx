@@ -53,6 +53,8 @@ type Props = {
   onDropFile: (file: File) => void;
   /** When set (bulk edit), every dropped file goes here instead. */
   onDropFiles?: (files: File[]) => void;
+  /** Draw tool: a stroke starts, moves or ends at (x, y) in post fractions. */
+  onDraw?: (phase: "start" | "move" | "end", x: number, y: number) => void;
 };
 
 /** Breathing room between the post and the edges of the workspace. */
@@ -154,7 +156,8 @@ export function CanvasStage(props: Props) {
   }, [panning]);
 
   const zoom = side ? Math.round((side / post.w) * 100) : 0;
-  const showHandles = !blurring && !panning;
+  const drawing = tool === "draw" && !!props.onDraw;
+  const showHandles = !blurring && !panning && !drawing;
 
   return (
     <div
@@ -286,6 +289,31 @@ export function CanvasStage(props: Props) {
                       />
                     );
                   })}
+
+                {drawing && (
+                  <div
+                    aria-label="Drawing area"
+                    className="absolute inset-0 cursor-crosshair touch-none"
+                    onPointerDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      e.currentTarget.setPointerCapture(e.pointerId);
+                      const r = e.currentTarget.getBoundingClientRect();
+                      props.onDraw!("start", (e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
+                    }}
+                    onPointerMove={(e) => {
+                      if (!e.currentTarget.hasPointerCapture(e.pointerId)) return;
+                      const r = e.currentTarget.getBoundingClientRect();
+                      // Coalesced events keep fast strokes smooth.
+                      const events = e.nativeEvent.getCoalescedEvents?.() ?? [e.nativeEvent];
+                      for (const ev of events) props.onDraw!("move", (ev.clientX - r.left) / r.width, (ev.clientY - r.top) / r.height);
+                    }}
+                    onPointerUp={(e) => {
+                      const r = e.currentTarget.getBoundingClientRect();
+                      props.onDraw!("end", (e.clientX - r.left) / r.width, (e.clientY - r.top) / r.height);
+                    }}
+                  />
+                )}
 
                 {blurring && (
                   <RegionLayer

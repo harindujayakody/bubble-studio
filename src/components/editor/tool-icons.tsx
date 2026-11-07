@@ -80,6 +80,14 @@ export const ElementsIcon: ToolIcon = (p) => (
   </Svg>
 );
 
+export const DrawIcon: ToolIcon = (p) => (
+  <Svg {...p}>
+    <path className="duo" d="M14.5 4.5 19.5 9.5 9 20H4v-5Z" />
+    <path d="M13 6l5 5" />
+    <path d="M15 20.5c2-1.5 4-1.6 5.5-.5" />
+  </Svg>
+);
+
 export const BlurIcon: ToolIcon = (p) => (
   <Svg {...p}>
     <path className="duo" d="M12 3.2s-6.25 6.6-6.25 11.05a6.25 6.25 0 0 0 12.5 0C18.25 9.8 12 3.2 12 3.2Z" />

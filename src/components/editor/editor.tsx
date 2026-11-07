@@ -23,6 +23,7 @@ import {
   BlurIcon,
   BulkIcon,
   CropIcon,
+  DrawIcon,
   ElementsIcon,
   FiltersIcon,
   PhotoIcon,
@@ -67,6 +68,8 @@ import { CanvasStage, type RegionDefaults } from "./canvas-stage";
 import { SizePreview, StartScreen, type StartStep, type StartTool } from "./start-screen";
 import { ExtractAudioScreen, MergeVideosScreen } from "./media-tool-screens";
 import { WatermarkSection } from "./watermark-panel";
+import { DrawPanel } from "./draw-panel";
+import { fromPost, strokesHit, toPost, type Brush, type PostStroke } from "@/lib/editor/draw";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -135,6 +138,7 @@ const TOOLS: { id: ToolId; label: string; icon: ToolIcon; key: string }[] = [
   { id: "crop", label: "Crop", icon: CropIcon, key: "C" },
   { id: "text", label: "Text", icon: TextIcon, key: "T" },
   { id: "elements", label: "Elements", icon: ElementsIcon, key: "E" },
+  { id: "draw", label: "Draw", icon: DrawIcon, key: "D" },
   { id: "blur", label: "Blur", icon: BlurIcon, key: "B" },
   { id: "bulk", label: "Bulk", icon: BulkIcon, key: "M" },
   { id: "settings", label: "Settings", icon: SettingsIcon, key: "S" },
@@ -463,6 +467,62 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
       addSticker({ kind: "gif", value: id, size: 320 }, next);
     } catch {
       toast.error("This GIF couldn't be opened", { description: "Try another GIF file." });
+    }
+  };
+
+  // Draw tool: brush settings, and the stroke being drawn (in post fractions).
+  const [brush, setBrush] = useState<{ type: Brush | "eraser"; color: string; width: number }>({ type: "pen", color: "#ff3d6e", width: 10 });
+  const stroke = useRef<{ layerId: string; strokes: PostStroke[]; key: string } | null>(null);
+  const onDraw = (phase: "start" | "move" | "end", x: number, y: number) => {
+    const { w: pw, h: ph } = postDims(state);
+    if (phase === "end") {
+      stroke.current = null;
+      return;
+    }
+    // Continue the selected drawing (if it isn't rotated); otherwise start a new one.
+    const current = state.stickers.find((s) => s.id === selected && s.kind === "drawing" && !s.rotation);
+    if (brush.type === "eraser") {
+      if (!current) return;
+      const all = toPost(current, pw, ph);
+      const hit = strokesHit(all, x, y, brush.width, pw, ph);
+      if (!hit.some(Boolean)) return;
+      const left = all.filter((_, i) => !hit[i]);
+      update(
+        (s) => ({
+          ...s,
+          stickers: left.length
+            ? s.stickers.map((t) => (t.id === current.id ? { ...t, ...fromPost(left, pw, ph) } : t))
+            : s.stickers.filter((t) => t.id !== current.id),
+        }),
+        `erase:${current.id}`,
+      );
+      if (!left.length) setSelectedId(null);
+      return;
+    }
+    if (phase === "start") {
+      const layerId = current?.id ?? crypto.randomUUID();
+      const strokes = current ? toPost(current, pw, ph) : [];
+      strokes.push({ pts: [x, y], color: brush.color, brush: brush.type, width: brush.width });
+      stroke.current = { layerId, strokes, key: `draw:${crypto.randomUUID()}` };
+    } else {
+      const st = stroke.current?.strokes.at(-1);
+      if (!st) return;
+      const [lx, ly] = st.pts.slice(-2);
+      if (Math.hypot((x - lx) * pw, (y - ly) * ph) < 1.5) return;
+      st.pts.push(x, y);
+    }
+    const { layerId, strokes, key } = stroke.current!;
+    const fit = fromPost(strokes, pw, ph);
+    update((s) => {
+      const exists = s.stickers.some((t) => t.id === layerId);
+      const layer: Sticker = exists
+        ? { ...s.stickers.find((t) => t.id === layerId)!, ...fit }
+        : { id: layerId, kind: "drawing", value: "drawing", rotation: 0, color: brush.color, opacity: 100, z: nextZ(s), ...fit };
+      return { ...s, stickers: exists ? s.stickers.map((t) => (t.id === layerId ? layer : t)) : [...s.stickers, layer] };
+    }, key);
+    if (phase === "start") {
+      setSelectedId(layerId);
+      setStartedBlank(true);
     }
   };
 
@@ -1129,6 +1189,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
               setTool("photo");
             }}
             onDropFile={loadFile}
+            onDraw={tool === "draw" ? onDraw : undefined}
             onDropFiles={
               tool === "bulk" ? (list) => void (state.media === "video" ? addBulkClips(list) : addBulkPhotos(list)) : undefined
             }
@@ -1186,6 +1247,14 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
             />
           )}
           {tool === "photo" && <WatermarkSection />}
+          {tool === "draw" && (
+            <DrawPanel
+              brush={brush}
+              onBrush={setBrush}
+              editing={state.stickers.some((s) => s.id === selected && s.kind === "drawing")}
+              onNewDrawing={() => setSelectedId(null)}
+            />
+          )}
           {tool === "filters" && <FiltersPanel source={lookSource} state={state} update={update} />}
           {tool === "adjust" && <AdjustPanel source={lookSource} state={state} update={update} />}
           {tool === "crop" && <CropPanel source={source} state={state} update={update} onOrient={setOrientation} />}

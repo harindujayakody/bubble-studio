@@ -18,7 +18,7 @@ export const POST_SIZES: Record<PostSizeId, { label: string; ratio: string; w: n
 /** Largest side we export at when matching an upload, to stay inside browser canvas limits. */
 export const MAX_EXPORT_SIDE = 4096;
 
-export type ToolId = "photo" | "filters" | "adjust" | "crop" | "text" | "elements" | "blur" | "bulk" | "settings";
+export type ToolId = "photo" | "filters" | "adjust" | "crop" | "text" | "elements" | "draw" | "blur" | "bulk" | "settings";
 
 export type Adjustments = {
   brightness: number; // -100..100
@@ -105,7 +105,7 @@ export type TextLayer = {
   z: number;
 } & Timing;
 
-export type StickerKind = "emoji" | "icon" | "image" | "shape" | "animated" | "gif" | "frame";
+export type StickerKind = "emoji" | "icon" | "image" | "shape" | "animated" | "gif" | "frame" | "drawing";
 
 export type ShapeId =
   | "square"
@@ -159,6 +159,8 @@ export type Sticker = {
   /** Frames: the photo inside (asset id) and how it sits: pan −1..1 each way, zoom ≥ 1. */
   photo?: string | null;
   pan?: { x: number; y: number; zoom: number };
+  /** Drawings: strokes inside the layer's box (points 0..1, width relative to the box width). */
+  strokes?: { pts: number[]; color: string; brush: "pen" | "marker" | "highlighter"; width: number }[];
   /** Stacking order shared with text layers; higher draws on top. */
   z: number;
 } & Timing;

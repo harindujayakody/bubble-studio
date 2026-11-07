@@ -31,6 +31,7 @@ import {
 import type { Sticker } from "./types";
 import { drawAnimated, drawShape } from "./elements";
 import { gifFrame } from "./gif";
+import { drawStrokes } from "./draw";
 
 export const STICKER_ICONS: Record<string, IconNode> = {
   ShoppingBag,
@@ -104,7 +105,7 @@ export function stickerSize(s: Sticker, assets: Record<string, CanvasImageSource
     const ratio = img ? img.height / img.width : 1;
     return { w: s.size, h: s.size * ratio };
   }
-  if (s.kind === "shape" || s.kind === "frame") return { w: s.size, h: s.size / (s.aspect ?? 1) };
+  if (s.kind === "shape" || s.kind === "frame" || s.kind === "drawing") return { w: s.size, h: s.size / (s.aspect ?? 1) };
   return { w: s.size, h: s.size };
 }
 
@@ -149,6 +150,8 @@ export function drawSticker(
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(s.value, 0, h * 0.04);
+  } else if (s.kind === "drawing") {
+    drawStrokes(ctx, s.strokes ?? [], w, h);
   } else if (s.kind === "shape") {
     drawShape(ctx, s, w, h, scale);
   } else if (s.kind === "gif") {

@@ -542,7 +542,7 @@ function StickerEditor({
     update((s) => ({ ...s, stickers: s.stickers.filter((x) => x.id !== id) }));
     onSelect(null);
   };
-  const title = { emoji: "Emoji", icon: "Icon", image: "Sticker", shape: "Shape", animated: "Animated sticker", gif: "GIF", frame: "Frame" }[sticker.kind];
+  const title = { emoji: "Emoji", icon: "Icon", image: "Sticker", shape: "Shape", animated: "Animated sticker", gif: "GIF", frame: "Frame", drawing: "Drawing" }[sticker.kind];
   const pan = sticker.pan ?? { x: 0, y: 0, zoom: 1 };
 
   return (
