@@ -27,6 +27,7 @@ This file is generated from `changelog.json` with `npm run changelog`.
 
 ### Improved
 
+- Twenty additional offline fonts and a searchable, grouped font picker
 - Sixteen subtle filters in Natural, Food, Product and Portrait groups
 - Background removal is available in the offline desktop app; the web app no longer ships its model and runtime
 - Every export gets a fresh file name, so saves never overwrite each other

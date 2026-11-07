@@ -22,6 +22,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Toggle } from "@/components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
@@ -38,7 +39,7 @@ import { SavedPhrases } from "./phrase-panel";
 import { RemoveBackground } from "./remove-background";
 import { FILTER_GROUPS, FILTER_PRESETS, type FilterGroup } from "@/lib/editor/filters";
 import { GRADIENT_PRESETS, SOLID_PRESETS, gradientCss } from "@/lib/editor/palettes";
-import { POSTER_FONTS, fontStack, getFont, nearestWeight } from "@/lib/editor/fonts";
+import { POSTER_FONTS, fontCategory, fontStack, getFont, nearestWeight } from "@/lib/editor/fonts";
 import { useBrand } from "@/lib/editor/brand";
 import { defaultCrop, postDims, renderPost, type Source } from "@/lib/editor/render";
 import { nextZ, restack } from "@/lib/editor/layers";
@@ -571,6 +572,7 @@ export function TextPanel({
   textareaRef: RefObject<HTMLTextAreaElement | null>;
 }) {
   const layer = state.texts.find((t) => t.id === selectedId) ?? null;
+  const [fontSearch, setFontSearch] = useState("");
   const brand = useBrand();
   const patch = (p: Partial<TextLayer>, key?: string) =>
     layer && update((s) => ({ ...s, texts: s.texts.map((t) => (t.id === layer.id ? { ...t, ...p } : t)) }), key);
@@ -685,6 +687,7 @@ export function TextPanel({
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent className="max-h-96">
+                  <div className="p-2"><Input aria-label="Search fonts" placeholder="Search fonts" value={fontSearch} onChange={(e) => setFontSearch(e.target.value)} onKeyDown={(e) => e.stopPropagation()} /></div>
                   {(brand.headingFont || brand.bodyFont) && (
                     <SelectGroup>
                       <SelectLabel>Brand fonts</SelectLabel>
@@ -695,14 +698,14 @@ export function TextPanel({
                       ))}
                     </SelectGroup>
                   )}
-                  {(["latin", "sinhala"] as const).map((script) => (
-                    <SelectGroup key={script}>
-                      <SelectLabel>{script === "latin" ? "English" : "සිංහල · Sinhala"}</SelectLabel>
-                      {POSTER_FONTS.filter((f) => f.script === script).map((f) => (
+                  {(["Headline", "Script", "Clean", "Serif", "Sinhala"] as const).map((category) => (
+                    <SelectGroup key={category}>
+                      <SelectLabel>{category === "Sinhala" ? "සිංහල · Sinhala" : category}</SelectLabel>
+                      {POSTER_FONTS.filter((f) => fontCategory(f) === category && f.label.toLowerCase().includes(fontSearch.toLowerCase().trim())).map((f) => (
                         <SelectItem key={f.family} value={f.family}>
                           <span className="flex items-baseline gap-2" style={{ fontFamily: `"${f.family}"`, fontSize: 16 }}>
                             {f.label}
-                            {script === "sinhala" && <span className="text-ink-soft">අකුරු</span>}
+                            {category === "Sinhala" && <span className="text-ink-soft">අකුරු</span>}
                           </span>
                         </SelectItem>
                       ))}
