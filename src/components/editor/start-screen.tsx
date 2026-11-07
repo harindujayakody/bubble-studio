@@ -5,10 +5,11 @@ import { ArrowRight, AudioLines, Film, ImageIcon, Lock, MoreHorizontal, Play, Pl
 import { cn } from "@/lib/utils";
 import type { DraftSummary } from "@/lib/editor/draft";
 import { gradientCss, GRADIENT_PRESETS } from "@/lib/editor/palettes";
-import { POST_SIZES, type PostSizeId, type ToolId } from "@/lib/editor/types";
+import { POST_SIZES, type PostSizeId, type PostState, type ToolId } from "@/lib/editor/types";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { BulkIcon, VideoIcon } from "./tool-icons";
 import { CustomSizeForm } from "./custom-size";
+import { TemplatesGallery } from "./templates-gallery";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const PHOTO_SIZES: PostSizeId[] = ["square", "feed", "portrait", "landscape", "story", "original"];
@@ -34,6 +35,7 @@ export type StartTool = "merge" | "extract";
 export function StartScreen({
   onPick,
   onTool,
+  onTemplate,
   initialStep = "media",
   recents = [],
   onOpen,
@@ -41,6 +43,8 @@ export function StartScreen({
 }: {
   onPick: (media: "photo" | "video", size: PostSizeId, openTool?: ToolId, canvas?: { w: number; h: number }) => void;
   onTool: (tool: StartTool) => void;
+  /** Open a template as a new design. */
+  onTemplate: (state: PostState) => void;
   initialStep?: StartStep;
   /** Designs saved in this browser, newest first. */
   recents?: DraftSummary[];
@@ -82,6 +86,8 @@ export function StartScreen({
             onPick={(size) => onPick("video", size)}
           />
         </div>
+
+        <TemplatesGallery onPick={onTemplate} />
 
         {recents.length > 0 && onOpen && (
           <section className="mt-10 md:mt-12 md:px-6" aria-labelledby="recent-heading">

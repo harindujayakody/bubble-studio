@@ -15,6 +15,7 @@ import {
   ImageIcon,
   Redo2,
   Ruler,
+  LayoutTemplate,
   Sun,
   Undo2,
 } from "lucide-react";
@@ -68,6 +69,8 @@ import { CanvasStage, type RegionDefaults } from "./canvas-stage";
 import { SizePreview, StartScreen, type StartStep, type StartTool } from "./start-screen";
 import { ExtractAudioScreen, MergeVideosScreen } from "./media-tool-screens";
 import { WatermarkSection } from "./watermark-panel";
+import { refreshMyTemplates } from "./templates-gallery";
+import { saveMyTemplate } from "@/lib/editor/templates";
 import { DrawPanel } from "./draw-panel";
 import { fromPost, strokesHit, toPost, type Brush, type PostStroke } from "@/lib/editor/draw";
 import {
@@ -1112,6 +1115,16 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
           <StartScreen
             key={startStep}
             onTool={setStartTool}
+            onTemplate={(t) => {
+              designId.current = crypto.randomUUID();
+              reset(t);
+              setStartedBlank(true);
+              // Point at the first empty photo frame so "Choose photo" is right there.
+              const slot = t.stickers.find((s) => s.kind === "frame" && !s.photo);
+              setSelectedId(slot?.id ?? null);
+              setTool(slot ? "elements" : "text");
+              setStarted(true);
+            }}
             initialStep={startStep}
             recents={recents}
             onOpen={resumeDraft}
@@ -1652,7 +1665,16 @@ function TopBar({
         onCustom={state.media === "photo" ? (dims) => onSize("custom", dims) : undefined}
       />
 
-      <NewMenu onNew={onNew} />
+      <NewMenu
+        onNew={onNew}
+        onSaveTemplate={() => {
+          const name = state.texts.find((t) => t.text.trim())?.text.trim().slice(0, 40) ?? "My template";
+          if (saveMyTemplate(state, name)) {
+            refreshMyTemplates();
+            toast.success("Saved as a template", { description: "Find it under My templates on the start page." });
+          } else toast.error("Couldn't save the template", { description: "Browser storage is full." });
+        }}
+      />
       <div className="hidden sm:block">{autosave}</div>
 
       <div className="ml-auto flex items-center gap-0.5 sm:gap-1">
@@ -2000,7 +2022,7 @@ function AutosaveMenu({ on, status, onToggle }: { on: boolean; status: SaveStatu
 }
 
 /** "New" in the top bar: start a photo post or a reel without hunting for the way back. */
-function NewMenu({ onNew }: { onNew: (step: StartStep) => void }) {
+function NewMenu({ onNew, onSaveTemplate }: { onNew: (step: StartStep) => void; onSaveTemplate: () => void }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger render={<Button variant="ghost" size="sm" className="gap-1.5 px-2" aria-label="Create new" />}>
@@ -2013,6 +2035,13 @@ function NewMenu({ onNew }: { onNew: (step: StartStep) => void }) {
           <span className="flex flex-col">
             <span className="text-sm font-medium text-ink">New photo post</span>
             <span className="text-[11px] text-ink-soft">Choose a size, then add a photo</span>
+          </span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={onSaveTemplate} className="gap-3 py-2">
+          <LayoutTemplate className="text-brand" />
+          <span className="flex flex-col">
+            <span className="text-sm font-medium text-ink">Save as template</span>
+            <span className="text-[11px] text-ink-soft">Reuse this layout from the start page</span>
           </span>
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => onNew("reel")} className="gap-3 py-2">
