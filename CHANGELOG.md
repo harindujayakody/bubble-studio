@@ -27,6 +27,7 @@ This file is generated from `changelog.json` with `npm run changelog`.
 
 ### Improved
 
+- Background removal is available in the offline desktop app; the web app no longer ships its model and runtime
 - Every export gets a fresh file name, so saves never overwrite each other
 - The save folder is asked once, then exports save straight into it (change it in Settings)
 - New music tracks start at the music volume you used last

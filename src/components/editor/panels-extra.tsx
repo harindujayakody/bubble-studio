@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, ChevronLeft, Circle, Copy, Grid3x3, Droplets, ImageIcon, ImagePlus, RotateCcw, Square, Trash2, Upload, Wand2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronLeft, Circle, Copy, Grid3x3, Droplets, ImageIcon, ImagePlus, RotateCcw, Square, Trash2, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -13,6 +13,7 @@ import { ANIMATED, GRID_LAYOUTS, ROUNDABLE, SHAPES, drawAnimated, gridLayout, sh
 import { CategoryArt, type ElementCategory } from "./element-tiles";
 import { Switch } from "@/components/ui/switch";
 import { useBrand } from "@/lib/editor/brand";
+import { RemoveBackground } from "./remove-background";
 import { nextZ, restack } from "@/lib/editor/layers";
 import type { Assets } from "@/lib/editor/render";
 import type { CollageGrid, PostState, Region, ShapeId, Sticker } from "@/lib/editor/types";
@@ -606,10 +607,7 @@ function StickerEditor({
               <RotateCcw /> Restore original
             </Button>
           ) : (
-            <Button onClick={onRemoveBackground} disabled={removingBackground}>
-              <Wand2 className={cn(removingBackground && "animate-pulse")} />
-              {removingBackground ? "Removing background…" : "Remove background"}
-            </Button>
+            <RemoveBackground onRemove={onRemoveBackground} removing={removingBackground} />
           )
         )}
         {sticker.kind === "frame" && (

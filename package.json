@@ -12,7 +12,6 @@
     "desktop:dist": "node scripts/desktop-build.mjs && electron-builder --win --publish never",
     "desktop:release": "node scripts/desktop-build.mjs && electron-builder --win --publish always",
     "desktop:dist:mac": "node scripts/desktop-build.mjs && electron-builder --mac --publish never",
-    "postinstall": "node scripts/copy-ort.mjs",
     "changelog": "node scripts/changelog.mjs"
   },
   "dependencies": {

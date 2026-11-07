@@ -18,7 +18,6 @@ import {
   RotateCwSquare,
   Trash2,
   Type,
-  Wand2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -36,6 +35,7 @@ import {
 } from "@/components/ui/select";
 import { ColorField, IconAction, PanelSection, RangeField } from "./controls";
 import { SavedPhrases } from "./phrase-panel";
+import { RemoveBackground } from "./remove-background";
 import { FILTER_GROUPS, FILTER_PRESETS, type FilterGroup } from "@/lib/editor/filters";
 import { GRADIENT_PRESETS, SOLID_PRESETS, gradientCss } from "@/lib/editor/palettes";
 import { POSTER_FONTS, fontStack, getFont, nearestWeight } from "@/lib/editor/fonts";
@@ -107,10 +107,7 @@ export function PhotoPanel({
                 <RotateCcw /> Restore original background
               </Button>
             ) : (
-              <Button onClick={onRemoveBackground} disabled={removingBackground}>
-                <Wand2 className={cn(removingBackground && "animate-pulse")} />
-                {removingBackground ? "Removing background…" : "Remove background"}
-              </Button>
+              <RemoveBackground onRemove={onRemoveBackground} removing={removingBackground} />
             )}
             <p className="text-xs text-pretty text-ink-soft">
               Background removal runs on this computer. The post&apos;s background colour shows behind the cut-out.

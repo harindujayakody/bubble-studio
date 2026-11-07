@@ -5,7 +5,7 @@ import type { InferenceSession } from "onnxruntime-web";
 /**
  * On-device background removal with U²-Netp (Apache-2.0) on ONNX Runtime Web (MIT).
  * Nothing leaves the device. The model and runtime are served from the app itself
- * (/models, /ort), so it also works offline in the desktop app.
+ * (/models, /ort), packaged with the desktop app so it works offline.
  * shortcut: U²-Netp is small (4.5 MB) but its edges are soft; swap in IS-Net (Apache-2.0) if quality needs to go up.
  */
 const SIZE = 320;

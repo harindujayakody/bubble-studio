@@ -51,7 +51,7 @@ The installers aren't code-signed yet, so Windows may show *"Windows protected y
 
 ### Photos
 - **35+ filters** (classic, Instagram-, TikTok- and Snapchat-inspired) and adjustments
-- **Background remover** that runs on your computer
+- **Background remover** that runs offline in the desktop app
 - Crop, rotate, reposition, blur or pixelate areas
 - **Watermark** ("Shot on…", badge or logo) on every export
 - Export **JPG or PNG** at the exact size
@@ -101,7 +101,7 @@ Requirements: **Node.js 22+** and npm.
 ```bash
 git clone https://github.com/harindujayakody/bubble-studio.git
 cd bubble-studio
-npm install        # also copies the ONNX runtime files into public/ort
+npm install
 npm run dev        # http://localhost:3000
 ```
 
