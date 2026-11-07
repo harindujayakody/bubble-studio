@@ -60,3 +60,6 @@ next-env.d.ts
 
 # Copied from node_modules by scripts/copy-ort.mjs
 /public/ort/
+
+# Reference images (not ours to publish)
+/public/templates_samples/
