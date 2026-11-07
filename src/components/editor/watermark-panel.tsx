@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { PanelSection, RangeField } from "./controls";
+import { useBrand } from "@/lib/editor/brand";
 import {
   logoFromFile,
   setWatermark,
@@ -70,6 +71,7 @@ function Segmented<T extends string>({
  */
 export function WatermarkSection() {
   const wm = useWatermark();
+  const brand = useBrand();
   const logoInput = useRef<HTMLInputElement>(null);
   const set = (p: Partial<Watermark>) => setWatermark(p);
 
@@ -130,6 +132,11 @@ export function WatermarkSection() {
                     <ImagePlus className="size-4 text-ink-soft" />
                   )}
                 </span>
+                {brand.logos[0] && brand.logos[0] !== wm.logo && (
+                  <Button variant="outline" size="sm" onClick={() => set({ logo: brand.logos[0], useLogo: true })}>
+                    Use brand logo
+                  </Button>
+                )}
                 <Button variant="outline" size="sm" onClick={() => logoInput.current?.click()}>
                   {wm.logo ? "Change logo" : "Upload logo"}
                 </Button>

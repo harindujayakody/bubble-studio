@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { PanelSection } from "./controls";
+import { BrandKitSection } from "./brand-panel";
 import { GithubMark, REPO_URL } from "./start-screen";
 import { deleteDraft, setAutosave } from "@/lib/editor/draft";
 import { clearPhrases } from "@/lib/editor/phrases";
@@ -49,6 +50,7 @@ export function SettingsPanel() {
 
   return (
     <>
+      <BrandKitSection />
       <AppearanceSection />
       {desktop && <UpdatesSection version={version} />}
       <DownloadsSection settings={settings} onChange={setSettings} />

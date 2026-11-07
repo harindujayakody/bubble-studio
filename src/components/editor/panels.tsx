@@ -38,6 +38,7 @@ import { SavedPhrases } from "./phrase-panel";
 import { FILTER_GROUPS, FILTER_PRESETS, type FilterGroup } from "@/lib/editor/filters";
 import { GRADIENT_PRESETS, SOLID_PRESETS, gradientCss } from "@/lib/editor/palettes";
 import { POSTER_FONTS, fontStack, getFont, nearestWeight } from "@/lib/editor/fonts";
+import { useBrand } from "@/lib/editor/brand";
 import { defaultCrop, postDims, renderPost, type Source } from "@/lib/editor/render";
 import { nextZ, restack } from "@/lib/editor/layers";
 import { autoOutline } from "@/lib/editor/color";
@@ -552,6 +553,7 @@ export function TextPanel({
   textareaRef: RefObject<HTMLTextAreaElement | null>;
 }) {
   const layer = state.texts.find((t) => t.id === selectedId) ?? null;
+  const brand = useBrand();
   const patch = (p: Partial<TextLayer>, key?: string) =>
     layer && update((s) => ({ ...s, texts: s.texts.map((t) => (t.id === layer.id ? { ...t, ...p } : t)) }), key);
 
@@ -665,6 +667,16 @@ export function TextPanel({
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent className="max-h-96">
+                  {(brand.headingFont || brand.bodyFont) && (
+                    <SelectGroup>
+                      <SelectLabel>Brand fonts</SelectLabel>
+                      {[...new Set([brand.headingFont, brand.bodyFont].filter((f): f is string => !!f))].map((f) => (
+                        <SelectItem key={`brand-${f}`} value={f}>
+                          <span style={{ fontFamily: fontStack(f), fontSize: 16 }}>{f}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  )}
                   {(["latin", "sinhala"] as const).map((script) => (
                     <SelectGroup key={script}>
                       <SelectLabel>{script === "latin" ? "English" : "සිංහල · Sinhala"}</SelectLabel>

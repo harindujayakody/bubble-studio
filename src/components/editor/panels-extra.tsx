@@ -12,6 +12,7 @@ import { canDecodeGif } from "@/lib/editor/gif";
 import { ANIMATED, GRID_LAYOUTS, ROUNDABLE, SHAPES, drawAnimated, gridLayout, shapePath } from "@/lib/editor/elements";
 import { CategoryArt, type ElementCategory } from "./element-tiles";
 import { Switch } from "@/components/ui/switch";
+import { useBrand } from "@/lib/editor/brand";
 import { nextZ, restack } from "@/lib/editor/layers";
 import type { Assets } from "@/lib/editor/render";
 import type { CollageGrid, PostState, Region, ShapeId, Sticker } from "@/lib/editor/types";
@@ -48,6 +49,7 @@ export function ElementsPanel({
   library,
   onPickCell,
   onPickFramePhoto,
+  onAddLogo,
 }: {
   state: PostState;
   update: Update;
@@ -63,10 +65,13 @@ export function ElementsPanel({
   onPickCell: (index: number) => void;
   /** Choose the photo inside a frame. */
   onPickFramePhoto: (frameId: string) => void;
+  /** Add a brand-kit logo to the post. */
+  onAddLogo: (dataUrl: string) => void;
 }) {
   const sticker = state.stickers.find((s) => s.id === selectedId) ?? null;
   const [category, setCategory] = useState<ElementCategory | null>(null);
   const current = CATEGORIES.find((c) => c.id === category);
+  const brand = useBrand();
   const video = state.media === "video";
 
   return (
@@ -82,6 +87,24 @@ export function ElementsPanel({
       )}
       {state.grid && !video && <CollageEditor state={state} update={update} assets={assets} onPickCell={onPickCell} />}
 
+      {!current && brand.logos.length > 0 && (
+        <PanelSection title="Your brand">
+          <div className="grid grid-cols-4 gap-2">
+            {brand.logos.map((l, i) => (
+              <button
+                key={i}
+                type="button"
+                aria-label={`Add logo ${i + 1}`}
+                onClick={() => onAddLogo(l)}
+                className="checker grid aspect-square place-items-center overflow-hidden rounded-lg ring-1 ring-rule outline-none hover:ring-brand focus-visible:ring-2 focus-visible:ring-aqua"
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={l} alt="" className="max-h-full max-w-full object-contain p-1.5" />
+              </button>
+            ))}
+          </div>
+        </PanelSection>
+      )}
       {!current ? (
         <PanelSection title="Elements">
           <div className="grid grid-cols-3 gap-x-2 gap-y-4">

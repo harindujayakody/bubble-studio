@@ -105,7 +105,8 @@ import { AdjustPanel, CropPanel, FiltersPanel, PhotoPanel, TextPanel } from "./p
 import { RangeField } from "./controls";
 import { useHistory } from "@/lib/editor/use-history";
 import { canFastExport, fastExportReel, probeVideo, reelDesignFor } from "@/lib/editor/fast-export";
-import { SINHALA_RE } from "@/lib/editor/fonts";
+import { SINHALA_RE, nearestWeight } from "@/lib/editor/fonts";
+import { getBrand } from "@/lib/editor/brand";
 import { moveLayer, nextZ, restack } from "@/lib/editor/layers";
 import { inkFor, mix } from "@/lib/editor/color";
 import {
@@ -526,6 +527,20 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
     }
   };
 
+  /** Put a brand logo on the post as an image sticker. */
+  const addBrandLogo = async (dataUrl: string) => {
+    const blob = await (await fetch(dataUrl)).blob();
+    const img = new Image();
+    img.onload = () => {
+      const id = crypto.randomUUID();
+      files.current.set(id, blob);
+      const next = { ...photos, [id]: img };
+      setPhotos(next);
+      addSticker({ kind: "image", value: id, size: 260 }, next);
+    };
+    img.src = dataUrl;
+  };
+
   /** The photo inside a frame layer. */
   const loadFramePhoto = (file: File, frameId: string) => {
     if (!file.type.startsWith("image/") || file.type === "image/svg+xml") {
@@ -638,13 +653,16 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
   const addText = (style: TextStyleId, text?: string) => {
     const st = TEXT_STYLES[style];
     const offset = state.texts.length * 0.06;
+    // Brand fonts: headings take the heading font, small text the body font (Sinhala keeps its own).
+    const kit = getBrand();
+    const brandFont = style === "sinhala" ? null : style === "body" ? (kit.bodyFont ?? kit.headingFont) : kit.headingFont;
     const layer: TextLayer = {
       id: crypto.randomUUID(),
       text: text ?? DEFAULT_TEXT[style],
       x: 0.5,
       y: Math.min(0.85, (style === "headline" ? 0.42 : style === "body" ? 0.7 : 0.58) + offset),
-      fontFamily: st.fontFamily,
-      fontWeight: st.fontWeight,
+      fontFamily: brandFont ?? st.fontFamily,
+      fontWeight: brandFont ? nearestWeight(brandFont, st.fontWeight) : st.fontWeight,
       fontSize: st.fontSize,
       color: defaultInk,
       align: "center",
@@ -1280,6 +1298,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
               library={stickers}
               onUpload={() => stickerFileRef.current?.click()}
               onUploadGif={() => gifFileRef.current?.click()}
+              onAddLogo={(l) => void addBrandLogo(l)}
               onPickFramePhoto={(id) => {
                 pendingFrame.current = id;
                 frameFileRef.current?.click();

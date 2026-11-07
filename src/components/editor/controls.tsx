@@ -3,6 +3,7 @@
 import { useId, useState, type ReactNode } from "react";
 import { Check, ChevronDown, Plus } from "lucide-react";
 import { SOLID_PALETTES } from "@/lib/editor/palettes";
+import { useBrand } from "@/lib/editor/brand";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -206,6 +207,7 @@ export function ColorField({
   const id = useId();
   const [showPalettes, setShowPalettes] = useState(palettes === "open");
   const v = value.toLowerCase();
+  const brand = useBrand();
   return (
     <div className="grid gap-2.5">
       <div className="flex items-center justify-between gap-2">
@@ -219,6 +221,16 @@ export function ColorField({
           {value}
         </label>
       </div>
+      {brand.colors.length > 0 && (
+        <div className="grid gap-1.5">
+          <span className="text-[11px] font-medium text-ink-soft">Brand colours</span>
+          <div className="grid grid-cols-8 gap-2">
+            {brand.colors.map((c, i) => (
+              <Swatch key={c + i} color={c.toLowerCase()} active={v === c.toLowerCase()} label={`Brand colour ${c}`} onClick={() => onChange(c.toLowerCase())} />
+            ))}
+          </div>
+        </div>
+      )}
       <div className="grid grid-cols-8 gap-2">
         {swatches.map((c) => (
           <Swatch key={c} color={c} active={v === c} label={`Use colour ${c}`} onClick={() => onChange(c)} />
