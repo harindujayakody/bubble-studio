@@ -9,9 +9,13 @@ type FilterParams = {
   hue: number; // degrees
 };
 
-export type FilterGroup = "classic" | "instagram" | "tiktok" | "snapchat";
+export type FilterGroup = "natural" | "food" | "product" | "portrait" | "classic" | "instagram" | "tiktok" | "snapchat";
 
 export const FILTER_GROUPS: { id: FilterGroup; label: string; note: string }[] = [
+  { id: "natural", label: "Natural", note: "Gentle everyday adjustments" },
+  { id: "food", label: "Food", note: "Fresh and appetising" },
+  { id: "product", label: "Product", note: "Clean and clear" },
+  { id: "portrait", label: "Portrait", note: "Soft, natural tones" },
   { id: "classic", label: "Classic", note: "Everyday looks" },
   { id: "instagram", label: "Instagram", note: "Inspired by Instagram filters" },
   { id: "tiktok", label: "TikTok", note: "Inspired by popular TikTok looks" },
@@ -42,6 +46,22 @@ const IDENTITY: FilterParams = {
 
 export const FILTER_PRESETS: FilterPreset[] = [
   { id: "original", label: "Original", params: {} },
+  { id: "natural-daylight", label: "Daylight", group: "natural", params: { brightness: 1.03, contrast: 1.02, saturate: 1.04 } },
+  { id: "natural-soft", label: "Soft light", group: "natural", params: { brightness: 1.04, contrast: 0.97, saturate: 0.98 } },
+  { id: "natural-warm", label: "Warm light", group: "natural", params: { brightness: 1.02, saturate: 1.04, sepia: 0.04 } },
+  { id: "natural-clear", label: "Clear", group: "natural", params: { contrast: 1.05, saturate: 1.06 } },
+  { id: "food-fresh", label: "Fresh", group: "food", params: { brightness: 1.03, contrast: 1.04, saturate: 1.1 } },
+  { id: "food-warm", label: "Warm plate", group: "food", params: { brightness: 1.02, saturate: 1.08, sepia: 0.05 } },
+  { id: "food-bright", label: "Bright table", group: "food", params: { brightness: 1.06, contrast: 1.02, saturate: 1.06 } },
+  { id: "food-rich", label: "Rich", group: "food", params: { contrast: 1.06, saturate: 1.12 } },
+  { id: "product-clean", label: "Clean", group: "product", params: { brightness: 1.05, contrast: 1.03, saturate: 1.02 } },
+  { id: "product-crisp", label: "Crisp", group: "product", params: { contrast: 1.06, saturate: 1.04 } },
+  { id: "product-neutral", label: "Neutral", group: "product", params: { brightness: 1.02, contrast: 1.03, saturate: 0.96 } },
+  { id: "product-soft", label: "Soft studio", group: "product", params: { brightness: 1.04, contrast: 0.98, saturate: 1.02 } },
+  { id: "portrait-glow", label: "Glow", group: "portrait", params: { brightness: 1.04, contrast: 0.98, saturate: 1.03, sepia: 0.02 } },
+  { id: "portrait-sun", label: "Sunlight", group: "portrait", params: { brightness: 1.03, saturate: 1.04, sepia: 0.04 } },
+  { id: "portrait-calm", label: "Calm", group: "portrait", params: { brightness: 1.02, contrast: 0.97, saturate: 0.95 } },
+  { id: "portrait-classic", label: "Classic skin", group: "portrait", params: { brightness: 1.02, contrast: 1.02, saturate: 1.02 } },
   { id: "enhance", label: "Enhance", params: { brightness: 1.03, contrast: 1.07, saturate: 1.1 } },
   { id: "vivid", label: "Vivid", params: { saturate: 1.4, contrast: 1.08 } },
   {
