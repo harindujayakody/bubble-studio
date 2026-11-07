@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { PanelSection } from "./controls";
 import { BrandKitSection } from "./brand-panel";
+import changelog from "../../../changelog.json";
 import { GithubMark, REPO_URL } from "./start-screen";
 import { deleteDraft, setAutosave } from "@/lib/editor/draft";
 import { clearPhrases } from "@/lib/editor/phrases";
@@ -55,6 +56,7 @@ export function SettingsPanel() {
       {desktop && <UpdatesSection version={version} />}
       <DownloadsSection settings={settings} onChange={setSettings} />
       <StorageSection usage={usage} desktop={desktop} onCleared={refreshUsage} />
+      <WhatsNew />
       <PanelSection title="About">
         <div className="flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -412,5 +414,41 @@ function ClearRow({ label, detail, onClear }: { label: string; detail: string; o
         <Trash2 /> Clear
       </Button>
     </li>
+  );
+}
+
+/** What's new: the latest entry of changelog.json, the same in the web and desktop app. */
+function WhatsNew() {
+  const [all, setAll] = useState(false);
+  const latest = changelog.releases[0];
+  const items = [...latest.added, ...(latest.improved ?? []), ...(latest.fixed ?? [])];
+  const shown = all ? items : items.slice(0, 5);
+  return (
+    <PanelSection title={`What's new in ${latest.version}`}>
+      <p className="-mt-1 mb-3 text-[13px] font-medium text-ink">{latest.title}</p>
+      <ul className="grid gap-1.5">
+        {shown.map((item) => (
+          <li key={item} className="flex gap-2 text-[13px] text-pretty text-ink-soft">
+            <span aria-hidden className="mt-[7px] size-1.5 shrink-0 rounded-full bg-brand" />
+            {item}
+          </li>
+        ))}
+      </ul>
+      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[13px]">
+        {items.length > shown.length && (
+          <button type="button" onClick={() => setAll(true)} className="font-medium text-brand outline-none hover:underline focus-visible:ring-2 focus-visible:ring-aqua">
+            Show all {items.length}
+          </button>
+        )}
+        <a
+          href={`${REPO_URL}/blob/main/CHANGELOG.md`}
+          target="_blank"
+          rel="noreferrer"
+          className="font-medium text-brand outline-none hover:underline focus-visible:ring-2 focus-visible:ring-aqua"
+        >
+          Full changelog
+        </a>
+      </div>
+    </PanelSection>
   );
 }

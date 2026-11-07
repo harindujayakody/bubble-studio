@@ -85,10 +85,30 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           path: dist
           merge-multiple: true
+
+      # Release notes: this version's entry from changelog.json (web and desktop share it), plus downloads.
+      - name: Release notes
+        env:
+          V: ${{ needs.version.outputs.version }}
+        run: |
+          {
+            node scripts/changelog.mjs --notes "$(tr -d '[:space:]' < VERSION)"
+            echo
+            echo "### Download"
+            echo
+            echo "**Windows:** \`Bubble-Studio-Setup-$V.exe\`. Installed copies update themselves."
+            echo
+            echo "**Mac (Apple Silicon: M1, M2, M3):** \`Bubble-Studio-$V-arm64.dmg\`. Open it and drag Bubble Studio into Applications. The first time, right-click the app and choose **Open**."
+            echo
+            echo "The web app at the same commit shows the same version, $V. Full history: [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/main/CHANGELOG.md)."
+            echo
+            echo "Made by Harindu Jayakody, a product of [Infiax.com](https://infiax.com). Built from ${{ github.sha }}."
+          } > notes.md
 
       - name: Publish release
         uses: softprops/action-gh-release@v2
@@ -98,12 +118,7 @@ jobs:
           target_commitish: ${{ github.sha }}
           make_latest: true
           fail_on_unmatched_files: true
-          body: |
-            **Windows:** download `Bubble-Studio-Setup-${{ needs.version.outputs.version }}.exe`. Installed copies update themselves.
-
-            **Mac (Apple Silicon: M1, M2, M3):** download `Bubble-Studio-${{ needs.version.outputs.version }}-arm64.dmg`, open it and drag Bubble Studio into Applications. The first time, right-click the app and choose **Open**.
-
-            Bubble Studio is made by Harindu Jayakody, a product of [Infiax.com](https://infiax.com). Built from ${{ github.sha }}.
+          body_path: notes.md
           files: |
             dist/*.exe
             dist/*.dmg

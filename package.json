@@ -1,6 +1,6 @@
 {
   "name": "bubble-studio",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -12,7 +12,8 @@
     "desktop:dist": "node scripts/desktop-build.mjs && electron-builder --win --publish never",
     "desktop:release": "node scripts/desktop-build.mjs && electron-builder --win --publish always",
     "desktop:dist:mac": "node scripts/desktop-build.mjs && electron-builder --mac --publish never",
-    "postinstall": "node scripts/copy-ort.mjs"
+    "postinstall": "node scripts/copy-ort.mjs",
+    "changelog": "node scripts/changelog.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.9.0",
