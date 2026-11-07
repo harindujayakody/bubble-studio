@@ -67,6 +67,10 @@ export type TextOutline = { on: boolean; width: number; color: "auto" | string }
 
 export const DEFAULT_OUTLINE: TextOutline = { on: false, width: 30, color: "auto" };
 
+export type TextEffectType = "none" | "curve" | "glow" | "neon" | "hollow" | "gradient" | "echo";
+/** `amount`: curve −100..100 (negative bends down), otherwise 0..100. `color`: glow, neon, gradient end or echo colour. */
+export type TextEffect = { type: TextEffectType; amount: number; color: string };
+
 export type TextAnimationType = "none" | "fade" | "pop" | "slide" | "typewriter" | "wobble" | "bounce" | "pulse";
 export type TextAnimation = { type: TextAnimationType; speed: number /* 0.5..3 */ };
 
@@ -94,6 +98,8 @@ export type TextLayer = {
   outline?: TextOutline;
   /** Reels: how the text moves. Photos ignore it. */
   anim?: TextAnimation;
+  /** Curve, glow, neon, hollow, gradient or echo. */
+  effect?: TextEffect;
   rotation: number; // degrees
   /** Stacking order shared with stickers; higher draws on top. */
   z: number;

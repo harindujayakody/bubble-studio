@@ -13,6 +13,7 @@ import {
   type Crop,
   type Orientation,
   type PostState,
+  type TextEffect,
   type TextLayer,
 } from "./types";
 
@@ -205,13 +206,16 @@ function drawText(
   const padX = pad * (fill.mode === "lines" ? 0.8 : 1);
   const padY = pad * (fill.mode === "lines" ? 0.25 : 0.7);
 
+  const effect = layer.effect && layer.effect.type !== "none" ? layer.effect : null;
+  const arc = effect?.type === "curve" && Math.abs(effect.amount) >= 1 ? curveLayout(ctx, lines, effect.amount, fontSize) : null;
+
   const box: TextBox = {
     id: layer.id,
     kind: "text",
     cx: layer.x,
     cy: layer.y,
-    w: (boxW + padX * 2) / width,
-    h: (boxH + padY * 2) / height,
+    w: (arc ? arc.w : boxW + padX * 2) / width,
+    h: (arc ? arc.h : boxH + padY * 2) / height,
     rotation: layer.rotation,
   };
   if (!paint) return box;
@@ -246,7 +250,26 @@ function drawText(
   const lineX = (w: number) =>
     layer.align === "left" ? left : layer.align === "right" ? left + boxW - w : -w / 2;
 
-  if (fill.mode !== "none") {
+  /** Paint the words straight (line by line) or along the curve. */
+  const glyphs = (op: "fill" | "stroke", dx = 0, dy = 0) => {
+    const put = (t: string, x: number, y: number) => (op === "fill" ? ctx.fillText(t, x + dx, y + dy) : ctx.strokeText(t, x + dx, y + dy));
+    if (!arc) {
+      lines.forEach((line, i) => put(visible[i], lineX(line.width), top + (i + 0.5) * lineHeight));
+      return;
+    }
+    let left = budget === Infinity ? Infinity : visible.join(" ").length;
+    for (const g of arc.glyphs) {
+      if (left <= 0) break;
+      left -= g.text.length;
+      ctx.save();
+      ctx.translate(g.x, g.y);
+      ctx.rotate(g.rot);
+      put(g.text, -g.w / 2, 0);
+      ctx.restore();
+    }
+  };
+
+  if (fill.mode !== "none" && !arc) {
     ctx.fillStyle = fill.color;
     ctx.globalAlpha = fill.opacity / 100;
     if (fill.mode === "box") {
@@ -282,17 +305,105 @@ function drawText(
     ctx.lineWidth = (outline.width / 100) * fontSize * 0.32;
     ctx.lineJoin = "round";
     ctx.miterLimit = 2;
-    lines.forEach((line, i) => {
-      ctx.strokeText(visible[i], lineX(line.width), top + (i + 0.5) * lineHeight);
-    });
+    glyphs("stroke");
     ctx.shadowColor = "transparent";
   }
-  ctx.fillStyle = layer.color;
-  lines.forEach((line, i) => {
-    ctx.fillText(visible[i], lineX(line.width), top + (i + 0.5) * lineHeight);
-  });
+  paintFill(ctx, effect, layer.color, fontSize, arc ? arc.w : boxW, glyphs);
   ctx.restore();
   return box;
+}
+
+/** The letters' fill, with the chosen effect. */
+function paintFill(
+  ctx: CanvasRenderingContext2D,
+  effect: TextEffect | null,
+  color: string,
+  fontSize: number,
+  boxW: number,
+  glyphs: (op: "fill" | "stroke", dx?: number, dy?: number) => void,
+) {
+  const amount = (effect?.amount ?? 50) / 100;
+  ctx.fillStyle = color;
+  switch (effect?.type) {
+    case "glow":
+      ctx.shadowColor = effect.color;
+      ctx.shadowBlur = fontSize * (0.08 + Math.abs(amount) * 0.5);
+      glyphs("fill");
+      glyphs("fill");
+      ctx.shadowColor = "transparent";
+      glyphs("fill");
+      return;
+    case "neon":
+      // A light core inside layers of coloured glow, like a lit tube.
+      ctx.fillStyle = effect.color;
+      ctx.shadowColor = effect.color;
+      for (const k of [0.7, 0.35, 0.15]) {
+        ctx.shadowBlur = fontSize * k * (0.4 + Math.abs(amount));
+        glyphs("fill");
+      }
+      ctx.shadowColor = "transparent";
+      ctx.fillStyle = "#ffffff";
+      ctx.globalAlpha *= 0.92;
+      glyphs("fill");
+      return;
+    case "hollow":
+      ctx.strokeStyle = color;
+      ctx.lineWidth = fontSize * (0.015 + Math.abs(amount) * 0.07);
+      ctx.lineJoin = "round";
+      glyphs("stroke");
+      return;
+    case "gradient": {
+      const g = ctx.createLinearGradient(-boxW / 2, 0, boxW / 2, 0);
+      g.addColorStop(0, color);
+      g.addColorStop(1, effect.color);
+      ctx.fillStyle = g;
+      glyphs("fill");
+      return;
+    }
+    case "echo": {
+      const d = fontSize * (0.02 + Math.abs(amount) * 0.07);
+      ctx.save();
+      ctx.fillStyle = effect.color;
+      for (const [k, a] of [[3, 0.25], [2, 0.45], [1, 0.75]] as const) {
+        ctx.globalAlpha *= a;
+        glyphs("fill", d * k, d * k);
+        ctx.globalAlpha /= a;
+      }
+      ctx.restore();
+      glyphs("fill");
+      return;
+    }
+    default:
+      glyphs("fill");
+  }
+}
+
+type ArcGlyph = { text: string; x: number; y: number; rot: number; w: number };
+
+/**
+ * Lay the text out along an arc (all lines joined). Positive amounts arch upward like a
+ * rainbow, negative ones smile. Measured per grapheme so Sinhala clusters stay together.
+ */
+function curveLayout(ctx: CanvasRenderingContext2D, lines: { text: string }[], amount: number, fontSize: number) {
+  const text = lines.map((l) => l.text).join(" ");
+  const parts = typeof Intl !== "undefined" && "Segmenter" in Intl
+    ? [...new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(text)].map((s) => s.segment)
+    : [...text];
+  const widths = parts.map((p) => ctx.measureText(p).width);
+  const total = Math.max(1, widths.reduce((a, b) => a + b, 0));
+  const theta = (Math.abs(amount) / 100) * Math.PI * 1.8;
+  const r = total / theta;
+  const s = amount > 0 ? 1 : -1;
+  const sag = r * (1 - Math.cos(Math.min(theta, Math.PI * 1.999) / 2));
+  const glyphs: ArcGlyph[] = [];
+  let at = -total / 2;
+  parts.forEach((p, i) => {
+    const a = (at + widths[i] / 2) / r;
+    glyphs.push({ text: p, w: widths[i], x: r * Math.sin(a), y: s * (r * (1 - Math.cos(a)) - sag / 2), rot: s * a });
+    at += widths[i];
+  });
+  const w = (theta < Math.PI ? 2 * r * Math.sin(theta / 2) : 2 * r) + fontSize;
+  return { glyphs, w, h: sag + fontSize * 1.3 };
 }
 
 type RenderOptions = {

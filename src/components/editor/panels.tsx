@@ -53,6 +53,7 @@ import {
   type TextFill,
   type TextOutline,
   type TextAnimationType,
+  type TextEffectType,
   type TextLayer,
   type TextStyleId,
 } from "@/lib/editor/types";
@@ -349,6 +350,48 @@ export function FiltersPanel({
         );
       })}
     </>
+  );
+}
+
+const TEXT_EFFECTS: { id: TextEffectType; label: string; amount: number; color: string }[] = [
+  { id: "none", label: "None", amount: 0, color: "#ffffff" },
+  { id: "curve", label: "Curve", amount: 45, color: "#ffffff" },
+  { id: "glow", label: "Glow", amount: 45, color: "#ffd60a" },
+  { id: "neon", label: "Neon", amount: 55, color: "#ff3df0" },
+  { id: "hollow", label: "Hollow", amount: 35, color: "#ffffff" },
+  { id: "gradient", label: "Gradient", amount: 0, color: "#00c4cc" },
+  { id: "echo", label: "Echo", amount: 45, color: "#ff3d6e" },
+];
+
+/** A small "Aa" showing the effect, drawn with CSS so it needs no canvas. */
+function EffectPreview({ id, color }: { id: TextEffectType; color: string }) {
+  const base = "font-heading text-[17px] leading-none font-bold";
+  if (id === "curve") {
+    return (
+      <svg viewBox="0 0 60 30" className="h-7 w-14" aria-hidden>
+        <path id="fx-arc" d="M6 26 Q30 2 54 26" fill="none" />
+        <text fontSize="12" fontWeight="700" fill="#fff" fontFamily="Poppins, sans-serif">
+          <textPath href="#fx-arc" startOffset="50%" textAnchor="middle">Curve</textPath>
+        </text>
+      </svg>
+    );
+  }
+  const style: React.CSSProperties =
+    id === "glow"
+      ? { color: "#fff", textShadow: `0 0 6px ${color}, 0 0 12px ${color}` }
+      : id === "neon"
+        ? { color: "#fff", textShadow: `0 0 3px ${color}, 0 0 8px ${color}, 0 0 14px ${color}` }
+        : id === "hollow"
+          ? { color: "transparent", WebkitTextStroke: "1.4px #fff" }
+          : id === "gradient"
+            ? { backgroundImage: `linear-gradient(90deg, #ffffff, ${color})`, WebkitBackgroundClip: "text", color: "transparent" }
+            : id === "echo"
+              ? { color: "#fff", textShadow: `2px 2px 0 ${color}cc, 4px 4px 0 ${color}80, 6px 6px 0 ${color}40` }
+              : { color: "#fff" };
+  return (
+    <span className={base} style={style} aria-hidden>
+      Aa
+    </span>
   );
 }
 
@@ -732,6 +775,62 @@ export function TextPanel({
               <RangeField label="Rotation" value={layer.rotation} min={-45} max={45} defaultValue={0} centered format={(v) => `${v}°`}
                 onChange={(v) => patch({ rotation: v }, `rot:${layer.id}`)} />
             </div>
+          </PanelSection>
+
+          <PanelSection title="Effects">
+            <div className="grid grid-cols-4 gap-1.5" role="radiogroup" aria-label="Text effect">
+              {TEXT_EFFECTS.map((fx) => {
+                const on = (layer.effect?.type ?? "none") === fx.id;
+                return (
+                  <button
+                    key={fx.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={on}
+                    title={fx.label}
+                    onClick={() =>
+                      patch({
+                        effect: fx.id === "none" ? undefined : { type: fx.id, amount: fx.amount, color: fx.color },
+                      })
+                    }
+                    className={cn(
+                      "grid gap-1 rounded-lg border p-1.5 text-center outline-none transition-colors focus-visible:ring-2 focus-visible:ring-aqua",
+                      on ? "border-brand bg-brand-wash" : "border-rule hover:bg-tile",
+                    )}
+                  >
+                    <span className="grid h-9 place-items-center overflow-hidden rounded-md bg-[#1b1c22]">
+                      <EffectPreview id={fx.id} color={fx.color} />
+                    </span>
+                    <span className={cn("text-[11px] font-medium", on ? "text-brand" : "text-ink")}>{fx.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+            {layer.effect && layer.effect.type !== "none" && (
+              <div className="mt-4 grid gap-4">
+                {layer.effect.type !== "gradient" && (
+                  <RangeField
+                    label={{ curve: "Curve", glow: "Glow size", neon: "Brightness", hollow: "Thickness", echo: "Distance" }[layer.effect.type]}
+                    value={layer.effect.amount}
+                    min={layer.effect.type === "curve" ? -100 : 0}
+                    max={100}
+                    centered={layer.effect.type === "curve"}
+                    defaultValue={TEXT_EFFECTS.find((f) => f.id === layer.effect!.type)?.amount}
+                    onChange={(v) => patch({ effect: { ...layer.effect!, amount: v } }, `fx:${layer.id}`)}
+                  />
+                )}
+                {["glow", "neon", "gradient", "echo"].includes(layer.effect.type) && (
+                  <ColorField
+                    label={layer.effect.type === "gradient" ? "Gradient end colour" : "Effect colour"}
+                    value={layer.effect.color}
+                    onChange={(c) => patch({ effect: { ...layer.effect!, color: c } }, `fxc:${layer.id}`)}
+                  />
+                )}
+                {layer.effect.type === "curve" && (
+                  <p className="text-xs text-pretty text-ink-soft">All lines are set on one arc. Drag left for a smile, right for an arch.</p>
+                )}
+              </div>
+            )}
           </PanelSection>
 
           <PanelSection title="Colour and effects">
