@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, ChevronLeft, Circle, Copy, Grid3x3, Droplets, ImageIcon, ImagePlus, Square, Trash2, Upload } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronLeft, Circle, Copy, Grid3x3, Droplets, ImageIcon, ImagePlus, RotateCcw, Square, Trash2, Upload, Wand2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -50,6 +50,8 @@ export function ElementsPanel({
   onPickCell,
   onPickFramePhoto,
   onAddLogo,
+  onRemoveBackground,
+  removingBackground,
 }: {
   state: PostState;
   update: Update;
@@ -67,6 +69,9 @@ export function ElementsPanel({
   onPickFramePhoto: (frameId: string) => void;
   /** Add a brand-kit logo to the post. */
   onAddLogo: (dataUrl: string) => void;
+  /** Cut the background out of an image sticker. */
+  onRemoveBackground: (stickerId: string) => void;
+  removingBackground: boolean;
 }) {
   const sticker = state.stickers.find((s) => s.id === selectedId) ?? null;
   const [category, setCategory] = useState<ElementCategory | null>(null);
@@ -83,6 +88,8 @@ export function ElementsPanel({
           update={update}
           onSelect={onSelect}
           onPickFramePhoto={() => onPickFramePhoto(sticker.id)}
+          onRemoveBackground={() => onRemoveBackground(sticker.id)}
+          removingBackground={removingBackground}
         />
       )}
       {state.grid && !video && <CollageEditor state={state} update={update} assets={assets} onPickCell={onPickCell} />}
@@ -545,12 +552,16 @@ function StickerEditor({
   update,
   onSelect,
   onPickFramePhoto,
+  onRemoveBackground,
+  removingBackground,
 }: {
   sticker: Sticker;
   state: PostState;
   update: Update;
   onSelect: (id: string | null) => void;
   onPickFramePhoto: () => void;
+  onRemoveBackground: () => void;
+  removingBackground: boolean;
 }) {
   const id = sticker.id;
   const patch = (p: Partial<Sticker>, key?: string) =>
@@ -588,6 +599,18 @@ function StickerEditor({
             value={sticker.color}
             onChange={(c) => patch({ color: c }, `color:${id}`)}
           />
+        )}
+        {sticker.kind === "image" && (
+          sticker.original ? (
+            <Button variant="outline" onClick={() => patch({ value: sticker.original!, original: undefined })}>
+              <RotateCcw /> Restore original
+            </Button>
+          ) : (
+            <Button onClick={onRemoveBackground} disabled={removingBackground}>
+              <Wand2 className={cn(removingBackground && "animate-pulse")} />
+              {removingBackground ? "Removing background…" : "Remove background"}
+            </Button>
+          )
         )}
         {sticker.kind === "frame" && (
           <>

@@ -532,6 +532,40 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
     }
   };
 
+  /** Cut the background out of the photo, or out of an image sticker. The original is kept for Restore. */
+  const [removingBg, setRemovingBg] = useState(false);
+  const removeBg = async (stickerId?: string) => {
+    const sticker = stickerId ? state.stickers.find((s) => s.id === stickerId) : undefined;
+    const sourceId = sticker ? sticker.value : state.photoId;
+    const img = sourceId ? photos[sourceId] : undefined;
+    if (!sourceId || !img) return;
+    setRemovingBg(true);
+    try {
+      const { removeBackground } = await import("@/lib/editor/bg-remove");
+      const cut = await removeBackground(img);
+      const blob = await new Promise<Blob>((resolve, reject) => cut.toBlob((b) => (b ? resolve(b) : reject(new Error("Couldn't encode the cut-out."))), "image/png"));
+      const cutImg = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const i = new Image();
+        i.onload = () => resolve(i);
+        i.onerror = reject;
+        i.src = URL.createObjectURL(blob);
+      });
+      const id = crypto.randomUUID();
+      files.current.set(id, blob);
+      setPhotos((p) => ({ ...p, [id]: cutImg }));
+      if (sticker) {
+        update((s) => ({ ...s, stickers: s.stickers.map((x) => (x.id === sticker.id ? { ...x, value: id, original: x.original ?? x.value } : x)) }));
+      } else {
+        update((s) => ({ ...s, photoId: id, photoOriginal: s.photoOriginal ?? s.photoId }));
+      }
+      toast.success("Background removed", { description: "Use Restore to bring it back." });
+    } catch (err) {
+      toast.error("Couldn't remove the background", { description: err instanceof Error ? err.message : undefined });
+    } finally {
+      setRemovingBg(false);
+    }
+  };
+
   /** Put a brand logo on the post as an image sticker. */
   const addBrandLogo = async (dataUrl: string) => {
     const blob = await (await fetch(dataUrl)).blob();
@@ -868,6 +902,10 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
         if (blob) nextPhotos[next.photoId] = await imageFrom(URL.createObjectURL(blob));
         else missing.push("photo");
       }
+      if (next.photoOriginal) {
+        const blob = stored.get(next.photoOriginal);
+        if (blob) nextPhotos[next.photoOriginal] = await imageFrom(URL.createObjectURL(blob));
+      }
       for (const cell of next.grid?.cells ?? []) {
         const blob = cell && !nextPhotos[cell] ? stored.get(cell) : undefined;
         if (cell && blob) nextPhotos[cell] = await imageFrom(URL.createObjectURL(blob));
@@ -885,6 +923,12 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
             nextPhotos[s.value] = await imageFrom(URL.createObjectURL(blob));
           }
           continue;
+        }
+        if (s.kind === "image" && s.original && !nextPhotos[s.original]) {
+          const blob = stored.get(s.original);
+          const lib = stickers.find((l) => l.id === s.original);
+          const src = blob ? URL.createObjectURL(blob) : lib?.src;
+          if (src) nextPhotos[s.original] = await imageFrom(src).catch(() => undefined as unknown as HTMLImageElement);
         }
         if (s.kind !== "image" || nextPhotos[s.value]) continue;
         const blob = stored.get(s.value);
@@ -1277,7 +1321,9 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
               state={state}
               update={update}
               onPickPhoto={pickPhoto}
-              onRemovePhoto={() => update((s) => ({ ...s, photoId: null, photoName: null, crop: null }))}
+              onRemovePhoto={() => update((s) => ({ ...s, photoId: null, photoName: null, photoOriginal: null, crop: null }))}
+              onRemoveBackground={() => void removeBg()}
+              removingBackground={removingBg}
             />
           )}
           {tool === "photo" && <WatermarkSection />}
@@ -1315,6 +1361,8 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
               onUpload={() => stickerFileRef.current?.click()}
               onUploadGif={() => gifFileRef.current?.click()}
               onAddLogo={(l) => void addBrandLogo(l)}
+              onRemoveBackground={(id) => void removeBg(id)}
+              removingBackground={removingBg}
               onPickFramePhoto={(id) => {
                 pendingFrame.current = id;
                 frameFileRef.current?.click();
@@ -1974,10 +2022,12 @@ function designName(state: typeof DEFAULT_STATE) {
 function buildDraft(state: typeof DEFAULT_STATE, id: string): Draft & { id: string } {
   const assets: DraftAsset[] = [];
   if (state.photoId) assets.push({ id: state.photoId, kind: "image" });
+  if (state.photoOriginal) assets.push({ id: state.photoOriginal, kind: "image" });
   for (const cell of state.grid?.cells ?? []) if (cell && cell !== state.photoId) assets.push({ id: cell, kind: "image" });
   for (const s of state.stickers) {
     if ((s.kind === "image" || s.kind === "gif") && !s.value.startsWith("custom:")) assets.push({ id: s.value, kind: "image" });
     if (s.kind === "frame" && s.photo) assets.push({ id: s.photo, kind: "image" });
+    if (s.original && !s.original.startsWith("custom:")) assets.push({ id: s.original, kind: "image" });
   }
   if (state.video) assets.push({ id: state.video.id, kind: "video", name: state.video.name });
   if (state.music && !state.music.src.startsWith("/")) assets.push({ id: state.music.id, kind: "audio", name: state.music.name });

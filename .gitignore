@@ -57,3 +57,6 @@ next-env.d.ts
 
 # Impeccable review captures
 .impeccable/review/
+
+# Copied from node_modules by scripts/copy-ort.mjs
+/public/ort/

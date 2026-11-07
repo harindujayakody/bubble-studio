@@ -156,6 +156,8 @@ export type Sticker = {
   radius?: number; // 0..100, corner rounding of squares and bubbles
   /** Width / height. Shapes can be stretched; everything else is square or follows its image. */
   aspect?: number;
+  /** Image stickers after "Remove background": the untouched image, for "Restore original". */
+  original?: string;
   /** Frames: the photo inside (asset id) and how it sits: pan −1..1 each way, zoom ≥ 1. */
   photo?: string | null;
   pan?: { x: number; y: number; zoom: number };
@@ -233,6 +235,8 @@ export type PostState = {
   /** Present when a photo is loaded. The pixels themselves live outside history. */
   photoId: string | null;
   photoName: string | null;
+  /** Set after "Remove background": the untouched photo, for "Restore original". */
+  photoOriginal?: string | null;
   filter: string;
   filterStrength: number; // 0..100
   adjust: Adjustments;

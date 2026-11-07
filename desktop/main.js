@@ -51,6 +51,9 @@ const TYPES = {
   ".ogg": "audio/ogg",
   ".mp4": "video/mp4",
   ".webm": "video/webm",
+  ".mjs": "text/javascript; charset=utf-8",
+  ".wasm": "application/wasm",
+  ".onnx": "application/octet-stream",
 };
 
 /** Map an app:// URL to a file inside the web build, refusing anything outside it. */
