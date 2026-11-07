@@ -105,7 +105,7 @@ export type TextLayer = {
   z: number;
 } & Timing;
 
-export type StickerKind = "emoji" | "icon" | "image" | "shape" | "animated" | "gif";
+export type StickerKind = "emoji" | "icon" | "image" | "shape" | "animated" | "gif" | "frame";
 
 export type ShapeId =
   | "square"
@@ -156,6 +156,9 @@ export type Sticker = {
   radius?: number; // 0..100, corner rounding of squares and bubbles
   /** Width / height. Shapes can be stretched; everything else is square or follows its image. */
   aspect?: number;
+  /** Frames: the photo inside (asset id) and how it sits: pan −1..1 each way, zoom ≥ 1. */
+  photo?: string | null;
+  pan?: { x: number; y: number; zoom: number };
   /** Stacking order shared with text layers; higher draws on top. */
   z: number;
 } & Timing;

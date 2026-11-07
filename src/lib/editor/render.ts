@@ -3,13 +3,14 @@ import { resolveLook } from "./filters";
 import { autoOutline } from "./color";
 import { stackOrder, visibleAt } from "./layers";
 import { drawSticker, stickerSize } from "./stickers";
-import { gridCells } from "./elements";
+import { gridCells, shapePath } from "./elements";
 import { drawWatermark, ensureWatermarkFont, getWatermark, watermarkApplies } from "./watermark";
 import {
   MAX_EXPORT_SIDE,
   POST_SIZE,
   POST_SIZES,
   type Region,
+  type Sticker,
   type Crop,
   type Orientation,
   type PostState,
@@ -479,6 +480,47 @@ export function drawPhotoLook(
   ctx.restore();
 }
 
+/** A photo inside a shape, centred on the current origin. Empty frames show a soft placeholder. */
+function drawFrame(
+  ctx: CanvasRenderingContext2D,
+  s: Sticker,
+  w: number,
+  h: number,
+  scale: number,
+  assets: Assets,
+  state: PostState,
+  lookOverride?: RenderOptions["lookOverride"],
+) {
+  const path = shapePath(s.shape ?? "circle", w, h, s.radius ?? 0);
+  const img = s.photo ? assets[s.photo] : undefined;
+  ctx.save();
+  ctx.globalAlpha *= s.opacity / 100;
+  ctx.clip(path);
+  if (img) {
+    const iw = img.naturalWidth || img.width;
+    const ih = img.naturalHeight || img.height;
+    const pan = s.pan ?? { x: 0, y: 0, zoom: 1 };
+    const k = Math.max(w / iw, h / ih) * Math.max(1, pan.zoom);
+    const sw = w / k;
+    const sh = h / k;
+    ctx.translate(-w / 2, -h / 2);
+    drawPhotoLook(ctx, img as unknown as Source, state, ((iw - sw) / 2) * (1 + pan.x), ((ih - sh) / 2) * (1 + pan.y), sw, sh, w, h, lookOverride);
+  } else {
+    ctx.fillStyle = s.color || "#d9dbe1";
+    ctx.fill(path);
+  }
+  ctx.restore();
+  const bw = (s.strokeWidth ?? 0) * scale;
+  if (bw > 0 && s.stroke) {
+    ctx.save();
+    ctx.clip(path);
+    ctx.strokeStyle = s.stroke;
+    ctx.lineWidth = bw * 2;
+    ctx.stroke(path);
+    ctx.restore();
+  }
+}
+
 /** Blur or pixelate areas of what has been drawn so far (photo and background). */
 function applyRegions(
   ctx: CanvasRenderingContext2D,
@@ -599,7 +641,8 @@ export function renderPost(ctx: CanvasRenderingContext2D, opts: RenderOptions): 
         ctx.save();
         ctx.translate(s.x * width, s.y * height);
         ctx.rotate((s.rotation * Math.PI) / 180);
-        drawSticker(ctx, s, scale, assets, time ?? 0);
+        if (s.kind === "frame") drawFrame(ctx, s, w * scale, h * scale, scale, assets, state, lookOverride);
+        else drawSticker(ctx, s, scale, assets, time ?? 0);
         ctx.restore();
         boxes.push({ id: s.id, kind: "sticker", cx: s.x, cy: s.y, w: w / post.w, h: h / post.h, rotation: s.rotation });
       } else {

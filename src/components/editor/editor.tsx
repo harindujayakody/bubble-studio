@@ -195,6 +195,8 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
   const musicVideoRef = useRef<HTMLInputElement>(null);
   const cellFileRef = useRef<HTMLInputElement>(null);
   const gifFileRef = useRef<HTMLInputElement>(null);
+  const frameFileRef = useRef<HTMLInputElement>(null);
+  const pendingFrame = useRef<string | null>(null);
   const pendingCell = useRef(0);
   /** Loaded music, keyed by track id (library URL or upload id). */
   const [tracks, setTracks] = useState<Record<string, HTMLAudioElement>>({});
@@ -462,6 +464,26 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
     } catch {
       toast.error("This GIF couldn't be opened", { description: "Try another GIF file." });
     }
+  };
+
+  /** The photo inside a frame layer. */
+  const loadFramePhoto = (file: File, frameId: string) => {
+    if (!file.type.startsWith("image/") || file.type === "image/svg+xml") {
+      toast.error("That file isn't a photo", { description: "Choose a JPG, PNG or WebP image." });
+      return;
+    }
+    const img = new Image();
+    img.onload = () => {
+      const id = crypto.randomUUID();
+      files.current.set(id, file);
+      setPhotos((p) => ({ ...p, [id]: img }));
+      update((s) => ({
+        ...s,
+        stickers: s.stickers.map((x) => (x.id === frameId ? { ...x, photo: id, pan: { x: 0, y: 0, zoom: 1 } } : x)),
+      }));
+    };
+    img.onerror = () => toast.error("This photo couldn't be opened", { description: "Try saving it as JPG or PNG." });
+    img.src = URL.createObjectURL(file);
   };
 
   /** A photo for one cell of the collage. */
@@ -768,6 +790,11 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
         if (cell && blob) nextPhotos[cell] = await imageFrom(URL.createObjectURL(blob));
       }
       for (const s of next.stickers) {
+        if (s.kind === "frame") {
+          const blob = s.photo && !nextPhotos[s.photo] ? stored.get(s.photo) : undefined;
+          if (s.photo && blob) nextPhotos[s.photo] = await imageFrom(URL.createObjectURL(blob));
+          continue;
+        }
         if (s.kind === "gif" && !nextPhotos[s.value]) {
           const blob = stored.get(s.value);
           if (blob) {
@@ -1184,6 +1211,10 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
               library={stickers}
               onUpload={() => stickerFileRef.current?.click()}
               onUploadGif={() => gifFileRef.current?.click()}
+              onPickFramePhoto={(id) => {
+                pendingFrame.current = id;
+                frameFileRef.current?.click();
+              }}
               onPickCell={(i) => {
                 pendingCell.current = i;
                 cellFileRef.current?.click();
@@ -1307,6 +1338,19 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
         onChange={(e) => {
           const list = Array.from(e.target.files ?? []);
           if (list.length) void addBulkPhotos(list);
+          e.target.value = "";
+        }}
+      />
+      <input
+        ref={frameFileRef}
+        type="file"
+        accept={ACCEPT}
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f && pendingFrame.current) loadFramePhoto(f, pendingFrame.current);
           e.target.value = "";
         }}
       />
@@ -1805,6 +1849,7 @@ function buildDraft(state: typeof DEFAULT_STATE, id: string): Draft & { id: stri
   for (const cell of state.grid?.cells ?? []) if (cell && cell !== state.photoId) assets.push({ id: cell, kind: "image" });
   for (const s of state.stickers) {
     if ((s.kind === "image" || s.kind === "gif") && !s.value.startsWith("custom:")) assets.push({ id: s.value, kind: "image" });
+    if (s.kind === "frame" && s.photo) assets.push({ id: s.photo, kind: "image" });
   }
   if (state.video) assets.push({ id: state.video.id, kind: "video", name: state.video.name });
   if (state.music && !state.music.src.startsWith("/")) assets.push({ id: state.music.id, kind: "audio", name: state.music.name });

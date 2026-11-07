@@ -104,7 +104,7 @@ export function stickerSize(s: Sticker, assets: Record<string, CanvasImageSource
     const ratio = img ? img.height / img.width : 1;
     return { w: s.size, h: s.size * ratio };
   }
-  if (s.kind === "shape") return { w: s.size, h: s.size / (s.aspect ?? 1) };
+  if (s.kind === "shape" || s.kind === "frame") return { w: s.size, h: s.size / (s.aspect ?? 1) };
   return { w: s.size, h: s.size };
 }
 

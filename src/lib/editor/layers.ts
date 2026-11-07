@@ -18,6 +18,7 @@ export function layerName(item: StackItem) {
   if (s.kind === "shape") return `${(s.shape ?? "square").replace(/-/g, " ")} shape`;
   if (s.kind === "animated") return "Animated sticker";
   if (s.kind === "gif") return "GIF";
+  if (s.kind === "frame") return `${(s.shape ?? "circle").replace(/-/g, " ")} frame`;
   return s.value.startsWith("custom:") ? "Sticker" : "Image";
 }
 

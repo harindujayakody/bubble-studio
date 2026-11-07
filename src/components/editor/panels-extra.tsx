@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, ChevronLeft, Circle, Copy, Grid3x3, Droplets, ImagePlus, Square, Trash2, Upload } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronLeft, Circle, Copy, Grid3x3, Droplets, ImageIcon, ImagePlus, Square, Trash2, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -30,7 +30,7 @@ const CATEGORIES: { id: ElementCategory; label: string; soon?: boolean }[] = [
   { id: "emoji", label: "Emoji" },
   { id: "upload", label: "Uploads" },
   { id: "charts", label: "Charts", soon: true },
-  { id: "frames", label: "Frames", soon: true },
+  { id: "frames", label: "Frames" },
   { id: "mockups", label: "Mockups", soon: true },
   { id: "three", label: "3D", soon: true },
 ];
@@ -47,6 +47,7 @@ export function ElementsPanel({
   onUploadGif,
   library,
   onPickCell,
+  onPickFramePhoto,
 }: {
   state: PostState;
   update: Update;
@@ -60,6 +61,8 @@ export function ElementsPanel({
   library: LibrarySticker[];
   /** Choose a photo for a collage cell. */
   onPickCell: (index: number) => void;
+  /** Choose the photo inside a frame. */
+  onPickFramePhoto: (frameId: string) => void;
 }) {
   const sticker = state.stickers.find((s) => s.id === selectedId) ?? null;
   const [category, setCategory] = useState<ElementCategory | null>(null);
@@ -68,7 +71,15 @@ export function ElementsPanel({
 
   return (
     <>
-      {sticker && <StickerEditor sticker={sticker} state={state} update={update} onSelect={onSelect} />}
+      {sticker && (
+        <StickerEditor
+          sticker={sticker}
+          state={state}
+          update={update}
+          onSelect={onSelect}
+          onPickFramePhoto={() => onPickFramePhoto(sticker.id)}
+        />
+      )}
       {state.grid && !video && <CollageEditor state={state} update={update} assets={assets} onPickCell={onPickCell} />}
 
       {!current ? (
@@ -163,6 +174,43 @@ export function ElementsPanel({
               </div>
               <p className="mt-3 text-xs text-pretty text-ink-soft">
                 Change the fill, border and corners after adding. Drag a corner to resize.
+              </p>
+            </>
+          )}
+
+          {category === "frames" && (
+            <>
+              <div className="grid grid-cols-3 gap-2">
+                {FRAME_SHAPES.map((f) => (
+                  <button
+                    key={f.id}
+                    type="button"
+                    aria-label={`Add ${f.label.toLowerCase()} frame`}
+                    title={f.label}
+                    onClick={() =>
+                      onAdd({
+                        kind: "frame",
+                        value: f.id,
+                        shape: f.id,
+                        size: 420,
+                        aspect: f.aspect ?? 1,
+                        radius: f.radius ?? 0,
+                        color: "#d9dbe1",
+                        stroke: "#ffffff",
+                        strokeWidth: 0,
+                        photo: null,
+                        pan: { x: 0, y: 0, zoom: 1 },
+                      })
+                    }
+                    className="relative grid aspect-square place-items-center rounded-xl bg-tile p-4 text-ink-soft/50 outline-none transition-colors hover:bg-brand-wash hover:text-brand/50 focus-visible:ring-2 focus-visible:ring-aqua"
+                  >
+                    <ShapeThumb shape={f.id} />
+                    <ImageIcon className="absolute size-5 text-ink-soft" />
+                  </button>
+                ))}
+              </div>
+              <p className="mt-3 text-xs text-pretty text-ink-soft">
+                Add a frame, then choose a photo for it. Zoom and move the photo inside the frame from its settings.
               </p>
             </>
           )}
@@ -326,6 +374,22 @@ export function ElementsPanel({
   );
 }
 
+/** Shapes offered as photo frames. */
+const FRAME_SHAPES: { id: ShapeId; label: string; aspect?: number; radius?: number }[] = [
+  { id: "circle", label: "Circle" },
+  { id: "rounded", label: "Rounded square", radius: 30 },
+  { id: "square", label: "Square" },
+  { id: "arch", label: "Arch", aspect: 0.8 },
+  { id: "u-shape", label: "U shape", aspect: 0.8 },
+  { id: "heart", label: "Heart" },
+  { id: "hexagon", label: "Hexagon" },
+  { id: "diamond", label: "Diamond" },
+  { id: "star", label: "Star" },
+  { id: "triangle", label: "Triangle" },
+  { id: "ticket", label: "Ticket", aspect: 1.4 },
+  { id: "plaque", label: "Plaque", aspect: 1.2 },
+];
+
 const SHAPE_ASPECT: Partial<Record<ShapeId, number>> = Object.fromEntries(SHAPES.map((s) => [s.id, s.aspect ?? 1]));
 
 /** Position a collage cell (fractions) inside a preview box, with a small inset. */
@@ -457,11 +521,13 @@ function StickerEditor({
   state,
   update,
   onSelect,
+  onPickFramePhoto,
 }: {
   sticker: Sticker;
   state: PostState;
   update: Update;
   onSelect: (id: string | null) => void;
+  onPickFramePhoto: () => void;
 }) {
   const id = sticker.id;
   const patch = (p: Partial<Sticker>, key?: string) =>
@@ -476,7 +542,8 @@ function StickerEditor({
     update((s) => ({ ...s, stickers: s.stickers.filter((x) => x.id !== id) }));
     onSelect(null);
   };
-  const title = { emoji: "Emoji", icon: "Icon", image: "Sticker", shape: "Shape", animated: "Animated sticker", gif: "GIF" }[sticker.kind];
+  const title = { emoji: "Emoji", icon: "Icon", image: "Sticker", shape: "Shape", animated: "Animated sticker", gif: "GIF", frame: "Frame" }[sticker.kind];
+  const pan = sticker.pan ?? { x: 0, y: 0, zoom: 1 };
 
   return (
     <PanelSection
@@ -498,6 +565,35 @@ function StickerEditor({
             value={sticker.color}
             onChange={(c) => patch({ color: c }, `color:${id}`)}
           />
+        )}
+        {sticker.kind === "frame" && (
+          <>
+            <Button onClick={onPickFramePhoto} className="w-full">
+              <ImagePlus /> {sticker.photo ? "Replace photo" : "Choose photo"}
+            </Button>
+            {sticker.photo && (
+              <div className="grid gap-4">
+                <RangeField label="Zoom" value={Math.round(pan.zoom * 100)} min={100} max={300} defaultValue={100} format={(v) => `${v}%`}
+                  onChange={(v) => patch({ pan: { ...pan, zoom: v / 100 } }, `pan:${id}`)} />
+                <RangeField label="Move left / right" value={Math.round(pan.x * 100)} min={-100} max={100} defaultValue={0} centered
+                  onChange={(v) => patch({ pan: { ...pan, x: v / 100 } }, `panx:${id}`)} />
+                <RangeField label="Move up / down" value={Math.round(pan.y * 100)} min={-100} max={100} defaultValue={0} centered
+                  onChange={(v) => patch({ pan: { ...pan, y: v / 100 } }, `pany:${id}`)} />
+              </div>
+            )}
+            <div className="grid gap-3">
+              <span className="text-[13px] font-medium text-ink">Border</span>
+              <RangeField label="Border width" value={sticker.strokeWidth ?? 0} min={0} max={60} format={(v) => (v ? `${v} px` : "None")}
+                onChange={(v) => patch({ strokeWidth: v }, `stroke:${id}`)} />
+              {(sticker.strokeWidth ?? 0) > 0 && (
+                <ColorField label="Border colour" value={sticker.stroke ?? "#ffffff"} onChange={(c) => patch({ stroke: c }, `strokec:${id}`)} />
+              )}
+            </div>
+            {sticker.shape && ROUNDABLE.includes(sticker.shape) && (
+              <RangeField label="Corner radius" value={sticker.radius ?? 0} min={0} max={100} format={(v) => `${v}%`}
+                onChange={(v) => patch({ radius: v }, `radius:${id}`)} />
+            )}
+          </>
         )}
         {sticker.kind === "shape" && (
           <>
