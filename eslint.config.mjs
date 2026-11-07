@@ -12,7 +12,16 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    ".agents/**",
+    ".claude/**",
+    ".codex/**",
+    ".gemini/**",
+    ".impeccable/**",
+    "desktop/web/**",
+    "dist-desktop/**",
+    "public/ort/**",
   ]),
+  { files: ["desktop/**/*.js"], rules: { "@typescript-eslint/no-require-imports": "off" } },
 ]);
 
 export default eslintConfig;

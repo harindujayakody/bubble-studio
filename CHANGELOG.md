@@ -27,6 +27,7 @@ This file is generated from `changelog.json` with `npm run changelog`.
 
 ### Improved
 
+- Copy and paste text and image layers between designs with Ctrl/Cmd+C and Ctrl/Cmd+V
 - Twenty additional offline fonts and a searchable, grouped font picker
 - Sixteen subtle filters in Natural, Food, Product and Portrait groups
 - Background removal is available in the offline desktop app; the web app no longer ships its model and runtime
