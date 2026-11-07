@@ -15,6 +15,7 @@ import {
   ImageIcon,
   Redo2,
   Ruler,
+  Wand2,
   LayoutTemplate,
   Sun,
   Undo2,
@@ -52,6 +53,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CustomSizeForm } from "./custom-size";
+import { MagicResizeDialog } from "./magic-resize";
 import {
   deleteDraft,
   loadDraft,
@@ -1162,6 +1164,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
         frame={frame}
         music={musicEl}
         getVideoFile={() => (state.video ? files.current.get(state.video.id) : undefined)}
+        onApply={(next) => update(() => next)}
         layers={
           <LayersMenu
             state={state}
@@ -1621,6 +1624,7 @@ function TopBar({
   music,
   getVideoFile,
   layers,
+  onApply,
 }: {
   canUndo: boolean;
   canRedo: boolean;
@@ -1638,7 +1642,10 @@ function TopBar({
   music: HTMLAudioElement | undefined;
   getVideoFile: () => Blob | undefined;
   layers: React.ReactNode;
+  /** Replace the design, e.g. with a Magic resize result. */
+  onApply: (state: typeof DEFAULT_STATE) => void;
 }) {
+  const [magicOpen, setMagicOpen] = useState(false);
   return (
     <header className="app-header flex h-14 shrink-0 items-center gap-1.5 px-2.5 sm:gap-2 md:px-4">
       <button
@@ -1663,7 +1670,18 @@ function TopBar({
         reel={state.media === "video"}
         onChange={onSize}
         onCustom={state.media === "photo" ? (dims) => onSize("custom", dims) : undefined}
+        onMagic={state.media === "photo" ? () => setMagicOpen(true) : undefined}
       />
+      {state.media === "photo" && (
+        <MagicResizeDialog
+          open={magicOpen}
+          onOpenChange={setMagicOpen}
+          state={state}
+          source={source}
+          assets={assets}
+          onOpenDesign={onApply}
+        />
+      )}
 
       <NewMenu
         onNew={onNew}
@@ -2070,6 +2088,7 @@ function SizeMenu({
   custom,
   canvas,
   onCustom,
+  onMagic,
   options,
   reel,
   onChange,
@@ -2079,6 +2098,8 @@ function SizeMenu({
   canvas: { w: number; h: number } | null;
   /** Photos: resize the design to a typed width and height. */
   onCustom?: (dims: { w: number; h: number }) => void;
+  /** Photos: open Magic resize. */
+  onMagic?: () => void;
   options: PostSizeId[];
   reel: boolean;
   onChange: (size: PostSizeId) => void;
@@ -2137,6 +2158,17 @@ function SizeMenu({
         {onCustom && (
           <>
             <DropdownMenuSeparator />
+            {onMagic && (
+              <DropdownMenuItem onClick={onMagic} className="gap-3 py-2">
+                <span className="grid w-10 shrink-0 place-items-center text-brand">
+                  <Wand2 className="size-4" />
+                </span>
+                <span className="flex flex-1 flex-col">
+                  <span className="text-sm font-medium text-ink">Magic resize…</span>
+                  <span className="text-[11px] text-ink-soft">This design at several sizes at once</span>
+                </span>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onClick={() => setCustomOpen(true)} className="gap-3 py-2">
               <span className="grid w-10 shrink-0 place-items-center text-brand">
                 <Ruler className="size-4" />
