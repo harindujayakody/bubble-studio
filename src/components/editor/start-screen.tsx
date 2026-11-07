@@ -11,12 +11,13 @@ import { BulkIcon, VideoIcon } from "./tool-icons";
 import { CustomSizeForm } from "./custom-size";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
-const PHOTO_SIZES: PostSizeId[] = ["square", "portrait", "landscape", "story", "original"];
-const REEL_SIZES: PostSizeId[] = ["story", "landscape", "original"];
+const PHOTO_SIZES: PostSizeId[] = ["square", "feed", "portrait", "landscape", "story", "original"];
+const REEL_SIZES: PostSizeId[] = ["story", "feed", "landscape", "original"];
 /** Chip labels, short enough to read whole on a phone. */
 const SHORT: Record<PostSizeId, string> = {
   square: "Square",
   portrait: "Portrait",
+  feed: "Feed",
   landscape: "Landscape",
   story: "Story",
   original: "Original",

@@ -32,7 +32,7 @@ import {
   type ToolIcon,
 } from "./tool-icons";
 import { setThemePref, useResolvedTheme } from "@/lib/theme";
-import { saveExport, type ExportKind } from "@/lib/editor/save";
+import { ensureExportFolder, saveExport, type ExportKind } from "@/lib/editor/save";
 import { extractAudio } from "@/lib/editor/media-tools";
 import { loadGif } from "@/lib/editor/gif";
 import { toast } from "sonner";
@@ -1195,6 +1195,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
               state={state}
               assets={photos}
               clips={bulkClips}
+              musicLibrary={musicLibrary}
               variations={bulkVariations}
               onVariations={setBulkVariations}
               separate={bulkReelSeparate}
@@ -1511,8 +1512,8 @@ function TopBar({
         canvas={state.canvas ?? null}
         options={
           state.media === "video"
-            ? ["story", "landscape", "original"]
-            : ["square", "portrait", "landscape", "story", "original", ...(state.size === "custom" ? (["custom"] as const) : [])]
+            ? ["story", "feed", "landscape", "original"]
+            : ["square", "feed", "portrait", "landscape", "story", "original", ...(state.size === "custom" ? (["custom"] as const) : [])]
         }
         reel={state.media === "video"}
         onChange={onSize}
@@ -1569,17 +1570,20 @@ function ExportButton({
 }) {
   const [format, setFormat] = useState<"png" | "jpeg">("jpeg");
   const [quality, setQuality] = useState(92);
-  const [name, setName] = useState("facebook-post");
+  const [name, setName] = useState(() => freshName("post"));
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
 
   const download = async () => {
+    // Ask for the save folder now, while the click still counts as the user's.
+    await ensureExportFolder();
     setBusy(true);
     try {
       const blob = await exportPost(source, assets, state, format, quality);
       const base = name.trim().replace(/[\\/:*?"<>|]+/g, "-") || "facebook-post";
       const filename = `${base}.${format === "jpeg" ? "jpg" : "png"}`;
       const where = await saveExport(blob, filename, "photos");
+      setName(freshName("post"));
       setOpen(false);
       if (!window.bubbleDesktop) toast.success("Post saved", { description: `${where ?? filename} · ${formatBytes(blob.size)}` });
     } catch (err) {
@@ -1656,7 +1660,7 @@ function ReelExportButton({
   getVideoFile: () => Blob | undefined;
 }) {
   const fast = useMemo(() => canFastExport(), []);
-  const [name, setName] = useState("facebook-reel");
+  const [name, setName] = useState(() => freshName("reel"));
   const [open, setOpen] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);
   const abort = useRef<AbortController | null>(null);
@@ -1670,6 +1674,7 @@ function ReelExportButton({
 
   const record = async () => {
     if (!video || !frame || !clip) return;
+    await ensureExportFolder();
     abort.current = new AbortController();
     const signal = abort.current.signal;
     setProgress(0);
@@ -1697,6 +1702,7 @@ function ReelExportButton({
       const { blob, ext } = result;
       const filename = `${fileBase()}.${ext}`;
       const where = await save(blob, filename);
+      setName(freshName("reel"));
       setOpen(false);
       if (!window.bubbleDesktop) toast.success("Reel saved", { description: `${where ?? filename} · ${formatBytes(blob.size)}` });
       if (note) toast(note);
@@ -2009,6 +2015,13 @@ function BrandMark() {
     // eslint-disable-next-line @next/next/no-img-element
     <img src="/favicon.png" alt="" width={30} height={30} className="size-[30px] shrink-0 rounded-[8px] ring-1 ring-white/30" />
   );
+}
+
+/** A new file name for each export, e.g. "bubble-post-20261108-k3f9", so saves never overwrite. */
+function freshName(kind: string) {
+  const d = new Date();
+  const date = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+  return `bubble-${kind}-${date}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
 /** The music volume the user last chose (80 by default). */

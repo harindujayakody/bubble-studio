@@ -17,7 +17,7 @@ import {
   type MergeFit,
   type MergeSize,
 } from "@/lib/editor/media-tools";
-import { saveExport } from "@/lib/editor/save";
+import { ensureExportFolder, saveExport } from "@/lib/editor/save";
 import { canFastExport, probeVideo } from "@/lib/editor/fast-export";
 import { formatTime } from "@/lib/editor/video";
 import { MergeIcon, StartFooter } from "./start-screen";
@@ -151,6 +151,7 @@ export function ExtractAudioScreen({ onBack }: { onBack: () => void }) {
   };
 
   const run = async () => {
+    await ensureExportFolder();
     setBusy(true);
     let saved = 0;
     for (const job of jobs) {
@@ -304,6 +305,7 @@ export function MergeVideosScreen({ onBack }: { onBack: () => void }) {
   const loading = clips.some((c) => !c.info && !c.error);
 
   const merge = async () => {
+    await ensureExportFolder();
     abort.current = new AbortController();
     setProgress(0);
     try {

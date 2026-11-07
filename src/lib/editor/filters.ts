@@ -42,6 +42,7 @@ const IDENTITY: FilterParams = {
 
 export const FILTER_PRESETS: FilterPreset[] = [
   { id: "original", label: "Original", params: {} },
+  { id: "enhance", label: "Enhance", params: { brightness: 1.03, contrast: 1.07, saturate: 1.1 } },
   { id: "vivid", label: "Vivid", params: { saturate: 1.4, contrast: 1.08 } },
   {
     id: "golden",

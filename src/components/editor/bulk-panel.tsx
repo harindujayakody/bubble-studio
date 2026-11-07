@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Download, ImagePlus, Images, PencilLine, Upload, X } from "lucide-react";
-import { saveExport } from "@/lib/editor/save";
+import { ensureExportFolder, saveExport } from "@/lib/editor/save";
 import { zipSync } from "fflate";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -13,6 +13,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { PanelSection, RangeField } from "./controls";
 import { ensureFonts, exportDims, fitExport, orientImage, renderPost, type Assets } from "@/lib/editor/render";
 import type { PostState } from "@/lib/editor/types";
+import type { LibraryTrack } from "@/lib/editor/sticker-library";
 import { canFastExport, fastExportReel, reelDesignFor } from "@/lib/editor/fast-export";
 import { formatTime } from "@/lib/editor/video";
 
@@ -47,9 +48,19 @@ export type BulkVariations = {
   texts: string;
   /** Which text layer the lines replace; defaults to the top one. */
   textTarget: string | null;
+  /** Reels: a different library track on each clip, at `musicVolume`. */
+  randomMusic: boolean;
+  musicVolume: number;
 };
 
-export const NO_VARIATIONS: BulkVariations = { randomLook: false, nudgeText: false, texts: "", textTarget: null };
+export const NO_VARIATIONS: BulkVariations = {
+  randomLook: false,
+  nudgeText: false,
+  texts: "",
+  textTarget: null,
+  randomMusic: false,
+  musicVolume: 70,
+};
 
 // Soft looks only, at moderate strength, so no item comes out over-saturated.
 const GENTLE_LOOKS = ["vivid", "golden", "coastal", "film", "matte", "rosy", "clarendon", "gingham", "lark", "valencia", "crema", "tt-glow", "tt-soft", "sc-chill", "sc-sunny"];
@@ -62,8 +73,22 @@ function seeded(id: string, salt: number) {
 }
 
 /** Apply the chosen variations to one item's copy of the shared design. */
-export function varyDesign(design: PostState, id: string, index: number, v: BulkVariations): PostState {
+export function varyDesign(
+  design: PostState,
+  id: string,
+  index: number,
+  v: BulkVariations,
+  tracks: LibraryTrack[] = [],
+): PostState {
   let next = design;
+  if (v.randomMusic && tracks.length && next.media === "video") {
+    const t = tracks[Math.floor(seeded(id, 3) * tracks.length)];
+    // Duration is read from the file when the reel is mixed; loop and fade fit it to the clip.
+    next = {
+      ...next,
+      music: { id: t.src, name: t.name, src: t.src, duration: 0, offset: 0, volume: v.musicVolume, on: true, loop: true, fade: true },
+    };
+  }
   if (v.randomLook) {
     next = {
       ...next,
@@ -114,12 +139,15 @@ function VariationsSection({
   noun,
   value,
   onChange,
+  children,
 }: {
   state: PostState;
   count: number;
   noun: string;
   value: BulkVariations;
   onChange: (v: BulkVariations) => void;
+  /** Extra options for this kind of item (reels add music). */
+  children?: React.ReactNode;
 }) {
   const lines = value.texts.split("\n").filter((l) => l.trim()).length;
   return (
@@ -139,6 +167,7 @@ function VariationsSection({
           </span>
           <Switch checked={value.nudgeText} onCheckedChange={(nudgeText) => onChange({ ...value, nudgeText })} aria-label="Nudge text" />
         </label>
+        {children}
         <div className="grid gap-1.5">
           <label htmlFor="bulk-texts" className="text-[13px] font-medium text-ink">
             Text for each {noun}
@@ -315,6 +344,7 @@ export function BulkPanel({
   }, [state, assets, photos, separate, variations]);
 
   const exportAll = async () => {
+    await ensureExportFolder();
     cancel.current = false;
     setProgress(0);
     try {
@@ -521,10 +551,11 @@ export function bulkReelDesign(
   separate: PostState | null,
   v: BulkVariations = NO_VARIATIONS,
   index = 0,
+  tracks: LibraryTrack[] = [],
 ): PostState {
-  if (!separate) return varyDesign(reelDesignFor(state, clip), clip.id, index, v);
+  if (!separate) return varyDesign(reelDesignFor(state, clip), clip.id, index, v, tracks);
   if (state.video?.id === clip.id) return state;
-  return clip.design ?? varyDesign(reelDesignFor(separate, clip), clip.id, index, v);
+  return clip.design ?? varyDesign(reelDesignFor(separate, clip), clip.id, index, v, tracks);
 }
 
 /**
@@ -539,6 +570,7 @@ export function BulkReelPanel({
   onSeparate,
   variations,
   onVariations,
+  musicLibrary,
   onAdd,
   onFiles,
   onRemove,
@@ -547,6 +579,8 @@ export function BulkReelPanel({
 }: {
   state: PostState;
   assets: Assets;
+  /** Tracks from /public/music, used by random music. */
+  musicLibrary: LibraryTrack[];
   clips: BulkClip[];
   variations: BulkVariations;
   onVariations: (v: BulkVariations) => void;
@@ -598,6 +632,7 @@ export function BulkReelPanel({
   const total = clips.reduce((sum, c) => sum + lengthOf(c), 0);
 
   const exportAll = async () => {
+    await ensureExportFolder();
     abort.current = new AbortController();
     setProgress({ index: 0, fraction: 0 });
     try {
@@ -605,7 +640,7 @@ export function BulkReelPanel({
       const used = new Set<string>();
       for (let i = 0; i < clips.length; i++) {
         const c = clips[i];
-        const design = bulkReelDesign(state, c, separate, variations, i);
+        const design = bulkReelDesign(state, c, separate, variations, i, musicLibrary);
         const { blob } = await fastExportReel({
           file: c.file,
           orientation: design.orientation,
@@ -760,7 +795,34 @@ export function BulkReelPanel({
             </p>
           </PanelSection>
 
-          <VariationsSection state={state} count={clips.length} noun="clip" value={variations} onChange={onVariations} />
+          <VariationsSection state={state} count={clips.length} noun="clip" value={variations} onChange={onVariations}>
+            <label className="flex items-start justify-between gap-3">
+              <span className="grid gap-0.5">
+                <span className="text-[13px] font-medium text-ink">Random music</span>
+                <span className="text-xs text-pretty text-ink-soft">
+                  {musicLibrary.length
+                    ? `A different track from the music library on each clip (${musicLibrary.length} tracks).`
+                    : "Add MP3 files to the music library to use this."}
+                </span>
+              </span>
+              <Switch
+                checked={variations.randomMusic}
+                disabled={!musicLibrary.length}
+                onCheckedChange={(randomMusic) => onVariations({ ...variations, randomMusic })}
+                aria-label="Random music"
+              />
+            </label>
+            {variations.randomMusic && (
+              <RangeField
+                label="Music volume"
+                value={variations.musicVolume}
+                min={5}
+                max={100}
+                format={(v) => `${v}%`}
+                onChange={(musicVolume) => onVariations({ ...variations, musicVolume })}
+              />
+            )}
+          </VariationsSection>
 
           <PanelSection title="Export all">
             <p className="mb-3 font-mono text-xs text-ink-soft tabular">

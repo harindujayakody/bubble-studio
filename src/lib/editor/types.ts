@@ -1,11 +1,12 @@
 /** Reference width that font and sticker sizes were designed against. */
 export const POST_SIZE = 1080;
 
-export type PostSizeId = "square" | "portrait" | "landscape" | "story" | "original" | "custom";
+export type PostSizeId = "square" | "portrait" | "feed" | "landscape" | "story" | "original" | "custom";
 
 export const POST_SIZES: Record<PostSizeId, { label: string; ratio: string; w: number; h: number; use: string }> = {
   square: { label: "Square post", ratio: "1:1", w: 1080, h: 1080, use: "Feed posts and ads" },
   portrait: { label: "Portrait post", ratio: "3:4", w: 1080, h: 1440, use: "Fills more of the feed on phones" },
+  feed: { label: "Feed 4:5", ratio: "4:5", w: 1080, h: 1350, use: "Tall feed posts and reels" },
   landscape: { label: "Landscape", ratio: "16:9", w: 1920, h: 1080, use: "Link shares, events and video covers" },
   story: { label: "Story or reel", ratio: "9:16", w: 1080, h: 1920, use: "Full-screen stories and reel covers" },
   // Placeholder until media is loaded; the real size comes from PostState.custom.

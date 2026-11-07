@@ -121,6 +121,32 @@ async function freeName(dir: FileSystemDirectoryHandle, filename: string) {
   return `${base}-${Date.now()}${ext}`;
 }
 
+/**
+ * Ask for the master folder the first time something is exported; after that exports save
+ * straight into it. Call from a click handler (the browser picker needs the user's click).
+ */
+export async function ensureExportFolder() {
+  const bridge = window.bubbleDesktop;
+  const ASKED = "bubble-studio:folder-asked";
+  try {
+    // Only ever ask once; after that the folder is changed in Settings.
+    if (localStorage.getItem(ASKED)) return;
+    localStorage.setItem(ASKED, "1");
+  } catch {
+    return;
+  }
+  try {
+    if (bridge) {
+      const s = await bridge.getSettings();
+      if (!s.downloadDir) await bridge.chooseDownloadDir();
+    } else if (canPickFolder() && !(await loadFolder())) {
+      await chooseWebFolder();
+    }
+  } catch {
+    // Picker closed: this export falls back to the usual download.
+  }
+}
+
 /* ------------------------------------------------------------------- save */
 
 function download(blob: Blob, filename: string) {
