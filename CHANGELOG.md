@@ -11,6 +11,7 @@ This file is generated from `changelog.json` with `npm run changelog`.
 
 ### Added
 
+- Signature watermark: type your name in a handwriting font, or sign with the mouse, finger or pen
 - Templates library: 31 templates in 7 categories (grand opening, sale, new arrival, food, opening hours, thank you, festivals) in English and Sinhala, with a switch to restyle them with your brand
 - Save your own designs as templates (New → Save as template)
 - Brand kit (Settings): logos, brand colours and heading/body fonts, offered first everywhere; export and import as a .bubblebrand file
@@ -37,6 +38,7 @@ This file is generated from `changelog.json` with `npm run changelog`.
 
 ### Fixed
 
+- A newly uploaded watermark logo now shows in the preview straight away
 - The previous clip's sound no longer keeps playing after switching clips
 
 ## 1.2 · 2026-10-19

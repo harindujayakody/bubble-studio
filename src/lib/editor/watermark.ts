@@ -7,7 +7,7 @@ import { useSyncExternalStore } from "react";
  * once switched on it goes on every export (reels, photos or both) until switched off.
  * Kept in localStorage; the logo is shrunk and stored as a small PNG data URL.
  */
-export type WatermarkStyle = "shot" | "badge" | "minimal";
+export type WatermarkStyle = "shot" | "badge" | "minimal" | "signature";
 export type WatermarkPosition = "bl" | "bc" | "br" | "tl" | "tr";
 
 export type Watermark = {
@@ -23,7 +23,15 @@ export type Watermark = {
   opacity: number; // 20..100
   /** "auto" picks white or black from what is behind the watermark. */
   tone: "auto" | "light" | "dark";
+  /** Signature style: typed in a handwriting font, or drawn (a transparent PNG of dark strokes). */
+  signatureMode: "type" | "draw";
+  signatureText: string;
+  signatureFont: string;
+  signatureImage: string | null;
 };
+
+/** Handwriting fonts offered for typed signatures (all bundled). */
+export const SIGNATURE_FONTS = ["Great Vibes", "Dancing Script", "Satisfy", "Caveat", "Pacifico"];
 
 export const DEFAULT_WATERMARK: Watermark = {
   on: false,
@@ -37,12 +45,22 @@ export const DEFAULT_WATERMARK: Watermark = {
   size: 100,
   opacity: 92,
   tone: "auto",
+  signatureMode: "type",
+  signatureText: "",
+  signatureFont: "Great Vibes",
+  signatureImage: null,
 };
 
 const KEY = "bubble-studio:watermark";
 const listeners = new Set<() => void>();
 let current: Watermark | null = null;
 let logoImg: HTMLImageElement | null = null;
+
+/** A logo or signature image finished loading: hand out a new snapshot so previews redraw. */
+function repaint() {
+  current = { ...read() };
+  listeners.forEach((l) => l());
+}
 let logoSrc: string | null = null;
 
 function read(): Watermark {
@@ -108,10 +126,36 @@ function logo(src: string | null): HTMLImageElement | null {
   if (src !== logoSrc) {
     logoSrc = src;
     logoImg = new Image();
-    logoImg.onload = () => listeners.forEach((l) => l());
+    logoImg.onload = repaint;
     logoImg.src = src;
   }
   return logoImg?.complete && logoImg.naturalWidth ? logoImg : null;
+}
+
+let sigImg: HTMLImageElement | null = null;
+let sigSrc: string | null = null;
+function signature(src: string | null): HTMLImageElement | null {
+  if (!src) return null;
+  if (src !== sigSrc) {
+    sigSrc = src;
+    sigImg = new Image();
+    sigImg.onload = repaint;
+    sigImg.src = src;
+  }
+  return sigImg?.complete && sigImg.naturalWidth ? sigImg : null;
+}
+
+/** A drawn signature recoloured to the watermark's ink (it is stored as dark strokes). */
+function tinted(img: HTMLImageElement, ink: string) {
+  const c = document.createElement("canvas");
+  c.width = img.naturalWidth;
+  c.height = img.naturalHeight;
+  const x = c.getContext("2d")!;
+  x.drawImage(img, 0, 0);
+  x.globalCompositeOperation = "source-in";
+  x.fillStyle = ink;
+  x.fillRect(0, 0, c.width, c.height);
+  return c;
 }
 
 /** Whether the watermark goes on this kind of post. */
@@ -124,18 +168,24 @@ export function watermarkApplies(wm: Watermark, media: "photo" | "video") {
 export function drawWatermark(ctx: CanvasRenderingContext2D, wm: Watermark, width: number, height: number) {
   const base = Math.min(width, height) * 0.028 * (wm.size / 100);
   const margin = Math.min(width, height) * 0.045;
-  const img = wm.useLogo ? logo(wm.logo) : null;
-  const line1 = wm.line1.trim();
-  const line2 = wm.line2.trim();
+  // Signature: a drawn image, or the name in a handwriting font, in place of logo and text.
+  const sig = wm.style === "signature";
+  const drawn = sig && wm.signatureMode === "draw";
+  const img = sig ? (drawn ? signature(wm.signatureImage) : null) : wm.useLogo ? logo(wm.logo) : null;
+  const line1 = sig ? (drawn ? "" : wm.signatureText.trim() || wm.line1.trim()) : wm.line1.trim();
+  const line2 = sig ? "" : wm.line2.trim();
+  const spacing = (f: number) => (wm.style === "minimal" ? `${f * 0.18}px` : sig ? "0px" : `${f * 0.02}px`);
 
   // Measure the block: [logo] [divider] text.
-  const f1 = wm.style === "minimal" ? base * 0.8 : base;
+  const f1 = wm.style === "minimal" ? base * 0.8 : sig ? base * 2.2 : base;
   const f2 = base * 0.62;
-  const font1 = `${wm.style === "minimal" ? 500 : 700} ${f1}px Roboto, "Helvetica Neue", Arial, sans-serif`;
+  const font1 = sig
+    ? `400 ${f1}px "${wm.signatureFont}", cursive`
+    : `${wm.style === "minimal" ? 500 : 700} ${f1}px Roboto, "Helvetica Neue", Arial, sans-serif`;
   const font2 = `400 ${f2}px Roboto, "Helvetica Neue", Arial, sans-serif`;
   ctx.save();
   ctx.font = font1;
-  ctx.letterSpacing = wm.style === "minimal" ? `${f1 * 0.18}px` : `${f1 * 0.02}px`;
+  ctx.letterSpacing = spacing(f1);
   const text1 = wm.style === "minimal" ? line1.toUpperCase() : line1;
   const w1 = text1 ? ctx.measureText(text1).width : 0;
   ctx.font = font2;
@@ -143,10 +193,10 @@ export function drawWatermark(ctx: CanvasRenderingContext2D, wm: Watermark, widt
   const w2 = line2 && wm.style !== "minimal" ? ctx.measureText(line2).width : 0;
   const textW = Math.max(w1, w2);
   const textH = (text1 ? f1 * 1.15 : 0) + (w2 ? f2 * 1.3 : 0);
-  const logoH = img ? (wm.style === "minimal" ? f1 * 1.4 : Math.max(textH, base * 1.6)) : 0;
+  const logoH = img ? (sig ? base * 3.2 : wm.style === "minimal" ? f1 * 1.4 : Math.max(textH, base * 1.6)) : 0;
   const logoW = img ? (img.naturalWidth / img.naturalHeight) * logoH : 0;
   const gapX = img && textW ? base * 0.7 : 0;
-  const divider = img && textW && wm.style !== "minimal" ? Math.max(1, base * 0.06) : 0;
+  const divider = img && textW && wm.style !== "minimal" && !sig ? Math.max(1, base * 0.06) : 0;
   const padX = wm.style === "badge" ? base * 0.8 : 0;
   const padY = wm.style === "badge" ? base * 0.55 : 0;
   const blockW = logoW + gapX * (divider ? 2 : 1) + divider + textW + padX * 2;
@@ -196,7 +246,7 @@ export function drawWatermark(ctx: CanvasRenderingContext2D, wm: Watermark, widt
   let cx = x + padX;
   const midY = y + blockH / 2;
   if (img) {
-    ctx.drawImage(img, cx, midY - logoH / 2, logoW, logoH);
+    ctx.drawImage(drawn ? tinted(img, ink) : img, cx, midY - logoH / 2, logoW, logoH);
     cx += logoW + gapX;
   }
   if (divider) {
@@ -209,7 +259,7 @@ export function drawWatermark(ctx: CanvasRenderingContext2D, wm: Watermark, widt
   let ty = midY - textH / 2;
   if (text1) {
     ctx.font = font1;
-    ctx.letterSpacing = wm.style === "minimal" ? `${f1 * 0.18}px` : `${f1 * 0.02}px`;
+    ctx.letterSpacing = spacing(f1);
     ctx.fillStyle = ink;
     ctx.fillText(text1, cx, ty + (f1 * 1.15) / 2);
     ty += f1 * 1.15;
@@ -230,5 +280,6 @@ export async function ensureWatermarkFont() {
     document.fonts.load("700 32px Roboto"),
     document.fonts.load("500 32px Roboto"),
     document.fonts.load("400 32px Roboto"),
+    document.fonts.load(`400 48px "${getWatermark().signatureFont}"`),
   ]).catch(() => {});
 }

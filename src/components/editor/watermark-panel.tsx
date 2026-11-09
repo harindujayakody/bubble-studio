@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { ImagePlus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -8,9 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { PanelSection, RangeField } from "./controls";
+import { drawStrokes } from "@/lib/editor/draw";
 import { useBrand } from "@/lib/editor/brand";
 import {
   logoFromFile,
+  SIGNATURE_FONTS,
   setWatermark,
   useWatermark,
   type Watermark,
@@ -22,6 +24,7 @@ const STYLES: { id: WatermarkStyle; label: string; hint: string }[] = [
   { id: "shot", label: "Shot on", hint: "Two lines, like a phone camera" },
   { id: "badge", label: "Badge", hint: "On a soft pill" },
   { id: "minimal", label: "Minimal", hint: "One spaced-out line" },
+  { id: "signature", label: "Signature", hint: "Handwritten, typed or drawn" },
 ];
 
 const POSITIONS: { id: WatermarkPosition; label: string }[] = [
@@ -61,6 +64,114 @@ function Segmented<T extends string>({
           {o.label}
         </button>
       ))}
+    </div>
+  );
+}
+
+const PAD_W = 600;
+const PAD_H = 200;
+const LINE = 7;
+
+/** Draw strokes (pad px) into a w × h canvas whose top-left is (ox, oy) in pad space. */
+function paint(ctx: CanvasRenderingContext2D, strokes: number[][], ox: number, oy: number, w: number, h: number) {
+  ctx.save();
+  ctx.translate(w / 2, h / 2);
+  drawStrokes(
+    ctx,
+    strokes.map((p) => ({ pts: p.map((v, i) => (i % 2 ? (v - oy) / h : (v - ox) / w)), color: "#111", brush: "pen" as const, width: LINE / w })),
+    w,
+    h,
+  );
+  ctx.restore();
+}
+
+/** A pad to sign with the mouse, finger or pen. Saves a trimmed, transparent PNG after each stroke. */
+function SignaturePad({ value, onChange }: { value: string | null; onChange: (png: string | null) => void }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  const strokes = useRef<number[][]>([]);
+  const drawing = useRef(false);
+
+  const redraw = () => {
+    const ctx = ref.current?.getContext("2d");
+    if (!ctx) return;
+    ctx.clearRect(0, 0, PAD_W, PAD_H);
+    paint(ctx, strokes.current, 0, 0, PAD_W, PAD_H);
+  };
+
+  // Show the saved signature until a new one is drawn.
+  useEffect(() => {
+    if (!value || strokes.current.length) return;
+    const img = new Image();
+    img.onload = () => {
+      const ctx = ref.current?.getContext("2d");
+      if (!ctx) return;
+      const k = Math.min(PAD_W / img.width, PAD_H / img.height, 1);
+      ctx.drawImage(img, (PAD_W - img.width * k) / 2, (PAD_H - img.height * k) / 2, img.width * k, img.height * k);
+    };
+    img.src = value;
+  }, [value]);
+
+  const point = (e: React.PointerEvent<HTMLCanvasElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    return [((e.clientX - r.left) / r.width) * PAD_W, ((e.clientY - r.top) / r.height) * PAD_H];
+  };
+
+  const save = () => {
+    const all = strokes.current.flat();
+    if (!all.length) return;
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (let i = 0; i < all.length; i += 2) {
+      minX = Math.min(minX, all[i]);
+      maxX = Math.max(maxX, all[i]);
+      minY = Math.min(minY, all[i + 1]);
+      maxY = Math.max(maxY, all[i + 1]);
+    }
+    const c = document.createElement("canvas");
+    c.width = Math.ceil(maxX - minX + LINE * 2);
+    c.height = Math.ceil(maxY - minY + LINE * 2);
+    paint(c.getContext("2d")!, strokes.current, minX - LINE, minY - LINE, c.width, c.height);
+    onChange(c.toDataURL("image/png"));
+  };
+
+  return (
+    <div className="grid gap-2">
+      <canvas
+        ref={ref}
+        width={PAD_W}
+        height={PAD_H}
+        aria-label="Signature pad: sign with the mouse, finger or pen"
+        className="aspect-[3/1] w-full touch-none rounded-lg bg-white ring-1 ring-rule"
+        onPointerDown={(e) => {
+          e.currentTarget.setPointerCapture(e.pointerId);
+          drawing.current = true;
+          strokes.current.push(point(e));
+          redraw();
+        }}
+        onPointerMove={(e) => {
+          if (!drawing.current) return;
+          strokes.current[strokes.current.length - 1].push(...point(e));
+          redraw();
+        }}
+        onPointerUp={() => {
+          if (!drawing.current) return;
+          drawing.current = false;
+          save();
+        }}
+      />
+      <div className="flex items-center justify-between">
+        <span className="text-[12px] text-ink-soft">Sign above. It takes the watermark colour.</span>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            strokes.current = [];
+            redraw();
+            onChange(null);
+          }}
+        >
+          Clear
+        </Button>
+      </div>
     </div>
   );
 }
@@ -107,65 +218,112 @@ export function WatermarkSection() {
             <Segmented label="Watermark style" value={wm.style} onChange={(style) => set({ style })} options={STYLES} />
           </div>
 
-          <div className="grid gap-2">
-            <label htmlFor="wm-line1" className="text-[13px] text-ink-soft">
-              Text
-            </label>
-            <Input id="wm-line1" value={wm.line1} maxLength={40} placeholder="Shot on Bubble Studio" onChange={(e) => set({ line1: e.target.value })} />
-            {wm.style !== "minimal" && (
-              <Input value={wm.line2} maxLength={48} placeholder="Second line, e.g. your name or shop" aria-label="Second line" onChange={(e) => set({ line2: e.target.value })} />
-            )}
-          </div>
-
-          <div className="grid gap-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[13px] text-ink-soft">Logo</span>
-              <Switch size="sm" checked={wm.useLogo} onCheckedChange={(useLogo) => set({ useLogo })} aria-label="Show a logo" />
+          {wm.style === "signature" && (
+            <div className="grid gap-2">
+              <Segmented
+                label="Signature type"
+                value={wm.signatureMode}
+                onChange={(signatureMode) => set({ signatureMode })}
+                options={[
+                  { id: "type", label: "Type" },
+                  { id: "draw", label: "Draw" },
+                ]}
+              />
+              {wm.signatureMode === "type" ? (
+                <>
+                  <Input value={wm.signatureText} maxLength={32} placeholder="Your name" aria-label="Signature name" onChange={(e) => set({ signatureText: e.target.value })} />
+                  <div className="grid grid-cols-2 gap-1.5" role="radiogroup" aria-label="Signature font">
+                    {SIGNATURE_FONTS.map((f) => (
+                      <button
+                        key={f}
+                        type="button"
+                        role="radio"
+                        aria-checked={wm.signatureFont === f}
+                        aria-label={f}
+                        onClick={() => {
+                          set({ signatureFont: f });
+                          document.fonts.load(`400 48px "${f}"`).catch(() => {});
+                        }}
+                        style={{ fontFamily: `"${f}", cursive` }}
+                        className={cn(
+                          "h-10 truncate rounded-md border bg-tile px-2 text-[18px] outline-none focus-visible:ring-2 focus-visible:ring-aqua",
+                          wm.signatureFont === f ? "border-brand bg-brand-wash text-ink" : "border-rule text-ink-soft hover:border-ink/30",
+                        )}
+                      >
+                        {wm.signatureText.trim() || "Signature"}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <SignaturePad value={wm.signatureImage} onChange={(signatureImage) => set({ signatureImage })} />
+              )}
             </div>
-            {wm.useLogo && (
-              <div className="flex items-center gap-3">
-                <span className="checker grid size-12 shrink-0 place-items-center overflow-hidden rounded-lg ring-1 ring-rule">
-                  {wm.logo ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={wm.logo} alt="" className="max-h-full max-w-full object-contain" />
-                  ) : (
-                    <ImagePlus className="size-4 text-ink-soft" />
-                  )}
-                </span>
-                {brand.logos[0] && brand.logos[0] !== wm.logo && (
-                  <Button variant="outline" size="sm" onClick={() => set({ logo: brand.logos[0], useLogo: true })}>
-                    Use brand logo
-                  </Button>
-                )}
-                <Button variant="outline" size="sm" onClick={() => logoInput.current?.click()}>
-                  {wm.logo ? "Change logo" : "Upload logo"}
-                </Button>
-                {wm.logo && (
-                  <Button variant="ghost" size="icon-sm" aria-label="Remove logo" onClick={() => set({ logo: null })} className="text-destructive hover:bg-destructive/10 hover:text-destructive">
-                    <Trash2 />
-                  </Button>
-                )}
-                <input
-                  ref={logoInput}
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  className="sr-only"
-                  tabIndex={-1}
-                  aria-hidden
-                  onChange={async (e) => {
-                    const f = e.target.files?.[0];
-                    e.target.value = "";
-                    if (!f) return;
-                    try {
-                      set({ logo: await logoFromFile(f), useLogo: true });
-                    } catch {
-                      toast.error("That logo couldn't be opened", { description: "Use a PNG with a transparent background." });
-                    }
-                  }}
-                />
+          )}
+
+          {wm.style !== "signature" && (
+            <div className="grid gap-2">
+              <label htmlFor="wm-line1" className="text-[13px] text-ink-soft">
+                Text
+              </label>
+              <Input id="wm-line1" value={wm.line1} maxLength={40} placeholder="Shot on Bubble Studio" onChange={(e) => set({ line1: e.target.value })} />
+              {wm.style !== "minimal" && (
+                <Input value={wm.line2} maxLength={48} placeholder="Second line, e.g. your name or shop" aria-label="Second line" onChange={(e) => set({ line2: e.target.value })} />
+              )}
+            </div>
+          )}
+
+          {wm.style !== "signature" && (
+            <div className="grid gap-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[13px] text-ink-soft">Logo</span>
+                <Switch size="sm" checked={wm.useLogo} onCheckedChange={(useLogo) => set({ useLogo })} aria-label="Show a logo" />
               </div>
-            )}
-          </div>
+              {wm.useLogo && (
+                <div className="flex items-center gap-3">
+                  <span className="checker grid size-12 shrink-0 place-items-center overflow-hidden rounded-lg ring-1 ring-rule">
+                    {wm.logo ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={wm.logo} alt="" className="max-h-full max-w-full object-contain" />
+                    ) : (
+                      <ImagePlus className="size-4 text-ink-soft" />
+                    )}
+                  </span>
+                  {brand.logos[0] && brand.logos[0] !== wm.logo && (
+                    <Button variant="outline" size="sm" onClick={() => set({ logo: brand.logos[0], useLogo: true })}>
+                      Use brand logo
+                    </Button>
+                  )}
+                  <Button variant="outline" size="sm" onClick={() => logoInput.current?.click()}>
+                    {wm.logo ? "Change logo" : "Upload logo"}
+                  </Button>
+                  {wm.logo && (
+                    <Button variant="ghost" size="icon-sm" aria-label="Remove logo" onClick={() => set({ logo: null })} className="text-destructive hover:bg-destructive/10 hover:text-destructive">
+                      <Trash2 />
+                    </Button>
+                  )}
+                  <input
+                    ref={logoInput}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    className="sr-only"
+                    tabIndex={-1}
+                    aria-hidden
+                    onChange={async (e) => {
+                      const f = e.target.files?.[0];
+                      e.target.value = "";
+                      if (!f) return;
+                      try {
+                        set({ logo: await logoFromFile(f), useLogo: true });
+                      } catch {
+                        toast.error("That logo couldn't be opened", { description: "Use a PNG with a transparent background." });
+                      }
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="grid gap-1.5">
             <span className="text-[13px] text-ink-soft">Position</span>

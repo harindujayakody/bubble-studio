@@ -53,7 +53,7 @@ The installers aren't code-signed yet, so Windows may show *"Windows protected y
 - **35+ filters** (classic, Instagram-, TikTok- and Snapchat-inspired) and adjustments
 - **Background remover** that runs offline in the desktop app
 - Crop, rotate, reposition, blur or pixelate areas
-- **Watermark** ("Shot on…", badge or logo) on every export
+- **Watermark** ("Shot on…", badge, logo or your signature) on every export
 - Export **JPG or PNG** at the exact size
 
 </td>
