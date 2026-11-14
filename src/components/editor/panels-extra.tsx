@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, ChartColumn, ChartLine, ChartPie, ChevronLeft, Circle, Copy, Grid3x3, Droplets, ImageIcon, ImagePlus, QrCode, RotateCcw, Square, Table, Trash2, Upload } from "lucide-react";
+import { ArrowDown, ArrowUp, Brush, ChartColumn, ChartLine, ChartPie, ChevronLeft, Circle, Copy, Grid3x3, Droplets, ImageIcon, ImagePlus, QrCode, RotateCcw, Square, Table, Trash2, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -54,6 +54,7 @@ export function ElementsPanel({
   onPickFramePhoto,
   onAddLogo,
   onRemoveBackground,
+  onRefineBackground,
   removingBackground,
 }: {
   state: PostState;
@@ -74,6 +75,7 @@ export function ElementsPanel({
   onAddLogo: (dataUrl: string) => void;
   /** Cut the background out of an image sticker. */
   onRemoveBackground: (stickerId: string) => void;
+  onRefineBackground: (stickerId: string) => void;
   removingBackground: boolean;
 }) {
   const sticker = state.stickers.find((s) => s.id === selectedId) ?? null;
@@ -92,6 +94,7 @@ export function ElementsPanel({
           onSelect={onSelect}
           onPickFramePhoto={() => onPickFramePhoto(sticker.id)}
           onRemoveBackground={() => onRemoveBackground(sticker.id)}
+          onRefineBackground={() => onRefineBackground(sticker.id)}
           removingBackground={removingBackground}
         />
       )}
@@ -618,6 +621,7 @@ function StickerEditor({
   onSelect,
   onPickFramePhoto,
   onRemoveBackground,
+  onRefineBackground,
   removingBackground,
 }: {
   sticker: Sticker;
@@ -626,6 +630,7 @@ function StickerEditor({
   onSelect: (id: string | null) => void;
   onPickFramePhoto: () => void;
   onRemoveBackground: () => void;
+  onRefineBackground: () => void;
   removingBackground: boolean;
 }) {
   const id = sticker.id;
@@ -670,9 +675,14 @@ function StickerEditor({
         )}
         {sticker.kind === "image" && (
           sticker.original ? (
-            <Button variant="outline" onClick={() => patch({ value: sticker.original!, original: undefined })}>
-              <RotateCcw /> Restore original
-            </Button>
+            <div className="grid gap-2">
+              <Button variant="outline" onClick={onRefineBackground}>
+                <Brush /> Refine edges
+              </Button>
+              <Button variant="ghost" onClick={() => patch({ value: sticker.original!, original: undefined })}>
+                <RotateCcw /> Restore original
+              </Button>
+            </div>
           ) : (
             <RemoveBackground onRemove={onRemoveBackground} removing={removingBackground} />
           )

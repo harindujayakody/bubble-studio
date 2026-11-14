@@ -122,6 +122,7 @@ import { moveLayer, nextZ, restack } from "@/lib/editor/layers";
 import { isSample, loadSamples } from "@/lib/editor/samples";
 import { addPage, deletePage, goToPage, movePage, pageStates } from "@/lib/editor/pages";
 import { PageStrip } from "./page-strip";
+import { RefineDialog } from "./refine-dialog";
 import { inkFor, mix } from "@/lib/editor/color";
 import {
   defaultCrop,
@@ -595,6 +596,27 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
     } finally {
       setRemovingBg(false);
     }
+  };
+
+  /** Refine edges: the cut-out being refined (the photo, or an image sticker) and its original. */
+  const [refining, setRefining] = useState<{ stickerId?: string } | null>(null);
+  const refineSticker = refining?.stickerId ? state.stickers.find((s) => s.id === refining.stickerId) : undefined;
+  const refineCut = refining ? photos[(refineSticker ? refineSticker.value : state.photoId) ?? ""] : undefined;
+  const refineOriginal = refining ? photos[(refineSticker ? refineSticker.original : state.photoOriginal) ?? ""] : undefined;
+  const applyRefine = (blob: Blob) => {
+    const target = refining;
+    setRefining(null);
+    const img = new Image();
+    img.onload = () => {
+      const id = crypto.randomUUID();
+      files.current.set(id, blob);
+      setPhotos((p) => ({ ...p, [id]: img }));
+      // The original stays, so Restore still brings back the untouched photo.
+      if (target?.stickerId) update((s) => ({ ...s, stickers: s.stickers.map((x) => (x.id === target.stickerId ? { ...x, value: id } : x)) }));
+      else update((s) => ({ ...s, photoId: id }));
+      toast.success("Edges refined");
+    };
+    img.src = URL.createObjectURL(blob);
   };
 
   /** Put a brand logo on the post as an image sticker. */
@@ -1564,6 +1586,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
               onPickPhoto={pickPhoto}
               onRemovePhoto={() => update((s) => ({ ...s, photoId: null, photoName: null, photoOriginal: null, crop: null }))}
               onRemoveBackground={() => void removeBg()}
+              onRefineBackground={() => setRefining({})}
               removingBackground={removingBg}
             />
           )}
@@ -1604,6 +1627,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
               onUploadGif={() => gifFileRef.current?.click()}
               onAddLogo={(l) => void addBrandLogo(l)}
               onRemoveBackground={(id) => void removeBg(id)}
+              onRefineBackground={(id) => setRefining({ stickerId: id })}
               removingBackground={removingBg}
               onPickFramePhoto={(id) => {
                 pendingFrame.current = id;
@@ -1826,6 +1850,9 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
           e.target.value = "";
         }}
       />
+      {refining && refineCut && refineOriginal && (
+        <RefineDialog cut={refineCut} original={refineOriginal} onCancel={() => setRefining(null)} onDone={applyRefine} />
+      )}
       <input
         ref={designFileRef}
         type="file"

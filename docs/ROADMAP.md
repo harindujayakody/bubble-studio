@@ -208,6 +208,8 @@ Small, low-risk features first, and tests, so the bigger work doesn't break what
 
 ## Later / ideas
 
+- **Better background model and WebGPU** · [#39](https://github.com/harindujayakody/bubble-studio/issues/39): IS-Net
+  (~44 MB) and the WebGPU runtime (~25 MB more). Deferred together; the refine brush shipped in E3.
 - **Automatic captions** · [#38](https://github.com/harindujayakody/bubble-studio/issues/38): on-device
   speech-to-text in the desktop app (Whisper via ONNX). Deferred: it adds an 80–150 MB model and
   Sinhala accuracy is weak with small models. Typed and .srt captions shipped in D3.

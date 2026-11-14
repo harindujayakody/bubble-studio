@@ -11,6 +11,7 @@ This file is generated from `changelog.json` with `npm run changelog`.
 
 ### Added
 
+- Refine edges after removing a background: paint to erase leftover background or restore parts that were cut off, for the photo and for image stickers
 - Carousels: add pages to a photo post (up to 10) from the strip under the canvas, duplicate, reorder or delete them, and export all pages as numbered images in a ZIP
 - Charts, tables and QR codes (Elements → Charts): bar, line and pie charts from typed numbers, a table with a header row, and QR codes for a link, phone or WhatsApp number, made on this computer
 - Save as file and Open file: a .bubble file with the design and its photos, videos and music, to back up or move to another computer (also drop it on the canvas)

@@ -7,6 +7,7 @@ import {
   AlignRight,
   ArrowDown,
   ArrowUp,
+  Brush,
   Check,
   Copy,
   FlipHorizontal2,
@@ -72,6 +73,7 @@ export function PhotoPanel({
   onPickPhoto,
   onRemovePhoto,
   onRemoveBackground,
+  onRefineBackground,
   removingBackground,
 }: {
   state: PostState;
@@ -79,6 +81,7 @@ export function PhotoPanel({
   onPickPhoto: () => void;
   onRemovePhoto: () => void;
   onRemoveBackground: () => void;
+  onRefineBackground: () => void;
   removingBackground: boolean;
 }) {
   const bg = state.background;
@@ -102,12 +105,17 @@ export function PhotoPanel({
               </Button>
             </div>
             {state.photoOriginal ? (
-              <Button
-                variant="outline"
-                onClick={() => update((s) => ({ ...s, photoId: s.photoOriginal ?? s.photoId, photoOriginal: null }))}
-              >
-                <RotateCcw /> Restore original background
-              </Button>
+              <div className="grid gap-2">
+                <Button variant="outline" onClick={onRefineBackground}>
+                  <Brush /> Refine edges
+                </Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => update((s) => ({ ...s, photoId: s.photoOriginal ?? s.photoId, photoOriginal: null }))}
+                >
+                  <RotateCcw /> Restore original background
+                </Button>
+              </div>
             ) : (
               <RemoveBackground onRemove={onRemoveBackground} removing={removingBackground} />
             )}
