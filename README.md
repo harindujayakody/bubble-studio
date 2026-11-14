@@ -39,7 +39,7 @@ The installers aren't code-signed yet, so Windows may show *"Windows protected y
 <td width="50%" valign="top">
 
 ### Design
-- **31 templates** for openings, sales, new arrivals, food, opening hours, thank-yous and festivals (Sinhala & Tamil New Year, Vesak, Christmas, Eid, Deepavali)
+- **69 templates** in 1:1, 4:5 and 9:16 for openings, sales, new arrivals, food, opening hours, events, quotes, social posts and festivals (Sinhala & Tamil New Year, Vesak, Christmas, Eid, Deepavali)
 - **Brand kit:** your logos, colours and fonts, offered first everywhere
 - **Write with AI:** post text and captions in English, Sinhala or Tamil, with your own OpenRouter key (optional)
 - **Text** in 40 fonts (English and Sinhala) with outline, fills and **effects**: curve, glow, neon, hollow, gradient, echo

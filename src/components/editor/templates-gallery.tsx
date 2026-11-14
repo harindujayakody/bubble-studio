@@ -145,7 +145,7 @@ export function TemplatesGallery({ onPick }: { onPick: (state: PostState) => voi
                 </button>
               )),
             )
-          : visible.map((t) => tile(t.id, t.name, t.size === "feed" ? 0.8 : 1, () => onPick(templateState(t, styled))))}
+          : visible.map((t) => tile(t.id, t.name, t.size === "story" ? 9 / 16 : t.size === "feed" ? 0.8 : 1, () => onPick(templateState(t, styled))))}
       </ul>
       {category === "all" && !showAll && list.length > visible.length && (
         <div className="mt-5 text-center">
