@@ -82,7 +82,7 @@
     "@types/react-dom": "^19",
     "electron": "^44.9.0",
     "electron-builder": "^26.15.3",
-    "eslint": "^9",
+    "eslint": "^10",
     "eslint-config-next": "16.4.2",
     "tailwindcss": "^4",
     "typescript": "^5"
