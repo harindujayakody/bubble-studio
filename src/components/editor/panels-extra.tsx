@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, ChevronLeft, Circle, Copy, Grid3x3, Droplets, ImageIcon, ImagePlus, RotateCcw, Square, Trash2, Upload } from "lucide-react";
+import { ArrowDown, ArrowUp, ChartColumn, ChartLine, ChartPie, ChevronLeft, Circle, Copy, Grid3x3, Droplets, ImageIcon, ImagePlus, QrCode, RotateCcw, Square, Table, Trash2, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -17,6 +17,7 @@ import { RemoveBackground } from "./remove-background";
 import { nextZ, restack } from "@/lib/editor/layers";
 import type { Assets } from "@/lib/editor/render";
 import { isSample } from "@/lib/editor/samples";
+import { DataLayerSettings } from "./data-panel";
 import type { CollageGrid, PostState, Region, ShapeId, Sticker } from "@/lib/editor/types";
 
 type Update = (fn: (s: PostState) => PostState, key?: string) => void;
@@ -32,7 +33,7 @@ const CATEGORIES: { id: ElementCategory; label: string; soon?: boolean }[] = [
   { id: "grids", label: "Grids" },
   { id: "emoji", label: "Emoji" },
   { id: "upload", label: "Uploads" },
-  { id: "charts", label: "Charts", soon: true },
+  { id: "charts", label: "Charts" },
   { id: "frames", label: "Frames" },
   { id: "mockups", label: "Mockups", soon: true },
   { id: "three", label: "3D", soon: true },
@@ -206,6 +207,27 @@ export function ElementsPanel({
               </div>
               <p className="mt-3 text-xs text-pretty text-ink-soft">
                 Change the fill, border and corners after adding. Drag a corner to resize.
+              </p>
+            </>
+          )}
+
+          {category === "charts" && (
+            <>
+              <div className="grid grid-cols-2 gap-2">
+                {DATA_TILES.map((t) => (
+                  <button
+                    key={t.label}
+                    type="button"
+                    onClick={() => onAdd(t.sticker)}
+                    className="flex aspect-[4/3] flex-col items-center justify-center gap-2 rounded-xl bg-tile p-3 text-[13px] font-medium text-ink outline-none transition-colors hover:bg-brand-wash focus-visible:ring-2 focus-visible:ring-aqua"
+                  >
+                    <t.Icon className="size-7 text-brand" strokeWidth={1.75} />
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-3 text-xs text-pretty text-ink-soft">
+                Type your own numbers, rows or link after adding. Everything is made on this computer.
               </p>
             </>
           )}
@@ -406,6 +428,47 @@ export function ElementsPanel({
   );
 }
 
+/** Charts, a table and a QR code, with sample data to start from. */
+const DATA_TILES: { label: string; Icon: typeof ChartColumn; sticker: NewSticker }[] = [
+  ...(["bar", "line", "pie"] as const).map((type) => ({
+    label: `${type[0].toUpperCase()}${type.slice(1)} chart`,
+    Icon: type === "bar" ? ChartColumn : type === "line" ? ChartLine : ChartPie,
+    sticker: {
+      kind: "chart" as const,
+      value: type,
+      // Big layers start in the middle rather than at the small-sticker spots.
+      x: 0.5,
+      y: 0.5,
+      size: 640,
+      aspect: type === "pie" ? 1.6 : 1.4,
+      color: "#7d2ae8",
+      stroke: "#16181d",
+      chart: {
+        type,
+        rows: type === "pie"
+          ? [{ label: "Cakes", value: 45 }, { label: "Bread", value: 30 }, { label: "Drinks", value: 25 }]
+          : [{ label: "Mon", value: 12 }, { label: "Tue", value: 18 }, { label: "Wed", value: 15 }, { label: "Thu", value: 24 }, { label: "Fri", value: 30 }],
+      },
+    },
+  })),
+  {
+    label: "Table",
+    Icon: Table,
+    sticker: {
+      kind: "table",
+      value: "table",
+      x: 0.5,
+      y: 0.5,
+      size: 700,
+      aspect: 1.75,
+      color: "#7d2ae8",
+      stroke: "#16181d",
+      table: [["Item", "Price"], ["Chicken kottu", "Rs 950"], ["Egg fried rice", "Rs 750"], ["Iced coffee", "Rs 450"]],
+    },
+  },
+  { label: "QR code", Icon: QrCode, sticker: { kind: "qr", value: "qr", size: 300, color: "#111111", qr: "https://yourshop.lk" } },
+];
+
 /** Shapes offered as photo frames. */
 const FRAME_SHAPES: { id: ShapeId; label: string; aspect?: number; radius?: number }[] = [
   { id: "circle", label: "Circle" },
@@ -578,7 +641,7 @@ function StickerEditor({
     update((s) => ({ ...s, stickers: s.stickers.filter((x) => x.id !== id) }));
     onSelect(null);
   };
-  const title = { emoji: "Emoji", icon: "Icon", image: "Sticker", shape: "Shape", animated: "Animated sticker", gif: "GIF", frame: "Frame", drawing: "Drawing" }[sticker.kind];
+  const title = { emoji: "Emoji", icon: "Icon", image: "Sticker", shape: "Shape", animated: "Animated sticker", gif: "GIF", frame: "Frame", drawing: "Drawing", chart: "Chart", table: "Table", qr: "QR code" }[sticker.kind];
   const pan = sticker.pan ?? { x: 0, y: 0, zoom: 1 };
 
   return (
@@ -595,6 +658,9 @@ function StickerEditor({
       }
     >
       <div className="grid gap-5">
+        {(sticker.kind === "chart" || sticker.kind === "table" || sticker.kind === "qr") && (
+          <DataLayerSettings key={id} sticker={sticker} patch={patch} />
+        )}
         {(sticker.kind === "icon" || sticker.kind === "animated") && (
           <ColorField
             label="Colour"

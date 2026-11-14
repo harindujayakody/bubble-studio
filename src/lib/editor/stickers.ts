@@ -32,6 +32,7 @@ import type { Sticker } from "./types";
 import { drawAnimated, drawShape } from "./elements";
 import { gifFrame } from "./gif";
 import { drawStrokes } from "./draw";
+import { drawChart, drawQr, drawTable } from "./data-layers";
 
 export const STICKER_ICONS: Record<string, IconNode> = {
   ShoppingBag,
@@ -105,7 +106,7 @@ export function stickerSize(s: Sticker, assets: Record<string, CanvasImageSource
     const ratio = img ? img.height / img.width : 1;
     return { w: s.size, h: s.size * ratio };
   }
-  if (s.kind === "shape" || s.kind === "frame" || s.kind === "drawing") return { w: s.size, h: s.size / (s.aspect ?? 1) };
+  if (s.kind === "shape" || s.kind === "frame" || s.kind === "drawing" || s.kind === "chart" || s.kind === "table") return { w: s.size, h: s.size / (s.aspect ?? 1) };
   return { w: s.size, h: s.size };
 }
 
@@ -158,6 +159,12 @@ export function drawSticker(
     const frame = gifFrame(s.value, time);
     const img = frame ?? assets[s.value];
     if (img) ctx.drawImage(img, -w / 2, -h / 2, w, h);
+  } else if (s.kind === "chart") {
+    drawChart(ctx, s.chart ?? { type: "bar", rows: [] }, s.color, s.stroke ?? "#16181d", w, h);
+  } else if (s.kind === "table") {
+    drawTable(ctx, s.table ?? [], s.color, s.stroke ?? "#16181d", w, h);
+  } else if (s.kind === "qr") {
+    drawQr(ctx, s.qr ?? "", s.color, w);
   } else if (s.kind === "animated") {
     drawAnimated(ctx, s.value, s.color, w, time);
   } else if (s.kind === "icon") {

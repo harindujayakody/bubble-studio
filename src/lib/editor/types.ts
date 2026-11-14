@@ -111,7 +111,7 @@ export type TextLayer = {
   z: number;
 } & Timing;
 
-export type StickerKind = "emoji" | "icon" | "image" | "shape" | "animated" | "gif" | "frame" | "drawing";
+export type StickerKind = "emoji" | "icon" | "image" | "shape" | "animated" | "gif" | "frame" | "drawing" | "chart" | "table" | "qr";
 
 export type ShapeId =
   | "square"
@@ -169,6 +169,12 @@ export type Sticker = {
   pan?: { x: number; y: number; zoom: number };
   /** Drawings: strokes inside the layer's box (points 0..1, width relative to the box width). */
   strokes?: { pts: number[]; color: string; brush: "pen" | "marker" | "highlighter"; width: number }[];
+  /** Charts: type and rows (see data-layers.ts). */
+  chart?: { type: "bar" | "pie" | "line"; rows: { label: string; value: number }[] };
+  /** Tables: rows of cells; the first row is the header. */
+  table?: string[][];
+  /** QR codes: what the code opens (a link, tel: or wa.me link, or text). */
+  qr?: string;
   /** Stacking order shared with text layers; higher draws on top. */
   z: number;
   /** Layers sharing a group id select and move together. */

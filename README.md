@@ -43,7 +43,7 @@ The installers aren't code-signed yet, so Windows may show *"Windows protected y
 - **Brand kit:** your logos, colours and fonts, offered first everywhere
 - **Write with AI:** post text and captions in English, Sinhala or Tamil, with your own OpenRouter key (optional)
 - **Text** in 40 fonts (English and Sinhala) with outline, fills and **effects**: curve, glow, neon, hollow, gradient, echo
-- **Elements:** stickers, 31 shapes, photo frames, emoji, uploads, collages (grids)
+- **Elements:** stickers, 31 shapes, photo frames, emoji, uploads, collages (grids), **charts, tables and QR codes**
 - **Draw** with pen, marker and highlighter
 - **Magic resize** to 1:1, 4:5, 3:4, 9:16 and 16:9 at once
 

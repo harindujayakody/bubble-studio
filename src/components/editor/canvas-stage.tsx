@@ -325,7 +325,7 @@ export function CanvasStage(props: Props) {
                           box={box}
                           side={side}
                           sideY={sideY}
-                          label={`${s.kind === "emoji" ? `Emoji ${s.value}` : s.kind === "icon" ? "Icon" : s.kind === "shape" ? "Shape" : s.kind === "frame" ? "Frame" : s.kind === "animated" ? "Animated sticker" : s.kind === "gif" ? "GIF" : "Sticker"}`}
+                          label={`${s.kind === "emoji" ? `Emoji ${s.value}` : s.kind === "icon" ? "Icon" : s.kind === "shape" ? "Shape" : s.kind === "frame" ? "Frame" : s.kind === "animated" ? "Animated sticker" : s.kind === "gif" ? "GIF" : s.kind === "chart" ? "Chart" : s.kind === "table" ? "Table" : s.kind === "qr" ? "QR code" : "Sticker"}`}
                           selected={props.selectedIds.includes(box.id)}
                           single={props.selectedIds.length <= 1}
                           locked={!!s.locked}
@@ -337,7 +337,7 @@ export function CanvasStage(props: Props) {
                           onSelect={(add) => props.onSelect(box.id, add)}
                           onMove={(x, y) => props.onStickerChange(s.id, { x, y }, `move:${s.id}`)}
                           onResize={(size) => props.onStickerChange(s.id, { size }, `size:${s.id}`)}
-                          stretch={s.kind === "shape" || s.kind === "frame" ? { size: s.size, aspect: s.aspect ?? 1 } : undefined}
+                          stretch={s.kind === "shape" || s.kind === "frame" || s.kind === "chart" || s.kind === "table" ? { size: s.size, aspect: s.aspect ?? 1 } : undefined}
                           onStretch={(size, aspect) => props.onStickerChange(s.id, { size, aspect }, `stretch:${s.id}`)}
                           onGuides={setGuides}
                         />

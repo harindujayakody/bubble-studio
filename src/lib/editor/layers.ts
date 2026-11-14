@@ -20,6 +20,9 @@ export function layerName(item: StackItem) {
   if (s.kind === "gif") return "GIF";
   if (s.kind === "drawing") return "Drawing";
   if (s.kind === "frame") return `${(s.shape ?? "circle").replace(/-/g, " ")} frame`;
+  if (s.kind === "chart") return `${s.chart?.type ?? "bar"} chart`;
+  if (s.kind === "table") return "Table";
+  if (s.kind === "qr") return "QR code";
   return s.value.startsWith("custom:") ? "Sticker" : "Image";
 }
 
