@@ -9,14 +9,18 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   AUDIO_FORMATS,
   MERGE_SIZES,
+  MERGE_TRANSITIONS,
   extractAudio,
+  mergePlan,
   mergeVideos,
   readClip,
   type AudioFormat,
   type ClipInfo,
   type MergeFit,
   type MergeSize,
+  type MergeTransition,
 } from "@/lib/editor/media-tools";
+import { RangeField } from "./controls";
 import { ensureExportFolder, saveExport } from "@/lib/editor/save";
 import { canFastExport, probeVideo } from "@/lib/editor/fast-export";
 import { formatTime } from "@/lib/editor/video";
@@ -264,6 +268,8 @@ export function MergeVideosScreen({ onBack }: { onBack: () => void }) {
   const [clips, setClips] = useState<Clip[]>([]);
   const [size, setSize] = useState<MergeSize>("first");
   const [fit, setFit] = useState<MergeFit>("fit");
+  const [transition, setTransition] = useState<MergeTransition>("cut");
+  const [seconds, setSeconds] = useState(0.6);
   const [progress, setProgress] = useState<number | null>(null);
   const abort = useRef<AbortController | null>(null);
   const busy = progress !== null;
@@ -301,7 +307,8 @@ export function MergeVideosScreen({ onBack }: { onBack: () => void }) {
     });
 
   const usable = clips.filter((c) => c.info && !c.error);
-  const total = usable.reduce((s, c) => s + c.info!.duration, 0);
+  // Length after the transitions' overlaps.
+  const total = usable.length ? mergePlan(usable.map((c) => c.info!.duration), transition, seconds).total / 30 : 0;
   const loading = clips.some((c) => !c.info && !c.error);
 
   const merge = async () => {
@@ -314,11 +321,15 @@ export function MergeVideosScreen({ onBack }: { onBack: () => void }) {
         infos: usable.map((c) => c.info!),
         size,
         fit,
+        transition,
+        transitionSeconds: seconds,
         onProgress: setProgress,
         signal: abort.current.signal,
       });
-      const where = await saveExport(blob, "merged-video.mp4", "merged");
-      toast.success("Merged video saved", { description: `${where ?? "merged-video.mp4"} · ${mb(blob.size)}` });
+      // Named after the first clip; the save step adds a number if that name is taken.
+      const name = `${baseName(usable[0].file.name)}_merge.mp4`;
+      const where = await saveExport(blob, name, "merged");
+      toast.success("Merged video saved", { description: `${where ?? name} · ${mb(blob.size)}` });
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") toast("Merge cancelled");
       else toast.error("Merge failed", { description: err instanceof Error ? err.message : "Please try again." });
@@ -332,7 +343,7 @@ export function MergeVideosScreen({ onBack }: { onBack: () => void }) {
     <ToolFrame
       icon={<MergeIcon className="size-7" />}
       title="Merge videos"
-      body="Join clips end to end into one MP4. Put them in order, pick a size, and merge."
+      body="Join clips into one MP4 with a clean cut or a transition. Put them in order, pick a size, and merge."
       onBack={onBack}
       onFiles={add}
       dropLabel="Choose videos"
@@ -428,6 +439,35 @@ export function MergeVideosScreen({ onBack }: { onBack: () => void }) {
                 {fit === "fit" ? "The whole clip shows, with black bars where it doesn't fill the frame." : "Each clip fills the frame; edges outside it are cut off."}
               </p>
             </div>
+          </div>
+
+          <div className="mt-5 grid gap-2">
+            <span className="text-[13px] text-ink-soft">Between clips</span>
+            <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-6" role="radiogroup" aria-label="Transition">
+              {MERGE_TRANSITIONS.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={transition === t.id}
+                  disabled={busy}
+                  onClick={() => setTransition(t.id)}
+                  className={cn(
+                    "h-9 rounded-lg border px-2 text-[13px] font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-aqua",
+                    transition === t.id ? "border-brand bg-brand-wash text-ink" : "border-rule text-ink hover:bg-tile",
+                  )}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+            {transition === "cut" ? (
+              <p className="text-xs text-pretty text-ink-soft">A clean cut: each clip starts the moment the last one ends.</p>
+            ) : (
+              <div className="max-w-sm">
+                <RangeField label="Length" value={seconds} min={0.2} max={1.5} step={0.1} defaultValue={0.6} format={(v) => `${v.toFixed(1)} s`} onChange={setSeconds} />
+              </div>
+            )}
           </div>
 
           <div className="mt-5">

@@ -11,6 +11,7 @@ This file is generated from `changelog.json` with `npm run changelog`.
 
 ### Added
 
+- Merge videos: choose a transition between clips (cut, crossfade, fade to black or white, slide, zoom) with its length; the sound crossfades too
 - 38 new templates (69 in all), including 9:16 stories: photo posters, quote cards, social-post mockups, polaroids and photo dumps, product podiums, price lists, "new drop" and holiday cards, with new Events, Quotes and Social categories
 - AI writer (Text → Write with AI): headline, design text or a caption with hashtags in English, Sinhala or Tamil, with your own OpenRouter key kept on this computer
 - Signature watermark: type your name in a handwriting font, or sign with the mouse, finger or pen
@@ -30,6 +31,7 @@ This file is generated from `changelog.json` with `npm run changelog`.
 
 ### Improved
 
+- Merged videos are named after the first clip, e.g. beach_merge.mp4, and never overwrite an existing file
 - Copy and paste text and image layers between designs with Ctrl/Cmd+C and Ctrl/Cmd+V
 - Twenty additional offline fonts and a searchable, grouped font picker
 - Sixteen subtle filters in Natural, Food, Product and Portrait groups

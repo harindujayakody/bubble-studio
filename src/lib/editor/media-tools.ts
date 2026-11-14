@@ -11,6 +11,7 @@ import {
   Mp4OutputFormat,
   Output,
   VideoSampleSink,
+  type VideoSample,
   WavOutputFormat,
   canEncodeAudio,
   getFirstEncodableAudioCodec,
@@ -99,6 +100,17 @@ export const MERGE_SIZES: { id: MergeSize; label: string; detail: string }[] = [
   { id: "square", label: "Square 1:1", detail: "1080 × 1080" },
 ];
 
+export type MergeTransition = "cut" | "crossfade" | "black" | "white" | "slide" | "zoom";
+
+export const MERGE_TRANSITIONS: { id: MergeTransition; label: string }[] = [
+  { id: "cut", label: "Cut" },
+  { id: "crossfade", label: "Crossfade" },
+  { id: "black", label: "Fade to black" },
+  { id: "white", label: "Fade to white" },
+  { id: "slide", label: "Slide" },
+  { id: "zoom", label: "Zoom" },
+];
+
 export type ClipInfo = { duration: number; width: number; height: number; hasAudio: boolean };
 
 /** Length, size and whether a clip has sound, read without playing it. */
@@ -123,6 +135,50 @@ const FPS = 30;
 const RATE = 48000;
 const even = (n: number) => Math.max(2, Math.round(n / 2) * 2);
 
+/**
+ * Frame layout of a merge: each clip's frames, the frames it shares with the next clip during a
+ * transition (at most half of either clip), where each clip starts, and the total.
+ */
+export function mergePlan(durations: number[], transition: MergeTransition, seconds: number) {
+  const frames = durations.map((d) => Math.max(1, Math.round(d * FPS)));
+  const overlap = frames
+    .slice(0, -1)
+    .map((n, i) => (transition === "cut" ? 0 : Math.max(0, Math.min(Math.round(seconds * FPS), Math.floor(n / 2), Math.floor(frames[i + 1] / 2)))));
+  const starts: number[] = [];
+  let total = 0;
+  frames.forEach((n, i) => {
+    starts.push(total);
+    total += n - (overlap[i] ?? 0);
+  });
+  return { frames, overlap, starts, total };
+}
+
+/** One transition frame: `a` (the clip ending) into `b` (the clip starting), p from 0 to 1. */
+function blend(ctx: CanvasRenderingContext2D, a: HTMLCanvasElement, b: HTMLCanvasElement, p: number, t: MergeTransition) {
+  const { width: W, height: H } = ctx.canvas;
+  const e = p < 0.5 ? 2 * p * p : 1 - (-2 * p + 2) ** 2 / 2;
+  ctx.save();
+  if (t === "slide") {
+    ctx.drawImage(a, -e * W, 0);
+    ctx.drawImage(b, (1 - e) * W, 0);
+  } else if (t === "black" || t === "white") {
+    ctx.drawImage(p < 0.5 ? a : b, 0, 0);
+    ctx.globalAlpha = 1 - Math.abs(p * 2 - 1);
+    ctx.fillStyle = t === "black" ? "#000" : "#fff";
+    ctx.fillRect(0, 0, W, H);
+  } else if (t === "zoom") {
+    const s = 1 + 0.25 * e;
+    ctx.drawImage(a, (W - W * s) / 2, (H - H * s) / 2, W * s, H * s);
+    ctx.globalAlpha = e;
+    ctx.drawImage(b, 0, 0);
+  } else {
+    ctx.drawImage(a, 0, 0);
+    ctx.globalAlpha = e;
+    ctx.drawImage(b, 0, 0);
+  }
+  ctx.restore();
+}
+
 function targetSize(size: MergeSize, first: ClipInfo) {
   if (size === "story") return { w: 1080, h: 1920 };
   if (size === "landscape") return { w: 1920, h: 1080 };
@@ -133,22 +189,30 @@ function targetSize(size: MergeSize, first: ClipInfo) {
 }
 
 /**
- * Join clips end to end into one MP4. Each clip is scaled into the output size (letterboxed on
- * black, or cropped to fill), at 30 fps, and their sound is joined in the same order; clips
- * without sound get silence.
+ * Join clips into one MP4. Each clip is scaled into the output size (letterboxed on black, or
+ * cropped to fill), at 30 fps, and their sound is joined in the same order; clips without sound
+ * get silence. With a transition, the end of each clip overlaps the start of the next and they
+ * blend, picture and sound, over `transitionSeconds`.
  */
 export async function mergeVideos(opts: {
   files: Blob[];
   infos: ClipInfo[];
   size: MergeSize;
   fit: MergeFit;
+  transition?: MergeTransition;
+  transitionSeconds?: number;
   onProgress: (fraction: number) => void;
   signal: AbortSignal;
 }): Promise<Blob> {
-  const { files, infos, size, fit, onProgress, signal } = opts;
+  const { files, infos, size, fit, transition = "cut", transitionSeconds = 0.6, onProgress, signal } = opts;
   if (files.length < 2) throw new Error("Add at least two videos to merge.");
   const { w: W, h: H } = targetSize(size, infos[0]);
-  const total = infos.reduce((s, c) => s + c.duration, 0);
+  const plan = mergePlan(
+    infos.map((c) => c.duration),
+    transition,
+    transitionSeconds,
+  );
+  const total = plan.total / FPS;
   const check = () => {
     if (signal.aborted) throw new DOMException("Merge cancelled", "AbortError");
   };
@@ -160,6 +224,26 @@ export async function mergeVideos(opts: {
   canvas.width = W;
   canvas.height = H;
   const ctx = canvas.getContext("2d")!;
+  // Transitions paint the ending clip into `a` and the starting one into `b`, then blend.
+  const layer = () => {
+    const c = document.createElement("canvas");
+    c.width = W;
+    c.height = H;
+    return c;
+  };
+  const a = layer();
+  const b = layer();
+  const paint = (target: CanvasRenderingContext2D, sample: VideoSample) => {
+    const sw = sample.displayWidth;
+    const sh = sample.displayHeight;
+    const scale = fit === "fill" ? Math.max(W / sw, H / sh) : Math.min(W / sw, H / sh);
+    const dw = sw * scale;
+    const dh = sh * scale;
+    target.fillStyle = "#000";
+    target.fillRect(0, 0, W, H);
+    sample.draw(target, (W - dw) / 2, (H - dh) / 2, dw, dh);
+    sample.close();
+  };
 
   const output = new Output({ format: new Mp4OutputFormat({ fastStart: "in-memory" }), target: new BufferTarget() });
   const videoSource = new CanvasSource(canvas, {
@@ -174,10 +258,24 @@ export async function mergeVideos(opts: {
   let mix: AudioBuffer | null = null;
   if (infos.some((c) => c.hasAudio)) {
     const offline = new OfflineAudioContext(2, Math.max(1, Math.ceil(total * RATE)), RATE);
-    let at = 0;
     for (let i = 0; i < files.length; i++) {
       check();
       if (infos[i].hasAudio) {
+        const at = plan.starts[i] / FPS;
+        const end = at + plan.frames[i] / FPS;
+        // The sound crossfades over the same frames as the picture.
+        const fadeIn = (plan.overlap[i - 1] ?? 0) / FPS;
+        const fadeOut = (plan.overlap[i] ?? 0) / FPS;
+        const gain = offline.createGain();
+        gain.connect(offline.destination);
+        if (fadeIn) {
+          gain.gain.setValueAtTime(0, at);
+          gain.gain.linearRampToValueAtTime(1, at + fadeIn);
+        }
+        if (fadeOut) {
+          gain.gain.setValueAtTime(1, end - fadeOut);
+          gain.gain.linearRampToValueAtTime(0, end);
+        }
         const input = new Input({ source: new BlobSource(files[i]), formats: ALL_FORMATS });
         try {
           const track = await input.getPrimaryAudioTrack();
@@ -185,10 +283,10 @@ export async function mergeVideos(opts: {
             const first = await track.getFirstTimestamp();
             for await (const { buffer, timestamp } of new AudioBufferSink(track).buffers()) {
               const when = at + timestamp - Math.min(0, first);
-              if (when >= at + infos[i].duration) break;
+              if (when >= end) break;
               const node = offline.createBufferSource();
               node.buffer = buffer;
-              node.connect(offline.destination);
+              node.connect(gain);
               node.start(Math.max(0, when));
             }
           }
@@ -196,7 +294,6 @@ export async function mergeVideos(opts: {
           input.dispose?.();
         }
       }
-      at += infos[i].duration;
       onProgress(0.08 * ((i + 1) / files.length));
     }
     mix = await offline.startRendering();
@@ -213,39 +310,59 @@ export async function mergeVideos(opts: {
     onProgress(0.1);
 
     let frameIndex = 0;
-    let done = 0;
-    for (let i = 0; i < files.length; i++) {
-      const input = new Input({ source: new BlobSource(files[i]), formats: ALL_FORMATS });
-      try {
-        const track = await input.getPrimaryVideoTrack();
-        if (!track) throw new Error("A clip has no video.");
-        const first = await track.getFirstTimestamp();
-        const frames = Math.max(1, Math.round(infos[i].duration * FPS));
-        const times = Array.from({ length: frames }, (_, f) => Math.max(first, f / FPS));
-        let drawn = false;
-        for await (const sample of new VideoSampleSink(track).samplesAtTimestamps(times)) {
-          check();
-          if (sample) {
-            const sw = sample.displayWidth;
-            const sh = sample.displayHeight;
-            const scale = fit === "fill" ? Math.max(W / sw, H / sh) : Math.min(W / sw, H / sh);
-            const dw = sw * scale;
-            const dh = sh * scale;
-            ctx.fillStyle = "#000";
-            ctx.fillRect(0, 0, W, H);
-            sample.draw(ctx, (W - dw) / 2, (H - dh) / 2, dw, dh);
-            sample.close();
-            drawn = true;
+    let drawn = false;
+    // The previous clip's last frames, still to be blended into this clip's first ones.
+    let tail: { frames: AsyncIterator<VideoSample | null>; input: Input } | null = null;
+    const closeTail = async () => {
+      await tail?.frames.return?.();
+      tail?.input.dispose?.();
+      tail = null;
+    };
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const input = new Input({ source: new BlobSource(files[i]), formats: ALL_FORMATS });
+        let keepOpen = false;
+        try {
+          const track = await input.getPrimaryVideoTrack();
+          if (!track) throw new Error("A clip has no video.");
+          const first = await track.getFirstTimestamp();
+          const sink = new VideoSampleSink(track);
+          const at = (f: number) => Math.max(first, f / FPS);
+          const head = plan.overlap[i - 1] ?? 0;
+          const out = plan.overlap[i] ?? 0;
+          // This clip's own frames; its last `out` frames are drawn during the next transition.
+          const own = Array.from({ length: plan.frames[i] - out }, (_, f) => at(f));
+          let f = 0;
+          for await (const sample of sink.samplesAtTimestamps(own)) {
+            check();
+            if (f < head && tail) {
+              const prev = await tail.frames.next();
+              if (!prev.done && prev.value) paint(a.getContext("2d")!, prev.value);
+              if (sample) paint(b.getContext("2d")!, sample);
+              blend(ctx, a, b, (f + 1) / (head + 1), transition);
+              drawn = true;
+              if (f === head - 1) await closeTail();
+            } else if (sample) {
+              paint(ctx, sample);
+              drawn = true;
+            }
+            // A gap in the file repeats the previous frame.
+            if (drawn) await videoSource.add(frameIndex / FPS, 1 / FPS);
+            frameIndex++;
+            f++;
+            onProgress(0.1 + 0.88 * Math.min(1, frameIndex / plan.total));
           }
-          // A gap in the file repeats the previous frame.
-          if (drawn) await videoSource.add(frameIndex / FPS, 1 / FPS);
-          frameIndex++;
-          done += 1 / FPS;
-          onProgress(0.1 + 0.88 * Math.min(1, done / total));
+          if (out) {
+            const times = Array.from({ length: out }, (_, j) => at(plan.frames[i] - out + j));
+            tail = { frames: sink.samplesAtTimestamps(times)[Symbol.asyncIterator](), input };
+            keepOpen = true;
+          }
+        } finally {
+          if (!keepOpen) input.dispose?.();
         }
-      } finally {
-        input.dispose?.();
       }
+    } finally {
+      await closeTail();
     }
     await output.finalize();
   } catch (err) {
