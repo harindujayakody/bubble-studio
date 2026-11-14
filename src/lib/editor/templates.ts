@@ -12,16 +12,25 @@ type Copy = { title: string; sub: string; small: string; badge: string; sinhala?
 type Item = { text?: Partial<TextLayer> & { text: string }; shape?: Partial<Sticker> };
 
 export type TemplateCategory = "opening" | "sale" | "new" | "hours" | "thanks" | "festival" | "food" | "events" | "quotes" | "social";
+export type TemplateSize = "square" | "feed" | "story";
 export type Template = {
   id: string;
   name: string;
   category: TemplateCategory;
-  size: "square" | "feed" | "story";
+  /** The size it was designed at; every layout also scales to the other sizes. */
+  size: TemplateSize;
   palette: Palette;
   heading: string;
   body: string;
-  items: Item[];
+  /** The layout's items for a post `h` times as tall as it is wide. */
+  make: (h: number) => Item[];
 };
+
+export const TEMPLATE_SIZES: { id: TemplateSize; label: string; aspect: number }[] = [
+  { id: "square", label: "Square 1:1", aspect: 1 },
+  { id: "feed", label: "Feed 4:5", aspect: 0.8 },
+  { id: "story", label: "Story 9:16", aspect: 9 / 16 },
+];
 
 export const TEMPLATE_CATEGORIES: { id: TemplateCategory; label: string }[] = [
   { id: "opening", label: "Grand opening" },
@@ -387,7 +396,7 @@ const STORY: Record<string, (c: Copy, h: number) => Item[]> = {
     const Y = (v: number) => v / H;
     const photoH = H * 0.46;
     return [
-      txt(c.title, { x: 0.5, y: Y(H * 0.14), color: "$p", width: 0.9, lineHeight: 0.8, ...si(c, 200) }),
+      txt(c.title, { x: 0.5, y: Y(H * 0.14), color: "$p", width: 0.9, lineHeight: 0.8, ...si(c, h >= 1.25 ? 200 : 150) }),
       shape({ shape: "line", value: "line", x: 0.5, y: Y(H * 0.29 - 10), size: 110, aspect: 30, rotation: 90, color: "$t", fill: "$t" }),
       frame({ shape: "rounded", value: "rounded", x: 0.5, y: Y(H * 0.29 + 45 + photoH / 2), size: 620, aspect: 620 / photoH, radius: 8 }),
       txt(c.sub, { x: 0.5, y: Y(H * 0.86), fontSize: 28, fontFamily: "$d", fontWeight: 700, uppercase: true, letterSpacing: 4, color: "$p", width: 0.6 }),
@@ -477,7 +486,7 @@ const STORY_FONTS: Record<string, [string, string]> = {
   holiday: ["Fredoka", "Nunito"],
 };
 
-type Size = Template["size"];
+type Size = TemplateSize;
 const S = (category: TemplateCategory, layout: string, palette: string, size: Size, copy: Copy) => ({ category, layout, palette, size, copy });
 
 /** Templates with their own words: category, layout, palette, size, copy. */
@@ -531,6 +540,17 @@ const STORY_PLAN = [
 
 const heightOf = (size: Size) => (size === "story" ? 16 / 9 : size === "feed" ? 1.25 : 1);
 
+/**
+ * The first layouts place things as fractions of the height, which drift apart on tall posts.
+ * Taller than 4:5, build them at 4:5 and centre that design vertically. Banners already anchor
+ * to the top and bottom edges, so they stretch.
+ */
+const legacy = (layout: string, copy: Copy) => (h: number) => {
+  if (h <= 1.25 || layout === "banner") return LAYOUTS[layout](copy, h);
+  const y = (v: number | undefined) => (v === undefined ? v : 0.5 + ((v - 0.5) * 1.25) / h);
+  return LAYOUTS[layout](copy, 1.25).map((it) => (it.text ? { text: { ...it.text, y: y(it.text.y) } } : { shape: { ...it.shape, y: y(it.shape?.y) } }));
+};
+
 export const TEMPLATES: Template[] = [
   ...(Object.keys(PLAN) as TemplateCategory[]).flatMap((category) =>
     PLAN[category]!.map(([layout, palette, size], i) => {
@@ -543,7 +563,7 @@ export const TEMPLATES: Template[] = [
         palette: PALETTES[palette],
         heading: FONTS[layout][0],
         body: FONTS[layout][1],
-        items: LAYOUTS[layout](copy, heightOf(size)),
+        make: legacy(layout, copy),
       };
     }),
   ),
@@ -555,7 +575,7 @@ export const TEMPLATES: Template[] = [
     palette: STORY_PALETTES[palette] ?? PALETTES[palette],
     heading: (STORY_FONTS[layout] ?? FONTS[layout])[0],
     body: (STORY_FONTS[layout] ?? FONTS[layout])[1],
-    items: (STORY[layout] ?? LAYOUTS[layout])(copy, heightOf(size)),
+    make: STORY[layout] ? (h: number) => STORY[layout](copy, h) : legacy(layout, copy),
   })),
 ];
 
@@ -565,7 +585,7 @@ export const TEMPLATES: Template[] = [
  * Turn a template into a design. With a brand kit, its colours replace the template's primary
  * and accent colours and its fonts replace the template's fonts.
  */
-export function templateState(t: Template, brand?: BrandKit | null, media: "photo" | "video" = "photo"): PostState {
+export function templateState(t: Template, brand?: BrandKit | null, media: "photo" | "video" = "photo", size: TemplateSize = t.size): PostState {
   const pal: Palette = { ...t.palette };
   if (brand?.colors.length) {
     pal.p = brand.colors[0];
@@ -579,7 +599,7 @@ export function templateState(t: Template, brand?: BrandKit | null, media: "phot
   let z = 0;
   const texts: TextLayer[] = [];
   const stickers: Sticker[] = [];
-  for (const it of t.items) {
+  for (const it of t.make(heightOf(size))) {
     z++;
     if (it.text) {
       const o = it.text;
@@ -625,7 +645,7 @@ export function templateState(t: Template, brand?: BrandKit | null, media: "phot
   return {
     ...DEFAULT_STATE,
     media,
-    size: t.size,
+    size,
     background: pal.b2
       ? { kind: "gradient", from: pal.b, to: pal.b2 }
       : { kind: "solid", from: pal.b, to: pal.b },

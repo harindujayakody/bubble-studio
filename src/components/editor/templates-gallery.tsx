@@ -9,12 +9,14 @@ import { useBrand } from "@/lib/editor/brand";
 import {
   TEMPLATES,
   TEMPLATE_CATEGORIES,
+  TEMPLATE_SIZES,
   deleteMyTemplate,
   myTemplateState,
   readMyTemplates,
   templateState,
   type MyTemplate,
   type TemplateCategory,
+  type TemplateSize,
 } from "@/lib/editor/templates";
 import type { PostState } from "@/lib/editor/types";
 
@@ -47,6 +49,8 @@ export function TemplatesGallery({ onPick }: { onPick: (state: PostState) => voi
   const [useBrandKit, setUseBrandKit] = useState(true);
   const [category, setCategory] = useState<TemplateCategory | "all" | "mine">("all");
   const [showAll, setShowAll] = useState(false);
+  // One size at a time keeps the grid even; every template is built at the chosen size.
+  const [size, setSize] = useState<TemplateSize>("square");
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const myTemplates = useSyncExternalStore(
     (l) => {
@@ -61,12 +65,12 @@ export function TemplatesGallery({ onPick }: { onPick: (state: PostState) => voi
   const list = category === "all" ? TEMPLATES : category === "mine" ? [] : TEMPLATES.filter((t) => t.category === category);
   const visible = showAll || category !== "all" ? list : list.slice(0, 10);
 
-  // Previews follow the brand kit switch; drawn after the page has settled.
+  // Previews follow the size and the brand kit switch; drawn after the page has settled.
   useEffect(() => {
     let alive = true;
     const id = window.setTimeout(async () => {
       const next: Record<string, string> = {};
-      for (const t of TEMPLATES) next[t.id] = await preview(templateState(t, styled));
+      for (const t of TEMPLATES) next[`${t.id}:${size}`] = await preview(templateState(t, styled, "photo", size));
       for (const t of myTemplates) next[t.id] = await preview(t.state);
       if (alive) setThumbs(next);
     }, 150);
@@ -74,9 +78,9 @@ export function TemplatesGallery({ onPick }: { onPick: (state: PostState) => voi
       alive = false;
       window.clearTimeout(id);
     };
-  }, [styled, myTemplates]);
+  }, [styled, myTemplates, size]);
 
-  const tile = (id: string, name: string, aspect: number, onClick: () => void, extra?: React.ReactNode) => (
+  const tile = (id: string, name: string, aspect: number, onClick: () => void, extra?: React.ReactNode, thumb = id) => (
     <li key={id} className="group relative min-w-0">
       <button
         type="button"
@@ -85,9 +89,9 @@ export function TemplatesGallery({ onPick }: { onPick: (state: PostState) => voi
         className="block w-full overflow-hidden rounded-xl bg-tile shadow-float outline-none ring-brand transition-transform duration-200 ease-out hover:-translate-y-0.5 hover:ring-2 focus-visible:ring-2 focus-visible:ring-aqua"
         style={{ aspectRatio: aspect }}
       >
-        {thumbs[id] ? (
+        {thumbs[thumb] ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={thumbs[id]} alt="" className="size-full object-cover" />
+          <img src={thumbs[thumb]} alt="" className="size-full object-cover" />
         ) : (
           <span className="block size-full animate-pulse bg-tile" />
         )}
@@ -103,12 +107,33 @@ export function TemplatesGallery({ onPick }: { onPick: (state: PostState) => voi
         <h2 id="templates-heading" className="font-heading text-xl font-semibold text-ink md:text-2xl">
           Start from a template
         </h2>
-        {hasBrand && (
-          <label className="flex items-center gap-2 text-[13px] text-ink-soft">
-            Use my brand colours and fonts
-            <Switch checked={useBrandKit} onCheckedChange={setUseBrandKit} aria-label="Use my brand colours and fonts" />
-          </label>
-        )}
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+          {hasBrand && (
+            <label className="flex items-center gap-2 text-[13px] text-ink-soft">
+              Use my brand colours and fonts
+              <Switch checked={useBrandKit} onCheckedChange={setUseBrandKit} aria-label="Use my brand colours and fonts" />
+            </label>
+          )}
+          {category !== "mine" && (
+            <div className="flex gap-1 rounded-full bg-tile p-1" role="radiogroup" aria-label="Template size">
+              {TEMPLATE_SIZES.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={size === s.id}
+                  onClick={() => setSize(s.id)}
+                  className={cn(
+                    "h-7 rounded-full px-3 text-[12px] font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-aqua",
+                    size === s.id ? "bg-sheet text-ink shadow-float" : "text-ink-soft hover:text-ink",
+                  )}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
       <div className="mt-4 flex flex-wrap gap-1.5" role="tablist" aria-label="Template categories">
         {(["all", ...(myTemplates.length ? (["mine"] as const) : []), ...TEMPLATE_CATEGORIES.map((c) => c.id)] as const).map((id) => (
@@ -145,7 +170,9 @@ export function TemplatesGallery({ onPick }: { onPick: (state: PostState) => voi
                 </button>
               )),
             )
-          : visible.map((t) => tile(t.id, t.name, t.size === "story" ? 9 / 16 : t.size === "feed" ? 0.8 : 1, () => onPick(templateState(t, styled))))}
+          : visible.map((t) =>
+              tile(t.id, t.name, TEMPLATE_SIZES.find((s) => s.id === size)!.aspect, () => onPick(templateState(t, styled, "photo", size)), undefined, `${t.id}:${size}`),
+            )}
       </ul>
       {category === "all" && !showAll && list.length > visible.length && (
         <div className="mt-5 text-center">
