@@ -50,11 +50,12 @@ gantt
   Copy and paste #9                 :c3, after c2, 1d
   Design files #10                  :c4, after c3, 2d
   section D · Reels
-  Video editing #12                 :d1, after c4, 4d
-  Captions #11                      :d2, after d1, 4d
-  Slideshow reels #13               :d3, after d2, 3d
+  Merge transitions #36             :d1, after c4, 2d
+  Video editing #12                 :d2, after d1, 4d
+  Captions #11                      :d3, after d2, 4d
+  Slideshow reels #13               :d4, after d3, 3d
   section E · Formats and reach
-  Carousel #14                      :e1, after d3, 4d
+  Carousel #14                      :e1, after d4, 4d
   Charts, QR #15                    :e2, after e1, 2d
   BG refine #21                     :e3, after e2, 2d
   Sinhala UI #18                    :e4, after e3, 3d
@@ -145,19 +146,27 @@ Small, low-risk features first, and tests, so the bigger work doesn't break what
 
 ## Phase D · Reels (~2 weeks)
 
-### D1 · Video editing: split, speed, transitions · [#12](https://github.com/harindujayakody/bubble-studio/issues/12) · 4 days
+### D1 · Merge transitions and file names · [#36](https://github.com/harindujayakody/bubble-studio/issues/36) · 2 days
+- **How:** a transition picker on Merge videos: Cut (default, a clean professional cut), crossfade,
+  fade through black or white, slide and zoom, with a duration. Clips overlap and blend while
+  `mergeVideos` draws them; the sound crossfades with the picture. The result is named
+  `{first file}_merge.mp4` and never overwrites an existing file.
+- **Outcome:** merged videos that flow like an edited reel, with names you can find later. The
+  blending code is reused by D2 and D4.
+
+### D2 · Video editing: split, speed, transitions · [#12](https://github.com/harindujayakody/bubble-studio/issues/12) · 4 days
 - **How:** a clip becomes a list of segments (source in/out, speed); the timeline gains *Split* and
   delete; Merge videos gets fade/slide/zoom transitions; fast export maps output time to segment time.
 - **Outcome:** trim out the bad parts, speed up or slow down, smooth joins, in the same fast export.
 
-### D2 · Captions · [#11](https://github.com/harindujayakody/bubble-studio/issues/11) · 4 days
+### D3 · Captions · [#11](https://github.com/harindujayakody/bubble-studio/issues/11) · 4 days
 - **How:** caption track (text + start/end) on the timeline with styles (box, outline, highlighted
   word). Automatic captions in the **desktop app only** with on-device speech-to-text (Whisper via
   ONNX/WASM, per #27); typing works everywhere.
 - **Outcome:** reels that make sense with the sound off.
 
-### D3 · Photo slideshow reels · [#13](https://github.com/harindujayakody/bubble-studio/issues/13) · 2–3 days
-- **How:** pick photos → each becomes a timed segment with Ken Burns zoom and the D1 transitions;
+### D4 · Photo slideshow reels · [#13](https://github.com/harindujayakody/bubble-studio/issues/13) · 2–3 days
+- **How:** pick photos → each becomes a timed segment with Ken Burns zoom and the D1 transitions (#36);
   music fitted to the length; exported with the existing fast exporter.
 - **Outcome:** a reel from photos in under a minute.
 

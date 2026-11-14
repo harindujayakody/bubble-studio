@@ -44,7 +44,7 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Types
-        run: npx tsc --noEmit -p .
+        run: npx next typegen && npx tsc --noEmit -p . # typegen: route types (LayoutProps) live in .next
       - name: Lint
         run: npm run lint
       - name: End-to-end tests
