@@ -23,7 +23,9 @@ cpSync(out, web, { recursive: true });
 mkdirSync(path.join(web, "models"), { recursive: true });
 mkdirSync(path.join(web, "ort"), { recursive: true });
 copyFileSync(path.join(root, "desktop-assets", "u2netp.onnx"), path.join(web, "models", "u2netp.onnx"));
-for (const file of ["ort-wasm-simd-threaded.wasm", "ort-wasm-simd-threaded.mjs"]) {
+// The WebGPU build of ONNX Runtime (the "asyncify" files its webgpu entry loads), which also runs
+// on the CPU when there's no usable GPU.
+for (const file of ["ort-wasm-simd-threaded.asyncify.wasm", "ort-wasm-simd-threaded.asyncify.mjs"]) {
   copyFileSync(path.join(root, "node_modules", "onnxruntime-web", "dist", file), path.join(web, "ort", file));
 }
 copyFileSync(path.join(root, "public", "favicon.png"), path.join(root, "desktop", "icon.png"));

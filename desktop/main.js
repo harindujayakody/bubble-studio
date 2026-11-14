@@ -1,6 +1,7 @@
 // Bubble Studio desktop shell: serves the static web build from a private app:// origin
 // and keeps itself up to date from GitHub Releases.
 const { app, BrowserWindow, Menu, dialog, ipcMain, nativeTheme, protocol, safeStorage, session, shell } = require("electron");
+const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 const { Readable } = require("node:stream");
@@ -56,9 +57,29 @@ const TYPES = {
   ".onnx": "application/octet-stream",
 };
 
-/** Map an app:// URL to a file inside the web build, refusing anything outside it. */
+/*
+ * Optional models, downloaded on first use into the user data folder and checked against a pinned
+ * SHA-256 before use. Served to the page at app://bubble/user-models/<file>.
+ */
+const MODELS = {
+  isnet: {
+    file: "isnet-general-use.onnx",
+    // IS-Net general use (Apache-2.0), as published by the rembg project (MIT).
+    url: process.env.BUBBLE_STUDIO_MODEL_URL || "https://github.com/danielgatis/rembg/releases/download/v0.0.0/isnet-general-use.onnx",
+    size: 178648008,
+    sha256: "60920e99c45464f2ba57bee2ad08c919a52bbf852739e96947fbb4358c0d964a",
+  },
+};
+const modelsDir = () => path.join(app.getPath("userData"), "models");
+
+/** Map an app:// URL to a file inside the web build (or a downloaded model), refusing anything outside it. */
 function resolveFile(url) {
   let rel = decodeURIComponent(new URL(url).pathname);
+  if (rel.startsWith("/user-models/")) {
+    const dir = modelsDir();
+    const file = path.normalize(path.join(dir, rel.slice("/user-models/".length)));
+    return file.startsWith(dir + path.sep) && fs.existsSync(file) && fs.statSync(file).isFile() ? file : null;
+  }
   if (rel.endsWith("/")) rel += "index.html";
   const file = path.normalize(path.join(WEB_ROOT, rel));
   if (!file.startsWith(WEB_ROOT)) return null;
@@ -329,8 +350,61 @@ function setupDownloads() {
     await session.defaultSession.clearStorageData();
     await session.defaultSession.clearCache();
     writeSettings({ downloadDir: null, aiKey: null });
+    fs.rmSync(modelsDir(), { recursive: true, force: true });
     log("all data reset");
     win?.webContents.reload();
+  });
+
+  // Optional models: status, download (with progress and a checksum check) and removal.
+  const modelReady = (m) => {
+    const file = path.join(modelsDir(), m.file);
+    return fs.existsSync(file) && fs.statSync(file).size === m.size;
+  };
+  let downloading = null;
+  ipcMain.handle("model:status", (_e, name) => {
+    const m = MODELS[name];
+    return { ready: !!m && modelReady(m), size: m?.size ?? 0 };
+  });
+  ipcMain.handle("model:download", async (event, name) => {
+    const m = MODELS[name];
+    if (!m) return { error: "Unknown model." };
+    if (modelReady(m)) return { ok: true };
+    if (downloading) return { error: "A download is already running." };
+    downloading = new AbortController();
+    fs.mkdirSync(modelsDir(), { recursive: true });
+    const part = path.join(modelsDir(), `${m.file}.part`);
+    try {
+      const res = await fetch(m.url, { signal: downloading.signal });
+      if (!res.ok || !res.body) throw new Error(`The download failed (${res.status}).`);
+      const hash = crypto.createHash("sha256");
+      const out = fs.createWriteStream(part);
+      let received = 0;
+      let last = 0;
+      for await (const chunk of res.body) {
+        hash.update(chunk);
+        received += chunk.length;
+        if (!out.write(chunk)) await new Promise((r) => out.once("drain", r));
+        if (Date.now() - last > 200) {
+          last = Date.now();
+          event.sender.send("model:progress", { name, received, total: m.size });
+        }
+      }
+      await new Promise((resolve, reject) => out.end((err) => (err ? reject(err) : resolve())));
+      if (received !== m.size || hash.digest("hex") !== m.sha256) throw new Error("The downloaded file didn't match. Try again.");
+      fs.renameSync(part, path.join(modelsDir(), m.file));
+      log("model ready", name);
+      return { ok: true };
+    } catch (err) {
+      fs.rmSync(part, { force: true });
+      return { error: downloading?.signal.aborted ? "cancelled" : err instanceof Error ? err.message : "The download failed." };
+    } finally {
+      downloading = null;
+    }
+  });
+  ipcMain.handle("model:cancel", () => downloading?.abort());
+  ipcMain.handle("model:remove", (_e, name) => {
+    const m = MODELS[name];
+    if (m) fs.rmSync(path.join(modelsDir(), m.file), { force: true });
   });
 
   // AI writer: the OpenRouter key is encrypted with the OS keychain and never sent to the page.

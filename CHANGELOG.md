@@ -11,6 +11,7 @@ This file is generated from `changelog.json` with `npm run changelog`.
 
 ### Added
 
+- Best edges for background removal (desktop): downloads the IS-Net model once (179 MB, checked) for cleaner hair and edges; removal runs on the GPU with WebGPU when available
 - Sinhala interface: switch the app between English and සිංහල from the start page or Settings; menus, tools, panel titles and controls follow
 - Refine edges after removing a background: paint to erase leftover background or restore parts that were cut off, for the photo and for image stickers
 - Carousels: add pages to a photo post (up to 10) from the strip under the canvas, duplicate, reorder or delete them, and export all pages as numbered images in a ZIP

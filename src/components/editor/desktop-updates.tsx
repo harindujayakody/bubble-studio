@@ -37,6 +37,12 @@ export type DesktopBridge = {
   aiSetKey?: (key: string, model: string) => Promise<void>;
   aiClear?: () => Promise<void>;
   aiChat?: (body: object) => Promise<AIChatResult>;
+  /** Optional models (missing before 1.3.30): downloaded on first use, checked, served at /user-models. */
+  modelStatus?: (name: "isnet") => Promise<{ ready: boolean; size: number }>;
+  downloadModel?: (name: "isnet") => Promise<{ ok: true } | { error: string }>;
+  cancelModelDownload?: () => Promise<void>;
+  removeModel?: (name: "isnet") => Promise<void>;
+  onModelProgress?: (cb: (p: { name: string; received: number; total: number }) => void) => () => void;
 };
 
 declare global {

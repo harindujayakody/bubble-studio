@@ -53,7 +53,7 @@ The installers aren't code-signed yet, so Windows may show *"Windows protected y
 
 ### Photos
 - **35+ filters** (classic, Instagram-, TikTok- and Snapchat-inspired) and adjustments
-- **Background remover** that runs offline in the desktop app
+- **Background remover** that runs offline in the desktop app, with **Best edges** and a refine brush
 - Crop, rotate, reposition, blur or pixelate areas
 - **Watermark** ("Shot on…", badge, logo or your signature) on every export
 - Export **JPG or PNG** at the exact size
@@ -101,6 +101,8 @@ The installers aren't code-signed yet, so Windows may show *"Windows protected y
 - The desktop app connects to the internet to check GitHub Releases for updates and, only if you add an
   OpenRouter key, to send your AI writer prompt and the design's words to OpenRouter. The key stays on your computer
   (encrypted in the desktop app).
+- Turning on **Best edges** for background removal downloads the IS-Net model (179 MB) once from the rembg
+  project's GitHub releases; it's checked against a fixed checksum and then works offline. Your photos never leave the device.
 
 ## Develop
 
@@ -195,7 +197,9 @@ Issues and pull requests are welcome. Please:
 Made by **Harindu Jayakody**. A product of [Infiax.com](https://infiax.com).
 
 Fonts are from Google Fonts via [Fontsource](https://fontsource.org) (SIL Open Font License).
-Background removal uses [U²-Net](https://github.com/xuebinqin/U-2-Net) (Apache-2.0) on
+Background removal uses [U²-Net](https://github.com/xuebinqin/U-2-Net) and, for Best edges,
+[IS-Net / DIS](https://github.com/xuebinqin/DIS) (both Apache-2.0, IS-Net as published by
+[rembg](https://github.com/danielgatis/rembg), MIT) on
 [ONNX Runtime](https://onnxruntime.ai) (MIT). Template sample photos are from [Unsplash](https://unsplash.com)
 (Unsplash License); photographers are listed in [`public/samples/CREDITS.md`](public/samples/CREDITS.md).
 

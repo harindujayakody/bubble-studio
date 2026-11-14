@@ -30,4 +30,10 @@ contextBridge.exposeInMainWorld("bubbleDesktop", {
   aiSetKey: (key, model) => ipcRenderer.invoke("ai:setKey", key, model),
   aiClear: () => ipcRenderer.invoke("ai:clear"),
   aiChat: (body) => ipcRenderer.invoke("ai:chat", body),
+
+  modelStatus: (name) => ipcRenderer.invoke("model:status", name),
+  downloadModel: (name) => ipcRenderer.invoke("model:download", name),
+  cancelModelDownload: () => ipcRenderer.invoke("model:cancel"),
+  removeModel: (name) => ipcRenderer.invoke("model:remove", name),
+  onModelProgress: subscribe("model:progress"),
 });

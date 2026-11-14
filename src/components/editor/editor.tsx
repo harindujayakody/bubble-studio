@@ -123,6 +123,7 @@ import { isSample, loadSamples } from "@/lib/editor/samples";
 import { addPage, deletePage, goToPage, movePage, pageStates } from "@/lib/editor/pages";
 import { PageStrip } from "./page-strip";
 import { RefineDialog } from "./refine-dialog";
+import { getBgModel } from "./remove-background";
 import { setLang, useLang, useT } from "@/lib/i18n";
 import { inkFor, mix } from "@/lib/editor/color";
 import {
@@ -581,7 +582,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
     setRemovingBg(true);
     try {
       const { removeBackground } = await import("@/lib/editor/bg-remove");
-      const cut = await removeBackground(img);
+      const cut = await removeBackground(img, getBgModel());
       const blob = await new Promise<Blob>((resolve, reject) => cut.toBlob((b) => (b ? resolve(b) : reject(new Error("Couldn't encode the cut-out."))), "image/png"));
       const cutImg = await new Promise<HTMLImageElement>((resolve, reject) => {
         const i = new Image();
