@@ -268,6 +268,10 @@ export type PostState = {
   texts: TextLayer[];
   /** Photo collage that replaces the single photo. */
   grid?: CollageGrid | null;
+  /** Carousels: every page's own content (see pages.ts); unset for a single post. */
+  pages?: Pick<PostState, "photoId" | "photoName" | "photoOriginal" | "filter" | "filterStrength" | "adjust" | "orientation" | "crop" | "background" | "regions" | "stickers" | "texts" | "grid">[];
+  /** The page being edited. */
+  page?: number;
 };
 
 /** A photo collage: a layout of cells, each holding an uploaded image (asset id) or empty. */

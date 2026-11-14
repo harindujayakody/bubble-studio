@@ -46,6 +46,7 @@ The installers aren't code-signed yet, so Windows may show *"Windows protected y
 - **Elements:** stickers, 31 shapes, photo frames, emoji, uploads, collages (grids), **charts, tables and QR codes**
 - **Draw** with pen, marker and highlighter
 - **Magic resize** to 1:1, 4:5, 3:4, 9:16 and 16:9 at once
+- **Carousels:** several pages in one post, exported as numbered images
 
 </td>
 <td width="50%" valign="top">

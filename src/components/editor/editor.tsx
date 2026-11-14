@@ -68,6 +68,7 @@ import {
   type DraftSummary,
 } from "@/lib/editor/draft";
 import { DESIGN_EXT, packDesign, unpackDesign } from "@/lib/editor/design-file";
+import { zipSync } from "fflate";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { CanvasStage, type LayerPatch, type RegionDefaults } from "./canvas-stage";
@@ -119,6 +120,8 @@ import { SINHALA_RE, nearestWeight } from "@/lib/editor/fonts";
 import { getBrand } from "@/lib/editor/brand";
 import { moveLayer, nextZ, restack } from "@/lib/editor/layers";
 import { isSample, loadSamples } from "@/lib/editor/samples";
+import { addPage, deletePage, goToPage, movePage, pageStates } from "@/lib/editor/pages";
+import { PageStrip } from "./page-strip";
 import { inkFor, mix } from "@/lib/editor/color";
 import {
   defaultCrop,
@@ -1054,45 +1057,48 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
         });
       const missing: string[] = [];
 
-      if (next.photoId) {
-        const blob = stored.get(next.photoId);
-        if (blob) nextPhotos[next.photoId] = await imageFrom(URL.createObjectURL(blob));
-        else missing.push("photo");
-      }
-      if (next.photoOriginal) {
-        const blob = stored.get(next.photoOriginal);
-        if (blob) nextPhotos[next.photoOriginal] = await imageFrom(URL.createObjectURL(blob));
-      }
-      for (const cell of next.grid?.cells ?? []) {
-        const blob = cell && !nextPhotos[cell] ? stored.get(cell) : undefined;
-        if (cell && blob) nextPhotos[cell] = await imageFrom(URL.createObjectURL(blob));
-      }
-      Object.assign(nextPhotos, await loadSamples(next));
-      for (const s of next.stickers) {
-        if (s.kind === "frame") {
-          const blob = s.photo && !nextPhotos[s.photo] ? stored.get(s.photo) : undefined;
-          if (s.photo && blob) nextPhotos[s.photo] = await imageFrom(URL.createObjectURL(blob));
-          continue;
+      // Every page's photos, images and frames (a carousel has several).
+      for (const pg of pageStates(next)) {
+        if (pg.photoId) {
+          const blob = stored.get(pg.photoId);
+          if (blob) nextPhotos[pg.photoId] = await imageFrom(URL.createObjectURL(blob));
+          else if (!missing.includes("photo")) missing.push("photo");
         }
-        if (s.kind === "gif" && !nextPhotos[s.value]) {
-          const blob = stored.get(s.value);
-          if (blob) {
-            await loadGif(s.value, blob).catch(() => {});
-            nextPhotos[s.value] = await imageFrom(URL.createObjectURL(blob));
+        if (pg.photoOriginal) {
+          const blob = stored.get(pg.photoOriginal);
+          if (blob) nextPhotos[pg.photoOriginal] = await imageFrom(URL.createObjectURL(blob));
+        }
+        for (const cell of pg.grid?.cells ?? []) {
+          const blob = cell && !nextPhotos[cell] ? stored.get(cell) : undefined;
+          if (cell && blob) nextPhotos[cell] = await imageFrom(URL.createObjectURL(blob));
+        }
+        Object.assign(nextPhotos, await loadSamples(pg));
+        for (const s of pg.stickers) {
+          if (s.kind === "frame") {
+            const blob = s.photo && !nextPhotos[s.photo] ? stored.get(s.photo) : undefined;
+            if (s.photo && blob) nextPhotos[s.photo] = await imageFrom(URL.createObjectURL(blob));
+            continue;
           }
-          continue;
+          if (s.kind === "gif" && !nextPhotos[s.value]) {
+            const blob = stored.get(s.value);
+            if (blob) {
+              await loadGif(s.value, blob).catch(() => {});
+              nextPhotos[s.value] = await imageFrom(URL.createObjectURL(blob));
+            }
+            continue;
+          }
+          if (s.kind === "image" && s.original && !nextPhotos[s.original]) {
+            const blob = stored.get(s.original);
+            const lib = stickers.find((l) => l.id === s.original);
+            const src = blob ? URL.createObjectURL(blob) : lib?.src;
+            if (src) nextPhotos[s.original] = await imageFrom(src).catch(() => undefined as unknown as HTMLImageElement);
+          }
+          if (s.kind !== "image" || nextPhotos[s.value]) continue;
+          const blob = stored.get(s.value);
+          const library = stickers.find((l) => l.id === s.value);
+          const src = blob ? URL.createObjectURL(blob) : library?.src;
+          if (src) nextPhotos[s.value] = await imageFrom(src).catch(() => undefined as unknown as HTMLImageElement);
         }
-        if (s.kind === "image" && s.original && !nextPhotos[s.original]) {
-          const blob = stored.get(s.original);
-          const lib = stickers.find((l) => l.id === s.original);
-          const src = blob ? URL.createObjectURL(blob) : lib?.src;
-          if (src) nextPhotos[s.original] = await imageFrom(src).catch(() => undefined as unknown as HTMLImageElement);
-        }
-        if (s.kind !== "image" || nextPhotos[s.value]) continue;
-        const blob = stored.get(s.value);
-        const library = stickers.find((l) => l.id === s.value);
-        const src = blob ? URL.createObjectURL(blob) : library?.src;
-        if (src) nextPhotos[s.value] = await imageFrom(src).catch(() => undefined as unknown as HTMLImageElement);
       }
       if (next.video) {
         const blob = stored.get(next.video.id);
@@ -1488,6 +1494,25 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
               tool === "bulk" ? (list) => void (state.media === "video" ? addBulkClips(list) : addBulkPhotos(list)) : undefined
             }
           />
+          {state.media === "photo" && tool !== "bulk" && !showEmpty && (
+            <PageStrip
+              state={state}
+              assets={photos}
+              onGo={(i) => {
+                setSelectedId(null);
+                update((s) => goToPage(s, i));
+              }}
+              onAdd={(copy) => {
+                setSelectedId(null);
+                update((s) => addPage(s, copy));
+              }}
+              onDelete={(i) => {
+                setSelectedId(null);
+                update((s) => deletePage(s, i));
+              }}
+              onMove={(i, to) => update((s) => movePage(s, i, to))}
+            />
+          )}
           {video && state.video && (
             <>
               <VideoBar video={video} clip={state.video} />
@@ -2050,6 +2075,32 @@ function ExportButton({
     }
   };
 
+  // Carousel: every page as a numbered image, together in one ZIP (post-1.jpg, post-2.jpg...).
+  const pages = pageStates(state);
+  const downloadAll = async () => {
+    await ensureExportFolder();
+    setBusy(true);
+    try {
+      const base = name.trim().replace(/[\/:*?"<>|]+/g, "-") || "facebook-post";
+      const ext = format === "jpeg" ? "jpg" : "png";
+      const files: Record<string, Uint8Array> = {};
+      for (const [i, page] of pages.entries()) {
+        const photo = page.photoId ? assets[page.photoId] : undefined;
+        const blob = await exportPost(photo ? orientImage(photo, page.orientation) : null, assets, page, format, quality);
+        files[`${base}-${i + 1}.${ext}`] = new Uint8Array(await blob.arrayBuffer());
+      }
+      const zip = new Blob([zipSync(files, { level: 0 }) as BlobPart], { type: "application/zip" });
+      const where = await saveExport(zip, `${base}-carousel.zip`, "photos");
+      setName(freshName("post"));
+      setOpen(false);
+      if (!window.bubbleDesktop) toast.success(`${pages.length} pages saved`, { description: `${where ?? `${base}-carousel.zip`} · ${formatBytes(zip.size)}` });
+    } catch (err) {
+      toast.error("Export failed", { description: err instanceof Error ? err.message : "Please try again." });
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger render={<Button className="cta h-9 px-3.5" />}>
@@ -2091,8 +2142,13 @@ function ExportButton({
               <span className="font-mono text-xs text-ink-soft">.{format === "jpeg" ? "jpg" : "png"}</span>
             </div>
           </div>
-          <Button onClick={download} disabled={busy} className="h-9">
-            <Download /> {busy ? "Preparing…" : `Download ${format === "jpeg" ? "JPG" : "PNG"}`}
+          {pages.length > 1 && (
+            <Button onClick={downloadAll} disabled={busy} className="h-9">
+              <Download /> {busy ? "Preparing…" : `Download all ${pages.length} pages (ZIP)`}
+            </Button>
+          )}
+          <Button onClick={download} disabled={busy} variant={pages.length > 1 ? "outline" : "default"} className="h-9">
+            <Download /> {busy ? "Preparing…" : pages.length > 1 ? `Download page ${(state.page ?? 0) + 1} only` : `Download ${format === "jpeg" ? "JPG" : "PNG"}`}
           </Button>
         </div>
       </PopoverContent>
@@ -2258,13 +2314,17 @@ function designName(state: typeof DEFAULT_STATE) {
 
 function buildDraft(state: typeof DEFAULT_STATE, id: string): Draft & { id: string } {
   const assets: DraftAsset[] = [];
-  if (state.photoId) assets.push({ id: state.photoId, kind: "image" });
-  if (state.photoOriginal) assets.push({ id: state.photoOriginal, kind: "image" });
-  for (const cell of state.grid?.cells ?? []) if (cell && cell !== state.photoId) assets.push({ id: cell, kind: "image" });
-  for (const s of state.stickers) {
-    if ((s.kind === "image" || s.kind === "gif") && !s.value.startsWith("custom:")) assets.push({ id: s.value, kind: "image" });
-    if (s.kind === "frame" && s.photo && !isSample(s.photo)) assets.push({ id: s.photo, kind: "image" });
-    if (s.original && !s.original.startsWith("custom:")) assets.push({ id: s.original, kind: "image" });
+  const image = (assetId: string) => !assets.some((a) => a.id === assetId) && assets.push({ id: assetId, kind: "image" });
+  // Every page of a carousel, so each page's photos are saved too.
+  for (const page of pageStates(state)) {
+    if (page.photoId) image(page.photoId);
+    if (page.photoOriginal) image(page.photoOriginal);
+    for (const cell of page.grid?.cells ?? []) if (cell) image(cell);
+    for (const s of page.stickers) {
+      if ((s.kind === "image" || s.kind === "gif") && !s.value.startsWith("custom:")) image(s.value);
+      if (s.kind === "frame" && s.photo && !isSample(s.photo)) image(s.photo);
+      if (s.original && !s.original.startsWith("custom:")) image(s.original);
+    }
   }
   if (state.video) assets.push({ id: state.video.id, kind: "video", name: state.video.name });
   if (state.music && !state.music.src.startsWith("/")) assets.push({ id: state.music.id, kind: "audio", name: state.music.name });
