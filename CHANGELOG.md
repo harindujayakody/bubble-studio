@@ -11,6 +11,7 @@ This file is generated from `changelog.json` with `npm run changelog`.
 
 ### Added
 
+- AI writer (Text → Write with AI): headline, design text or a caption with hashtags in English, Sinhala or Tamil, with your own OpenRouter key kept on this computer
 - Signature watermark: type your name in a handwriting font, or sign with the mouse, finger or pen
 - Templates library: 31 templates in 7 categories (grand opening, sale, new arrival, food, opening hours, thank you, festivals) in English and Sinhala, with a switch to restyle them with your brand
 - Save your own designs as templates (New → Save as template)

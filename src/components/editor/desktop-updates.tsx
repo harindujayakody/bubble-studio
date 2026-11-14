@@ -2,6 +2,7 @@
 
 import { useEffect, useSyncExternalStore } from "react";
 import { toast } from "sonner";
+import type { AIChatResult, AIStatus } from "@/lib/editor/ai";
 
 export type UpdateStatus =
   | { state: "idle" | "checking" | "dev" }
@@ -31,6 +32,11 @@ export type DesktopBridge = {
   setDownloadKind?: (kind: "photos" | "reels" | "audios" | "merged") => Promise<void>;
   clearCache: () => Promise<{ updates: number }>;
   resetAll: () => Promise<void>;
+  /** AI writer (missing before 1.3.7): the key is encrypted and used only by the main process. */
+  aiStatus?: () => Promise<AIStatus>;
+  aiSetKey?: (key: string, model: string) => Promise<void>;
+  aiClear?: () => Promise<void>;
+  aiChat?: (body: object) => Promise<AIChatResult>;
 };
 
 declare global {

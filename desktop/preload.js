@@ -25,4 +25,9 @@ contextBridge.exposeInMainWorld("bubbleDesktop", {
 
   clearCache: () => ipcRenderer.invoke("storage:clearCache"),
   resetAll: () => ipcRenderer.invoke("storage:resetAll"),
+
+  aiStatus: () => ipcRenderer.invoke("ai:status"),
+  aiSetKey: (key, model) => ipcRenderer.invoke("ai:setKey", key, model),
+  aiClear: () => ipcRenderer.invoke("ai:clear"),
+  aiChat: (body) => ipcRenderer.invoke("ai:chat", body),
 });

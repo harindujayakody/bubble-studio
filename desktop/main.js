@@ -1,6 +1,6 @@
 // Bubble Studio desktop shell: serves the static web build from a private app:// origin
 // and keeps itself up to date from GitHub Releases.
-const { app, BrowserWindow, Menu, dialog, ipcMain, nativeTheme, protocol, session, shell } = require("electron");
+const { app, BrowserWindow, Menu, dialog, ipcMain, nativeTheme, protocol, safeStorage, session, shell } = require("electron");
 const fs = require("node:fs");
 const path = require("node:path");
 const { Readable } = require("node:stream");
@@ -284,7 +284,7 @@ function setupDownloads() {
     });
   });
 
-  ipcMain.handle("settings:get", () => ({ ...readSettings(), platform: process.platform }));
+  ipcMain.handle("settings:get", () => ({ ...readSettings(), aiKey: undefined, platform: process.platform }));
   ipcMain.handle("settings:chooseDownloadDir", async () => {
     const current = readSettings().downloadDir;
     const result = await dialog.showOpenDialog(win, {
@@ -327,9 +327,48 @@ function setupDownloads() {
   ipcMain.handle("storage:resetAll", async () => {
     await session.defaultSession.clearStorageData();
     await session.defaultSession.clearCache();
-    writeSettings({ downloadDir: null });
+    writeSettings({ downloadDir: null, aiKey: null });
     log("all data reset");
     win?.webContents.reload();
+  });
+
+  // AI writer: the OpenRouter key is encrypted with the OS keychain and never sent to the page.
+  // Requests go only to OpenRouter's chat endpoint.
+  const aiKey = () => {
+    const enc = readSettings().aiKey;
+    try {
+      return enc ? safeStorage.decryptString(Buffer.from(enc, "base64")) : "";
+    } catch {
+      return "";
+    }
+  };
+  const aiModel = () => readSettings().aiModel || "google/gemini-2.5-flash";
+  ipcMain.handle("ai:status", () => ({ hasKey: !!aiKey(), model: aiModel() }));
+  ipcMain.handle("ai:setKey", (_e, key, model) => {
+    const next = { aiModel: typeof model === "string" ? model.slice(0, 120) : aiModel() };
+    if (typeof key === "string" && key.trim()) {
+      if (!safeStorage.isEncryptionAvailable()) throw new Error("This computer can't store the key securely.");
+      next.aiKey = safeStorage.encryptString(key.trim()).toString("base64");
+    }
+    writeSettings(next);
+  });
+  ipcMain.handle("ai:clear", () => {
+    writeSettings({ aiKey: null });
+  });
+  ipcMain.handle("ai:chat", async (_e, body) => {
+    const key = aiKey();
+    if (!key) return { error: "no-key" };
+    if (!body || typeof body !== "object") return { error: "bad-request" };
+    try {
+      const r = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json", "X-Title": "Bubble Studio" },
+        body: JSON.stringify({ ...body, model: aiModel() }),
+      });
+      return { status: r.status, text: await r.text() };
+    } catch {
+      return { error: "offline" };
+    }
   });
 }
 

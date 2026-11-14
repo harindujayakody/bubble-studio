@@ -35,7 +35,7 @@ const POSITIONS: { id: WatermarkPosition; label: string }[] = [
   { id: "br", label: "Bottom right" },
 ];
 
-function Segmented<T extends string>({
+export function Segmented<T extends string>({
   value,
   options,
   onChange,

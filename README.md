@@ -41,7 +41,8 @@ The installers aren't code-signed yet, so Windows may show *"Windows protected y
 ### Design
 - **31 templates** for openings, sales, new arrivals, food, opening hours, thank-yous and festivals (Sinhala & Tamil New Year, Vesak, Christmas, Eid, Deepavali)
 - **Brand kit:** your logos, colours and fonts, offered first everywhere
-- **Text** in 20 fonts (English and Sinhala) with outline, fills and **effects**: curve, glow, neon, hollow, gradient, echo
+- **Write with AI:** post text and captions in English, Sinhala or Tamil, with your own OpenRouter key (optional)
+- **Text** in 40 fonts (English and Sinhala) with outline, fills and **effects**: curve, glow, neon, hollow, gradient, echo
 - **Elements:** stickers, 31 shapes, photo frames, emoji, uploads, collages (grids)
 - **Draw** with pen, marker and highlighter
 - **Magic resize** to 1:1, 4:5, 3:4, 9:16 and 16:9 at once
@@ -92,7 +93,9 @@ The installers aren't code-signed yet, so Windows may show *"Windows protected y
 
 - **No account and no server.** Editing, rendering, background removal and exporting all happen on your device.
 - Your designs are stored only in this browser or app (IndexedDB), and only the 5 most recent.
-- The desktop app connects to the internet for one thing: checking GitHub Releases for updates.
+- The desktop app connects to the internet to check GitHub Releases for updates and, only if you add an
+  OpenRouter key, to send your AI writer prompt and the design's words to OpenRouter. The key stays on your computer
+  (encrypted in the desktop app).
 
 ## Develop
 

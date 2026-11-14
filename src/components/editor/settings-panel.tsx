@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { PanelSection } from "./controls";
 import { BrandKitSection } from "./brand-panel";
+import { AISettingsSection } from "./ai-writer";
 import changelog from "../../../changelog.json";
 import { GithubMark, REPO_URL } from "./start-screen";
 import { deleteDraft, setAutosave } from "@/lib/editor/draft";
@@ -53,6 +54,7 @@ export function SettingsPanel() {
     <>
       <BrandKitSection />
       <AppearanceSection />
+      <AISettingsSection />
       {desktop && <UpdatesSection version={version} />}
       <DownloadsSection settings={settings} onChange={setSettings} />
       <StorageSection usage={usage} desktop={desktop} onCleared={refreshUsage} />

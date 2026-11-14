@@ -22,6 +22,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { AIWriterSection } from "./ai-writer";
 import { Input } from "@/components/ui/input";
 import { Toggle } from "@/components/ui/toggle";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -627,6 +628,8 @@ export function TextPanel({
           })}
         </div>
       </PanelSection>
+
+      <AIWriterSection state={state} update={update} onAdd={onAdd} />
 
       <SavedPhrases onAdd={onAdd} />
 
