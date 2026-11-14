@@ -35,6 +35,7 @@
         "What's new in Settings, and this changelog"
       ],
       "improved": [
+        "Releases are published on purpose (npm run release or Run workflow) instead of on every push; dependency updates arrive as weekly pull requests",
         "Template photo slots show fitting sample photos (bundled, from Unsplash) instead of grey boxes; click Use my photo to replace one",
         "Template gallery shows one size at a time (1:1, 4:5 or 9:16) so the grid is even, and every template is available in every size",
         "Merged videos are named after the first clip, e.g. beach_merge.mp4, and never overwrite an existing file",

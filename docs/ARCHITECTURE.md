@@ -34,7 +34,7 @@ flowchart LR
 | Shell | Browser | Electron 44 (`desktop/main.js`, `desktop/preload.js`) |
 | Files | Downloads, or a picked folder (File System Access API) | Master export folder with `Reels/ Photos/ Audios/ Merged Videos/` |
 | Updates | Deploy | `electron-updater` from GitHub Releases, silent install on Windows |
-| Version | `VERSION` + commits since it changed (`next.config.ts`) | Same number, set by the release workflow |
+| Version | `VERSION` + commits since it changed (`scripts/app-version.mjs`) | Same number, from the release tag |
 
 The two never differ in features except where a capability needs the shell (the save folder,
 updates) or, per [#27](https://github.com/harindujayakody/bubble-studio/issues/27), heavy models.
@@ -73,7 +73,7 @@ src/
 desktop/                  Electron main + preload; desktop/web is the static build (generated)
 scripts/                  desktop-build.mjs, copy-ort.mjs (ONNX runtime files), changelog.mjs
 public/                   custom_icons/ (sticker library), music/, models/u2netp.onnx, favicon
-.github/workflows/        desktop-release.yml: version → build (Windows + macOS) → release
+.github/workflows/        desktop-release.yml: check on every push; version → build → release for tags
 ```
 
 ## The document model
@@ -198,17 +198,24 @@ MIT compatibility (no AGPL or non-commercial models).
 
 ```mermaid
 flowchart LR
-  push["git push main"] --> v["version job<br/>VERSION + commit count"]
+  push["git push main"] --> c["check job<br/>types · lint · e2e tests"]
+  tag["npm run release<br/>(pushes tag vX.Y.Z)"] --> v["version job<br/>from the tag"]
+  tag --> c
   v --> bw["build · windows-latest<br/>NSIS installer"]
+  c --> bw
   v --> bm["build · macos-latest<br/>dmg + zip (arm64)"]
+  c --> bm
   bw --> r["release job<br/>notes from changelog.json"]
   bm --> r
   r --> gh[("GitHub Release vX.Y.Z<br/>exe · dmg · zip · latest*.yml")]
   gh --> apps["Installed apps update themselves"]
 ```
 
+- Pushes to `main` only run the checks; installers are built and published for a release tag
+  (`npm run release`) or a manual run.
 - One version for web and desktop: `VERSION` holds major.minor; the patch is the number of commits
-  since `VERSION` changed. `next.config.ts` computes it for the web build; the workflow for the installers.
+  since `VERSION` changed, worked out in one place (`scripts/app-version.mjs`) for the web build,
+  the release command and the workflow.
 - Release notes come from `changelog.json` (see [CHANGELOG.md](../CHANGELOG.md)).
 - No secrets: the workflow uses GitHub's built-in token.
 

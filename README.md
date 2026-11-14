@@ -123,6 +123,7 @@ npm run dev        # http://localhost:3000
 | `npm run desktop:dist` | Build the Windows installer into `dist-desktop/` |
 | `npm run desktop:dist:mac` | Build the macOS dmg and zip (run on a Mac) |
 | `npm run changelog` | Regenerate `CHANGELOG.md` from `changelog.json` |
+| `npm run release` | Publish a release: tag the current commit and push the tag |
 
 **Add your own content:** put PNG stickers in `public/custom_icons` and MP3s in `public/music`.
 They appear in the editor automatically.
@@ -148,12 +149,22 @@ The web app and the desktop app always share **one version number**: the `VERSIO
 major and minor number (`1.3`), and the patch is the number of commits since it changed (`1.3.0`,
 `1.3.1`…).
 
-Every push to `main` runs `.github/workflows/desktop-release.yml`:
+Every push to `main` runs the **checks** (types, lint and the end-to-end tests) in
+`.github/workflows/desktop-release.yml`. Nothing is published until you release:
 
-1. **Version:** the version is computed from `VERSION` and the commit count.
+```bash
+npm run release    # tags the current commit v<version> and pushes the tag
+```
+
+(or **Actions → Desktop release → Run workflow** on GitHub). For a release the workflow then:
+
+1. **Version:** takes it from the tag (or computes it from `VERSION` and the commit count; `scripts/app-version.mjs`).
 2. **Check:** types, lint and the end-to-end tests must pass, or nothing is built.
 3. **Build:** the Windows installer and the macOS dmg/zip are built in parallel.
 4. **Release:** both are published to [Releases](https://github.com/harindujayakody/bubble-studio/releases), with notes taken from [`changelog.json`](changelog.json).
+
+Dependabot opens weekly, grouped update pull requests (npm and GitHub Actions); they run the checks
+and never publish on their own.
 
 Installed apps check for updates at start and every four hours, install in the background, and
 offer **Restart now**. The workflow needs no secrets; the repo must stay public for apps to read releases.
