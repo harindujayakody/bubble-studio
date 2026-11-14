@@ -5,6 +5,7 @@ import { Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 import { ensureFonts, postDims, renderPost } from "@/lib/editor/render";
+import { loadSamples } from "@/lib/editor/samples";
 import { useBrand } from "@/lib/editor/brand";
 import {
   TEMPLATES,
@@ -22,13 +23,13 @@ import type { PostState } from "@/lib/editor/types";
 
 const PREVIEW_W = 240;
 
-/** Draw a design small, for its gallery tile. */
+/** Draw a design small, for its gallery tile, with its sample photos. */
 async function preview(state: PostState) {
-  await ensureFonts(state);
+  const [, assets] = await Promise.all([ensureFonts(state), loadSamples(state)]);
   const c = document.createElement("canvas");
   c.width = PREVIEW_W;
   c.height = Math.round(PREVIEW_W / postDims(state).aspect);
-  renderPost(c.getContext("2d")!, { source: null, state, width: PREVIEW_W });
+  renderPost(c.getContext("2d")!, { source: null, assets, state, width: PREVIEW_W });
   return c.toDataURL("image/jpeg", 0.82);
 }
 

@@ -46,6 +46,9 @@ test("every template renders, and a story template exports", async ({ page }) =>
 
   await page.getByRole("button", { name: "Use template: Skin care" }).click();
   await expect(page.getByRole("img", { name: "Post preview" })).toBeVisible();
+  // Its photo frames hold sample photos, ready to swap for the user's own.
+  await expect(page.getByText("This is a sample photo")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Use my photo" })).toBeVisible();
   await page.getByRole("button", { name: "Export", exact: true }).click();
   await page.getByRole("button", { name: "PNG", exact: true }).click();
   const download = page.waitForEvent("download");

@@ -28,6 +28,7 @@
         "What's new in Settings, and this changelog"
       ],
       "improved": [
+        "Template photo slots show fitting sample photos (bundled, from Unsplash) instead of grey boxes; click Use my photo to replace one",
         "Template gallery shows one size at a time (1:1, 4:5 or 9:16) so the grid is even, and every template is available in every size",
         "Merged videos are named after the first clip, e.g. beach_merge.mp4, and never overwrite an existing file",
         "Copy and paste text and image layers between designs with Ctrl/Cmd+C and Ctrl/Cmd+V",

@@ -181,7 +181,8 @@ Made by **Harindu Jayakody**. A product of [Infiax.com](https://infiax.com).
 
 Fonts are from Google Fonts via [Fontsource](https://fontsource.org) (SIL Open Font License).
 Background removal uses [U²-Net](https://github.com/xuebinqin/U-2-Net) (Apache-2.0) on
-[ONNX Runtime](https://onnxruntime.ai) (MIT).
+[ONNX Runtime](https://onnxruntime.ai) (MIT). Template sample photos are from [Unsplash](https://unsplash.com)
+(Unsplash License); photographers are listed in [`public/samples/CREDITS.md`](public/samples/CREDITS.md).
 
 ## License
 

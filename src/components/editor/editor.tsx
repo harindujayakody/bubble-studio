@@ -115,6 +115,7 @@ import { canFastExport, fastExportReel, probeVideo, reelDesignFor } from "@/lib/
 import { SINHALA_RE, nearestWeight } from "@/lib/editor/fonts";
 import { getBrand } from "@/lib/editor/brand";
 import { moveLayer, nextZ, restack } from "@/lib/editor/layers";
+import { isSample, loadSamples } from "@/lib/editor/samples";
 import { inkFor, mix } from "@/lib/editor/color";
 import {
   defaultCrop,
@@ -957,6 +958,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
         const blob = cell && !nextPhotos[cell] ? stored.get(cell) : undefined;
         if (cell && blob) nextPhotos[cell] = await imageFrom(URL.createObjectURL(blob));
       }
+      Object.assign(nextPhotos, await loadSamples(next));
       for (const s of next.stickers) {
         if (s.kind === "frame") {
           const blob = s.photo && !nextPhotos[s.photo] ? stored.get(s.photo) : undefined;
@@ -1225,8 +1227,9 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
               designId.current = crypto.randomUUID();
               reset(t);
               setStartedBlank(true);
-              // Point at the first empty photo frame so "Choose photo" is right there.
-              const slot = t.stickers.find((s) => s.kind === "frame" && !s.photo);
+              void loadSamples(t).then((samples) => setPhotos((p) => ({ ...p, ...samples })));
+              // Point at the first photo frame (empty or a sample) so "Choose photo" is right there.
+              const slot = t.stickers.find((s) => s.kind === "frame" && (!s.photo || isSample(s.photo)));
               setSelectedId(slot?.id ?? null);
               setTool(slot ? "elements" : "text");
               setStarted(true);
@@ -2087,7 +2090,7 @@ function buildDraft(state: typeof DEFAULT_STATE, id: string): Draft & { id: stri
   for (const cell of state.grid?.cells ?? []) if (cell && cell !== state.photoId) assets.push({ id: cell, kind: "image" });
   for (const s of state.stickers) {
     if ((s.kind === "image" || s.kind === "gif") && !s.value.startsWith("custom:")) assets.push({ id: s.value, kind: "image" });
-    if (s.kind === "frame" && s.photo) assets.push({ id: s.photo, kind: "image" });
+    if (s.kind === "frame" && s.photo && !isSample(s.photo)) assets.push({ id: s.photo, kind: "image" });
     if (s.original && !s.original.startsWith("custom:")) assets.push({ id: s.original, kind: "image" });
   }
   if (state.video) assets.push({ id: state.video.id, kind: "video", name: state.video.name });

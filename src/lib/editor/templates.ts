@@ -1,5 +1,6 @@
 import { DEFAULT_FILL, DEFAULT_STATE, type PostState, type ShapeId, type Sticker, type TextLayer } from "./types";
 import type { BrandKit } from "./brand";
+import { isSample } from "./samples";
 
 /**
  * Ready-made designs. Each template is a layout (where things go) filled with a category's
@@ -24,6 +25,8 @@ export type Template = {
   body: string;
   /** The layout's items for a post `h` times as tall as it is wide. */
   make: (h: number) => Item[];
+  /** Sample photos (public/samples) for its frames, in order; the user replaces them. */
+  photos: string[];
 };
 
 export const TEMPLATE_SIZES: { id: TemplateSize; label: string; aspect: number }[] = [
@@ -538,6 +541,61 @@ const STORY_PLAN = [
   S("hours", "hours", "ocean", "story", { title: "Opening hours", sub: "Mon – Fri  9 am – 7 pm\nSaturday  9 am – 5 pm\nSunday  Closed", small: "Call us: 077 123 4567", badge: "" }),
 ];
 
+/** Sample photos per category; templates take turns through them so neighbours differ. */
+const CATEGORY_PHOTOS: Record<TemplateCategory, string[]> = {
+  opening: ["shop-owner", "boutique", "bakery", "coffee"],
+  sale: ["shopping", "boutique", "handbag", "sneaker"],
+  new: ["sneaker", "handbag", "skincare-tube", "boutique", "serum"],
+  food: ["rice-curry", "fried-rice", "croissants", "bakery", "coffee", "cake"],
+  hours: ["shop-owner"],
+  thanks: ["flowers", "friends"],
+  festival: ["flowers", "cake"],
+  events: ["concert", "workshop", "deer", "mountains"],
+  quotes: ["portrait", "mountains", "gym", "coffee"],
+  social: ["friends", "coffee", "cake", "flowers", "portrait", "bakery", "boutique", "mountains", "croissants", "shopping"],
+};
+
+/** Photos picked for particular templates (by title), frame by frame. */
+const TEMPLATE_PHOTOS: Record<string, string[]> = {
+  "World Wildlife Day": ["deer"],
+  "Happy World Wildlife Day": ["deer"],
+  "ලෝක වනජීවී දිනය": ["deer"],
+  "Live music night": ["concert"],
+  Workshop: ["workshop"],
+  "Now open": ["shop-owner"],
+  "We're open": ["coffee"],
+  "“Fashion fades, style stays.”": ["shopping"],
+  "Just keep moving forward": ["gym"],
+  "Stronger every day": ["gym"],
+  "“Small steps every day.”": ["mountains"],
+  "“Live comfortably in a complicated world.”": ["portrait"],
+  "“Good things take time.”": ["portrait"],
+  "“සතුට බෙදන තරමට වැඩි වේ.”": ["friends"],
+  New: ["portrait", "bakery"],
+  "Best day ever": ["friends", "cake", "flowers"],
+  "Behind the scenes": ["shop-owner", "bakery"],
+  "New Product": ["handbag"],
+  "new drop": ["boutique"],
+  "Out now": ["skincare-tube"],
+  "Spring 2026": ["handbag"],
+  "Just in": ["sneaker"],
+  "අලුත්ම නිෂ්පාදනය": ["serum"],
+  "Skin care": ["serum", "skincare-tube", "serum"],
+  "Big sale": ["handbag"],
+  Sale: ["shopping"],
+  "Deals of the week": ["boutique", "shopping", "sneaker"],
+  "Today's menu": ["fried-rice", "rice-curry", "coffee"],
+  "fresh bakes": ["croissants"],
+};
+
+const turns: Partial<Record<TemplateCategory, number>> = {};
+/** The category's photos, starting one further along for each template. */
+const nextPhotos = (category: TemplateCategory) => {
+  const list = CATEGORY_PHOTOS[category];
+  const n = (turns[category] = (turns[category] ?? -1) + 1);
+  return [...list.slice(n % list.length), ...list.slice(0, n % list.length)];
+};
+
 const heightOf = (size: Size) => (size === "story" ? 16 / 9 : size === "feed" ? 1.25 : 1);
 
 /**
@@ -564,6 +622,7 @@ export const TEMPLATES: Template[] = [
         heading: FONTS[layout][0],
         body: FONTS[layout][1],
         make: legacy(layout, copy),
+        photos: nextPhotos(category),
       };
     }),
   ),
@@ -576,6 +635,7 @@ export const TEMPLATES: Template[] = [
     heading: (STORY_FONTS[layout] ?? FONTS[layout])[0],
     body: (STORY_FONTS[layout] ?? FONTS[layout])[1],
     make: STORY[layout] ? (h: number) => STORY[layout](copy, h) : legacy(layout, copy),
+    photos: TEMPLATE_PHOTOS[copy.title] ?? nextPhotos(category),
   })),
 ];
 
@@ -597,6 +657,7 @@ export function templateState(t: Template, brand?: BrandKit | null, media: "phot
   const font = (f: string | undefined) => (f === "$h" ? heading : f === "$d" ? body : f);
 
   let z = 0;
+  let frames = 0;
   const texts: TextLayer[] = [];
   const stickers: Sticker[] = [];
   for (const it of t.make(heightOf(size))) {
@@ -638,6 +699,7 @@ export function templateState(t: Template, brand?: BrandKit | null, media: "phot
         color: color(o.color) ?? pal.a,
         fill: color(o.fill),
         stroke: color(o.stroke),
+        ...(o.kind === "frame" && t.photos.length ? { photo: `sample:${t.photos[frames++ % t.photos.length]}` } : {}),
         z,
       } as Sticker);
     }
@@ -668,8 +730,8 @@ export function readMyTemplates(): MyTemplate[] {
 }
 
 /**
- * Keep a design as a template. Uploaded photos aren't stored (frames come back empty, ready
- * for a new photo); text, shapes, emoji and the look are kept.
+ * Keep a design as a template. Uploaded photos aren't stored (their frames come back empty, ready
+ * for a new photo; sample photos stay); text, shapes, emoji and the look are kept.
  * shortcut: kept in localStorage (max 12), so no uploaded images; move to IndexedDB to keep them.
  */
 export function saveMyTemplate(state: PostState, name: string): boolean {
@@ -685,7 +747,7 @@ export function saveMyTemplate(state: PostState, name: string): boolean {
     stickers: state.stickers
       .filter((s) => s.kind !== "image" || s.value.startsWith("custom:"))
       .filter((s) => s.kind !== "gif")
-      .map((s) => (s.kind === "frame" ? { ...s, photo: null } : s)),
+      .map((s) => (s.kind === "frame" && !isSample(s.photo) ? { ...s, photo: null } : s)),
   };
   const list = [{ id: crypto.randomUUID(), name: name.trim() || "My template", state: clean, savedAt: Date.now() }, ...readMyTemplates()].slice(0, 12);
   try {

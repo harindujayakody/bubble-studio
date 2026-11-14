@@ -16,6 +16,7 @@ import { useBrand } from "@/lib/editor/brand";
 import { RemoveBackground } from "./remove-background";
 import { nextZ, restack } from "@/lib/editor/layers";
 import type { Assets } from "@/lib/editor/render";
+import { isSample } from "@/lib/editor/samples";
 import type { CollageGrid, PostState, Region, ShapeId, Sticker } from "@/lib/editor/types";
 
 type Update = (fn: (s: PostState) => PostState, key?: string) => void;
@@ -612,8 +613,11 @@ function StickerEditor({
         )}
         {sticker.kind === "frame" && (
           <>
+            {isSample(sticker.photo) && (
+              <p className="-mb-1 text-[13px] text-pretty text-ink-soft">This is a sample photo. Put your own in its place.</p>
+            )}
             <Button onClick={onPickFramePhoto} className="w-full">
-              <ImagePlus /> {sticker.photo ? "Replace photo" : "Choose photo"}
+              <ImagePlus /> {isSample(sticker.photo) ? "Use my photo" : sticker.photo ? "Replace photo" : "Choose photo"}
             </Button>
             {sticker.photo && (
               <div className="grid gap-4">
