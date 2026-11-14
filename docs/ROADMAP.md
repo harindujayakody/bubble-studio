@@ -168,9 +168,9 @@ Small, low-risk features first, and tests, so the bigger work doesn't break what
 - **Outcome:** trim out the bad parts, speed up or slow down, smooth joins, in the same fast export.
 
 ### D3 · Captions · [#11](https://github.com/harindujayakody/bubble-studio/issues/11) · 4 days
-- **How:** caption track (text + start/end) on the timeline with styles (box, outline, highlighted
-  word). Automatic captions in the **desktop app only** with on-device speech-to-text (Whisper via
-  ONNX/WASM, per #27); typing works everywhere.
+- **How:** captions are timed text layers: add at the playhead, paste a script spread over the reel,
+  or import an .srt; one style for all (box, outline, highlight); download an .srt for Facebook.
+  **Shipped.** Automatic speech-to-text moved to [#38](https://github.com/harindujayakody/bubble-studio/issues/38) (later).
 - **Outcome:** reels that make sense with the sound off.
 
 ### D4 · Photo slideshow reels · [#13](https://github.com/harindujayakody/bubble-studio/issues/13) · 2–3 days
@@ -207,6 +207,10 @@ Small, low-risk features first, and tests, so the bigger work doesn't break what
 - **Owner action:** the application has to be submitted by the maintainer.
 
 ## Later / ideas
+
+- **Automatic captions** · [#38](https://github.com/harindujayakody/bubble-studio/issues/38): on-device
+  speech-to-text in the desktop app (Whisper via ONNX). Deferred: it adds an 80–150 MB model and
+  Sinhala accuracy is weak with small models. Typed and .srt captions shipped in D3.
 
 Stock media libraries, team collaboration and posting directly to Facebook are out of scope for
 now: they need a server and accounts, against the local-first principle.

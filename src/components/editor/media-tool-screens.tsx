@@ -2,15 +2,18 @@
 
 import { useRef, useState } from "react";
 import { toast } from "sonner";
-import { ArrowDown, ArrowLeft, ArrowUp, AudioLines, CheckCircle2, Film, LoaderCircle, Plus, Trash2, TriangleAlert, Upload } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, AudioLines, CheckCircle2, Film, Images, LoaderCircle, Plus, Trash2, TriangleAlert, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { Switch } from "@/components/ui/switch";
 import {
   AUDIO_FORMATS,
   MERGE_SIZES,
   MERGE_TRANSITIONS,
+  SLIDE_SIZES,
   extractAudio,
+  makeSlideshow,
   mergePlan,
   mergeVideos,
   readClip,
@@ -19,6 +22,7 @@ import {
   type MergeFit,
   type MergeSize,
   type MergeTransition,
+  type SlideSize,
 } from "@/lib/editor/media-tools";
 import { RangeField } from "./controls";
 import { ensureExportFolder, saveExport } from "@/lib/editor/save";
@@ -38,6 +42,8 @@ function ToolFrame({
   onBack,
   onFiles,
   dropLabel,
+  accept = ACCEPT_VIDEO,
+  formats = "MP4, MOV and WebM",
   children,
 }: {
   icon: React.ReactNode;
@@ -46,6 +52,8 @@ function ToolFrame({
   onBack: () => void;
   onFiles: (files: File[]) => void;
   dropLabel: string;
+  accept?: string;
+  formats?: string;
   children: React.ReactNode;
 }) {
   const input = useRef<HTMLInputElement>(null);
@@ -94,13 +102,13 @@ function ToolFrame({
             <Upload className="size-5" />
           </span>
           <span className="font-heading text-[15px] font-semibold text-ink">{dropLabel}</span>
-          <span className="text-[13px] text-ink-soft">or drop them here · MP4, MOV and WebM · nothing is uploaded</span>
+          <span className="text-[13px] text-ink-soft">or drop them here · {formats} · nothing is uploaded</span>
         </button>
         <input
           ref={input}
           type="file"
           multiple
-          accept={ACCEPT_VIDEO}
+          accept={accept}
           className="sr-only"
           tabIndex={-1}
           aria-hidden
@@ -499,6 +507,189 @@ export function MergeVideosScreen({ onBack }: { onBack: () => void }) {
         <p className="mt-3 flex items-center gap-1.5 text-xs text-ink-soft">
           <Plus className="size-3.5" /> Add more clips with the button above; they join at the end.
         </p>
+      )}
+    </ToolFrame>
+  );
+}
+
+type Slide = { id: string; file: File; url: string };
+
+/** Photos into a reel: order them, pick the size, time and transition, then edit it as a reel. */
+export function SlideshowScreen({ onBack, onDone }: { onBack: () => void; onDone: (video: File, size: SlideSize) => void }) {
+  const [slides, setSlides] = useState<Slide[]>([]);
+  const [size, setSize] = useState<SlideSize>("story");
+  const [seconds, setSeconds] = useState(3);
+  const [transition, setTransition] = useState<MergeTransition>("crossfade");
+  const [motion, setMotion] = useState(true);
+  const [progress, setProgress] = useState<number | null>(null);
+  const abort = useRef<AbortController | null>(null);
+  const busy = progress !== null;
+
+  const add = (files: File[]) => {
+    const photos = files.filter((f) => f.type.startsWith("image/"));
+    if (photos.length < files.length) toast("Some files were skipped", { description: "Only photos can be added." });
+    setSlides((list) => [...list, ...photos.map((file) => ({ id: crypto.randomUUID(), file, url: URL.createObjectURL(file) }))]);
+  };
+  const move = (i: number, d: -1 | 1) =>
+    setSlides((list) => {
+      const next = [...list];
+      const [s] = next.splice(i, 1);
+      next.splice(i + d, 0, s);
+      return next;
+    });
+  const total = slides.length ? mergePlan(slides.map(() => seconds), transition, 0.6).total / 30 : 0;
+
+  const create = async () => {
+    abort.current = new AbortController();
+    setProgress(0);
+    try {
+      const blob = await makeSlideshow({
+        images: slides.map((s) => s.file),
+        size,
+        seconds,
+        transition,
+        transitionSeconds: 0.6,
+        motion,
+        onProgress: setProgress,
+        signal: abort.current.signal,
+      });
+      onDone(new File([blob], "photo-slideshow.mp4", { type: "video/mp4" }), size);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") toast("Slideshow cancelled");
+      else toast.error("The slideshow couldn't be made", { description: err instanceof Error ? err.message : "Please try again." });
+    } finally {
+      setProgress(null);
+      abort.current = null;
+    }
+  };
+
+  return (
+    <ToolFrame
+      icon={<Images className="size-7" strokeWidth={1.75} />}
+      title="Photo slideshow"
+      body="Turn photos into a reel with smooth zooms and transitions, then add music, text and captions."
+      onBack={onBack}
+      onFiles={add}
+      dropLabel="Choose photos"
+      accept="image/jpeg,image/png,image/webp,image/*"
+      formats="JPG, PNG and WebP"
+    >
+      {!canFastExport() && (
+        <p className="mt-4 rounded-xl bg-yellow-wash px-3 py-2.5 text-[13px] text-ink">
+          This browser can&apos;t encode video. Use the latest Chrome or Edge, or the desktop app, to make a slideshow.
+        </p>
+      )}
+      {slides.length > 0 && (
+        <section className="mt-6 rounded-2xl bg-sheet p-4 shadow-float md:p-5">
+          <div className="flex items-baseline justify-between">
+            <h2 className="font-heading text-[15px] font-semibold text-ink">Photos in order</h2>
+            <span className="font-mono text-xs text-ink-soft tabular">
+              {slides.length} photo{slides.length === 1 ? "" : "s"} · {formatTime(total)}
+            </span>
+          </div>
+          <ol className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-5" aria-label="Photos">
+            {slides.map((s, i) => (
+              <li key={s.id} className="relative overflow-hidden rounded-lg bg-tile">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={s.url} alt={s.file.name} className="aspect-square w-full object-cover" />
+                <span className="absolute top-1 left-1 rounded bg-black/60 px-1.5 font-mono text-[11px] text-white tabular">{i + 1}</span>
+                <span className="absolute inset-x-1 bottom-1 flex justify-between">
+                  <Button variant="secondary" size="icon-sm" aria-label={`Move photo ${i + 1} earlier`} disabled={busy || i === 0} onClick={() => move(i, -1)}>
+                    <ArrowLeft />
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="icon-sm"
+                    aria-label={`Remove photo ${i + 1}`}
+                    disabled={busy}
+                    onClick={() => {
+                      URL.revokeObjectURL(s.url);
+                      setSlides((list) => list.filter((x) => x.id !== s.id));
+                    }}
+                    className="text-destructive"
+                  >
+                    <Trash2 />
+                  </Button>
+                  <Button variant="secondary" size="icon-sm" aria-label={`Move photo ${i + 1} later`} disabled={busy || i === slides.length - 1} onClick={() => move(i, 1)}>
+                    <ArrowRight />
+                  </Button>
+                </span>
+              </li>
+            ))}
+          </ol>
+
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            <div className="grid content-start gap-2">
+              <span className="text-[13px] text-ink-soft">Size</span>
+              <div className="grid grid-cols-2 gap-1.5" role="radiogroup" aria-label="Slideshow size">
+                {SLIDE_SIZES.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={size === s.id}
+                    disabled={busy}
+                    onClick={() => setSize(s.id)}
+                    className={cn(
+                      "h-9 rounded-lg border px-2 text-[13px] font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-aqua",
+                      size === s.id ? "border-brand bg-brand-wash text-ink" : "border-rule text-ink hover:bg-tile",
+                    )}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="grid content-start gap-3">
+              <RangeField label="Each photo" value={seconds} min={1.5} max={6} step={0.5} defaultValue={3} format={(v) => `${v.toFixed(1)} s`} onChange={setSeconds} />
+              <label className="flex items-center justify-between gap-3 text-[13px] text-ink">
+                Slow zoom (Ken Burns)
+                <Switch checked={motion} onCheckedChange={setMotion} disabled={busy} aria-label="Slow zoom" />
+              </label>
+            </div>
+          </div>
+
+          <div className="mt-5 grid gap-2">
+            <span className="text-[13px] text-ink-soft">Between photos</span>
+            <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-6" role="radiogroup" aria-label="Transition">
+              {MERGE_TRANSITIONS.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={transition === t.id}
+                  disabled={busy}
+                  onClick={() => setTransition(t.id)}
+                  className={cn(
+                    "h-9 rounded-lg border px-2 text-[13px] font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-aqua",
+                    transition === t.id ? "border-brand bg-brand-wash text-ink" : "border-rule text-ink hover:bg-tile",
+                  )}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-5">
+            {busy ? (
+              <div className="grid gap-2" role="status" aria-live="polite">
+                <div className="flex items-baseline justify-between text-[13px]">
+                  <span className="text-ink">Making the slideshow…</span>
+                  <span className="font-mono text-xs text-ink-soft tabular">{Math.round((progress ?? 0) * 100)}%</span>
+                </div>
+                <Progress value={progress ?? 0} />
+                <Button variant="outline" className="w-fit" onClick={() => abort.current?.abort()}>
+                  Cancel
+                </Button>
+              </div>
+            ) : (
+              <Button onClick={() => void create()} disabled={!canFastExport()} className="h-10 bg-brand px-4 text-white hover:bg-brand-ink">
+                <Images className="size-4" /> Create slideshow
+              </Button>
+            )}
+          </div>
+        </section>
       )}
     </ToolFrame>
   );

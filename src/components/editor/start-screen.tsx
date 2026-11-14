@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, AudioLines, Film, ImageIcon, Lock, MoreHorizontal, Play, Plus, Star, Trash2 } from "lucide-react";
+import { ArrowRight, AudioLines, Film, ImageIcon, Images, Lock, MoreHorizontal, Play, Plus, Star, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { DraftSummary } from "@/lib/editor/draft";
 import { gradientCss, GRADIENT_PRESETS } from "@/lib/editor/palettes";
@@ -30,7 +30,7 @@ export const REPO_URL = "https://github.com/harindujayakody/bubble-studio";
 /** Which card the start screen points at when opened from the New menu. */
 export type StartStep = "media" | "size" | "reel";
 /** Stand-alone tools that open from the start screen instead of the editor. */
-export type StartTool = "merge" | "extract";
+export type StartTool = "merge" | "extract" | "slideshow";
 
 export function StartScreen({
   onPick,
@@ -119,7 +119,7 @@ export function StartScreen({
           <h2 id="tools-heading" className="font-heading text-xl font-semibold text-ink md:text-2xl">
             More tools
           </h2>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 md:gap-4 lg:grid-cols-4">
+          <div className="mt-4 grid gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-5">
             <ToolTile
               icon={<BulkIcon className="size-6" />}
               title="Bulk edit photos"
@@ -131,6 +131,12 @@ export function StartScreen({
               title="Bulk edit reels"
               body="One design on many clips"
               onClick={() => onPick("video", "story", "bulk")}
+            />
+            <ToolTile
+              icon={<Images className="size-6" strokeWidth={1.75} />}
+              title="Photo slideshow"
+              body="Turn photos into a reel"
+              onClick={() => onTool("slideshow")}
             />
             <ToolTile
               icon={<MergeIcon className="size-6" />}

@@ -69,7 +69,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { CanvasStage, type RegionDefaults } from "./canvas-stage";
 import { SizePreview, StartScreen, type StartStep, type StartTool } from "./start-screen";
-import { ExtractAudioScreen, MergeVideosScreen } from "./media-tool-screens";
+import { ExtractAudioScreen, MergeVideosScreen, SlideshowScreen } from "./media-tool-screens";
 import { WatermarkSection } from "./watermark-panel";
 import { refreshMyTemplates } from "./templates-gallery";
 import { saveMyTemplate } from "@/lib/editor/templates";
@@ -1204,6 +1204,19 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
           <MergeVideosScreen onBack={() => setStartTool(null)} />
         ) : startTool === "extract" ? (
           <ExtractAudioScreen onBack={() => setStartTool(null)} />
+        ) : startTool === "slideshow" ? (
+          <SlideshowScreen
+            onBack={() => setStartTool(null)}
+            onDone={(file, size) => {
+              // The slideshow opens as a reel, ready for music, text and captions.
+              designId.current = crypto.randomUUID();
+              reset({ ...DEFAULT_STATE, media: "video", size });
+              setStartTool(null);
+              setTool("photo");
+              setStarted(true);
+              void loadVideoFile(file);
+            }}
+          />
         ) : (
           <StartScreen
             key={startStep}

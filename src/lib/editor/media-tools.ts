@@ -179,6 +179,124 @@ function blend(ctx: CanvasRenderingContext2D, a: HTMLCanvasElement, b: HTMLCanva
   ctx.restore();
 }
 
+/* -------------------------------------------------------- photo slideshow */
+
+export type SlideSize = "story" | "feed" | "square" | "landscape";
+
+export const SLIDE_SIZES: { id: SlideSize; label: string; w: number; h: number }[] = [
+  { id: "story", label: "Reel 9:16", w: 1080, h: 1920 },
+  { id: "feed", label: "Feed 4:5", w: 1080, h: 1350 },
+  { id: "square", label: "Square 1:1", w: 1080, h: 1080 },
+  { id: "landscape", label: "Landscape 16:9", w: 1920, h: 1080 },
+];
+
+/**
+ * Photos into a silent MP4: each fills the frame for `seconds`, with a slow zoom and drift
+ * (Ken Burns) when `motion` is on, joined with the merge transitions. The editor then opens it
+ * as a reel for music, text and captions.
+ */
+export async function makeSlideshow(opts: {
+  images: Blob[];
+  size: SlideSize;
+  seconds: number;
+  transition: MergeTransition;
+  transitionSeconds: number;
+  motion: boolean;
+  onProgress: (fraction: number) => void;
+  signal: AbortSignal;
+}): Promise<Blob> {
+  const { images, size, seconds, transition, transitionSeconds, motion, onProgress, signal } = opts;
+  if (!images.length) throw new Error("Add some photos first.");
+  const { w: W, h: H } = SLIDE_SIZES.find((s) => s.id === size)!;
+  const plan = mergePlan(
+    images.map(() => seconds),
+    transition,
+    transitionSeconds,
+  );
+  const videoCodec = await getFirstEncodableVideoCodec(["avc", "hevc", "vp9", "av1"], { width: W, height: H });
+  if (!videoCodec) throw new Error("No MP4 video encoder is available in this browser.");
+
+  const layer = () => {
+    const c = document.createElement("canvas");
+    c.width = W;
+    c.height = H;
+    return c;
+  };
+  const canvas = layer();
+  const ctx = canvas.getContext("2d")!;
+  const a = layer();
+  const b = layer();
+
+  // Decode lazily and keep only the photos in use, so long slideshows of phone photos fit in memory.
+  const decoded = new Map<number, ImageBitmap>();
+  const photo = async (i: number) => {
+    let bmp = decoded.get(i);
+    if (!bmp) {
+      try {
+        bmp = await createImageBitmap(images[i]);
+      } catch {
+        throw new Error(`Photo ${i + 1} couldn't be opened. Use JPG, PNG or WebP.`);
+      }
+      decoded.set(i, bmp);
+    }
+    for (const [k, old] of decoded) {
+      if (k < i - 1) {
+        old.close();
+        decoded.delete(k);
+      }
+    }
+    return bmp;
+  };
+  // Cover the frame; with motion, zoom in 10% and drift, alternating direction per photo.
+  const paint = (target: CanvasRenderingContext2D, bmp: ImageBitmap, i: number, p: number) => {
+    const zoom = motion ? 1 + 0.1 * p : 1;
+    const scale = Math.max(W / bmp.width, H / bmp.height) * zoom;
+    const dw = bmp.width * scale;
+    const dh = bmp.height * scale;
+    const drift = motion ? (i % 2 ? -1 : 1) * (p - 0.5) : 0;
+    target.fillStyle = "#000";
+    target.fillRect(0, 0, W, H);
+    target.drawImage(bmp, (W - dw) / 2 + drift * (dw - W) * 0.5, (H - dh) / 2 + drift * (dh - H) * 0.3, dw, dh);
+  };
+
+  const output = new Output({ format: new Mp4OutputFormat({ fastStart: "in-memory" }), target: new BufferTarget() });
+  const videoSource = new CanvasSource(canvas, {
+    codec: videoCodec,
+    bitrate: Math.round(Math.min(16_000_000, Math.max(4_000_000, W * H * FPS * 0.12))),
+    keyFrameInterval: 2,
+  });
+  output.addVideoTrack(videoSource, { frameRate: FPS });
+  await output.start();
+  try {
+    let i = 0;
+    for (let F = 0; F < plan.total; F++) {
+      if (signal.aborted) throw new DOMException("Slideshow cancelled", "AbortError");
+      while (i + 1 < images.length && F >= plan.starts[i + 1] + (plan.overlap[i] ?? 0)) i++;
+      const next = i + 1 < images.length && F >= plan.starts[i + 1] ? i + 1 : null;
+      const local = F - plan.starts[i];
+      const p = local / plan.frames[i];
+      if (next === null) {
+        paint(ctx, await photo(i), i, p);
+      } else {
+        // Transition: photo i is ending, photo `next` starting.
+        const into = F - plan.starts[next];
+        paint(a.getContext("2d")!, await photo(i), i, p);
+        paint(b.getContext("2d")!, await photo(next), next, into / plan.frames[next]);
+        blend(ctx, a, b, (into + 1) / (plan.overlap[i] + 1), transition);
+      }
+      await videoSource.add(F / FPS, 1 / FPS);
+      onProgress(Math.min(1, (F + 1) / plan.total));
+    }
+    await output.finalize();
+  } catch (err) {
+    await output.cancel().catch(() => {});
+    throw err;
+  } finally {
+    decoded.forEach((bmp) => bmp.close());
+  }
+  return new Blob([(output.target as BufferTarget).buffer!], { type: "video/mp4" });
+}
+
 function targetSize(size: MergeSize, first: ClipInfo) {
   if (size === "story") return { w: 1080, h: 1920 };
   if (size === "landscape") return { w: 1920, h: 1080 };

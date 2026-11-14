@@ -68,7 +68,8 @@ The installers aren't code-signed yet, so Windows may show *"Windows protected y
 - Animated stickers and GIFs
 - Background music with volume, fade and auto-fit to the clip
 - **Fast MP4 export**, frame by frame with WebCodecs
-- **Merge videos** and **extract audio** (MP3, M4A, WAV)
+- **Photo slideshows**, **merge videos** (with transitions) and **extract audio** (MP3, M4A, WAV)
+- **Cut and speed**, and **captions** (typed, pasted or .srt)
 
 </td>
 <td valign="top">
