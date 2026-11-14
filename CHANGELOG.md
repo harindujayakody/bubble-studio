@@ -11,6 +11,7 @@ This file is generated from `changelog.json` with `npm run changelog`.
 
 ### Added
 
+- Captions for reels (Text → Captions): add at the playhead, paste a script to spread over the reel, or import an .srt; box, outline or highlight style; download an .srt for Facebook
 - Reel cuts and speed: split a clip at the playhead, delete the parts you don't want, and play it at 0.5x to 2x; preview and export skip the deleted parts
 - Merge videos: choose a transition between clips (cut, crossfade, fade to black or white, slide, zoom) with its length; the sound crossfades too
 - 38 new templates (69 in all), including 9:16 stories: photo posters, quote cards, social-post mockups, polaroids and photo dumps, product podiums, price lists, "new drop" and holiday cards, with new Events, Quotes and Social categories

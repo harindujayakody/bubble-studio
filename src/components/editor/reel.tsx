@@ -1,23 +1,173 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Film, ImageIcon, Pause, Play, Scissors, Smile, Trash2, Type, Volume2, VolumeX } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Captions, Download, FileUp, Film, ImageIcon, Pause, Play, Plus, Scissors, Smile, Trash2, Type, Volume2, VolumeX } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { Textarea } from "@/components/ui/textarea";
 import { PanelSection } from "./controls";
 import { MusicSection, OriginalSound } from "./music-panel";
 import type { LibraryTrack } from "@/lib/editor/sticker-library";
 import { formatTime, seekVideo, setVideoMuted } from "@/lib/editor/video";
-import { layerName, stackOrder } from "@/lib/editor/layers";
+import { layerName, nextZ, stackOrder } from "@/lib/editor/layers";
 import { keptParts, reelAt, reelLength, removePart, speedOf, splitAt } from "@/lib/editor/segments";
+import { CAPTION_STYLES, buildSrt, captionLook, captionStyleOf, parseSrt, spreadLines, type CaptionStyle, type Cue } from "@/lib/editor/captions";
+import { SINHALA_RE } from "@/lib/editor/fonts";
+import { saveExport } from "@/lib/editor/save";
 import { Segmented } from "./watermark-panel";
-
-const SPEEDS = ["0.5", "0.75", "1", "1.25", "1.5", "2"] as const;
-import type { PostState, Timing, VideoClip } from "@/lib/editor/types";
+import type { PostState, TextLayer, Timing, VideoClip } from "@/lib/editor/types";
 
 type Update = (fn: (s: PostState) => PostState, key?: string) => void;
+
+const SPEEDS = ["0.5", "0.75", "1", "1.25", "1.5", "2"] as const;
+
+/** Text → Captions (reels): lines shown one after another, typed, pasted or from an .srt. */
+export function CaptionsSection({
+  state,
+  update,
+  video,
+  onSelect,
+}: {
+  state: PostState;
+  update: Update;
+  video: HTMLVideoElement | undefined;
+  onSelect: (id: string | null) => void;
+}) {
+  const clip = state.video!;
+  const captions = state.texts.filter((t) => t.caption).sort((a, b) => (a.start ?? 0) - (b.start ?? 0));
+  const [picked, setPicked] = useState<CaptionStyle>("box");
+  const style = captions.length ? captionStyleOf(captions[0]) : picked;
+  const [script, setScript] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const layer = (c: Cue, z: number): TextLayer => ({
+    id: crypto.randomUUID(),
+    text: c.text,
+    start: c.start,
+    end: c.end,
+    z,
+    ...captionLook(style, SINHALA_RE.test(c.text)),
+  });
+  // Pasted lines and .srt files replace the captions; "at playhead" adds one.
+  const replace = (cues: Cue[]) => {
+    if (!cues.length) return toast("No captions found");
+    update((s) => {
+      const rest = s.texts.filter((t) => !t.caption);
+      const z = nextZ({ texts: rest, stickers: s.stickers });
+      return { ...s, texts: [...rest, ...cues.map((c, i) => layer(c, z + i))] };
+    });
+    onSelect(null);
+    toast.success(`${cues.length} caption${cues.length === 1 ? "" : "s"} added`);
+  };
+  const addAtPlayhead = () => {
+    const t = video?.currentTime ?? keptParts(clip)[0].start;
+    const c = layer({ start: t, end: Math.min(t + 2, clip.trimEnd), text: "Caption" }, nextZ(state));
+    update((s) => ({ ...s, texts: [...s.texts, c] }));
+    onSelect(c.id);
+  };
+  const setStyle = (st: CaptionStyle) => {
+    setPicked(st);
+    update((s) => ({
+      ...s,
+      texts: s.texts.map((t) => (t.caption ? { ...t, ...captionLook(st, SINHALA_RE.test(t.text)), id: t.id, text: t.text, start: t.start, end: t.end, z: t.z } : t)),
+    }));
+  };
+  const downloadSrt = () => {
+    const srt = buildSrt(
+      captions.map((c) => ({ start: c.start ?? clip.trimStart, end: c.end ?? clip.trimEnd, text: c.text })),
+      clip,
+    );
+    void saveExport(new Blob([srt], { type: "application/x-subrip" }), `${clip.name.replace(/\.[^.]+$/, "")}-captions.srt`, "reels");
+  };
+
+  return (
+    <PanelSection title="Captions">
+      <p className="-mt-1 mb-3 text-[13px] text-pretty text-ink-soft">
+        Most reels are watched with the sound off. Add lines that show one after another.
+      </p>
+      <div className="grid gap-3">
+        <Segmented label="Caption style" value={style} onChange={setStyle} options={CAPTION_STYLES} />
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" onClick={addAtPlayhead}>
+            <Plus /> Add at playhead
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()}>
+            <FileUp /> Import .srt
+          </Button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".srt,.vtt,text/plain"
+            className="sr-only"
+            tabIndex={-1}
+            aria-hidden
+            onChange={async (e) => {
+              const f = e.target.files?.[0];
+              e.target.value = "";
+              if (f) replace(parseSrt(await f.text()));
+            }}
+          />
+        </div>
+        <Textarea
+          value={script}
+          rows={3}
+          placeholder={"Paste your script, one caption per line"}
+          aria-label="Caption lines"
+          onChange={(e) => setScript(e.target.value)}
+        />
+        <Button size="sm" variant="secondary" disabled={!script.trim()} onClick={() => replace(spreadLines(script, clip))} className="w-fit">
+          <Captions /> Spread lines over the reel
+        </Button>
+
+        {captions.length > 0 && (
+          <>
+            <ol className="grid max-h-56 gap-1 overflow-y-auto" aria-label="Captions">
+              {captions.map((c) => (
+                <li key={c.id} className="flex items-center gap-2 rounded-md border border-rule py-1 pr-1 pl-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onSelect(c.id);
+                      if (video && c.start !== undefined) seekVideo(video, c.start);
+                    }}
+                    className="flex min-w-0 flex-1 items-baseline gap-2 text-left text-[13px] text-ink outline-none focus-visible:ring-2 focus-visible:ring-aqua"
+                  >
+                    <span className="shrink-0 font-mono text-[11px] text-ink-soft tabular">{formatTime(reelAt(clip, c.start ?? clip.trimStart))}</span>
+                    <span className="truncate">{c.text}</span>
+                  </button>
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={`Delete caption: ${c.text}`}
+                    onClick={() => update((s) => ({ ...s, texts: s.texts.filter((t) => t.id !== c.id) }))}
+                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  >
+                    <Trash2 />
+                  </Button>
+                </li>
+              ))}
+            </ol>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" onClick={downloadSrt}>
+                <Download /> Download .srt
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => update((s) => ({ ...s, texts: s.texts.filter((t) => !t.caption) }))}
+                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+              >
+                Remove all
+              </Button>
+            </div>
+          </>
+        )}
+      </div>
+    </PanelSection>
+  );
+}
 
 /** Reel setup: the clip, its trim and its sound. */
 export function VideoPanel({

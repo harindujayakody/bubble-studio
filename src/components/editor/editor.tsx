@@ -89,7 +89,7 @@ import { LayersMenu } from "./layers-menu";
 import { DesktopUpdateListener } from "./desktop-updates";
 import { SettingsPanel } from "./settings-panel";
 import { BulkPanel, BulkReelPanel, NO_VARIATIONS, type BulkClip, type BulkPhoto, type BulkVariations } from "./bulk-panel";
-import { Timeline, VideoBar, VideoPanel } from "./reel";
+import { CaptionsSection, Timeline, VideoBar, VideoPanel } from "./reel";
 import {
   applyClipVolume,
   createFrameCanvas,
@@ -1395,6 +1395,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
               textareaRef={textareaRef}
             />
           )}
+          {tool === "text" && state.video && <CaptionsSection state={state} update={update} video={video} onSelect={setSelectedId} />}
           {tool === "elements" && (
             <ElementsPanel
               state={state}

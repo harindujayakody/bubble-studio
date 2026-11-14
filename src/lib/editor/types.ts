@@ -100,6 +100,8 @@ export type TextLayer = {
   anim?: TextAnimation;
   /** Curve, glow, neon, hollow, gradient or echo. */
   effect?: TextEffect;
+  /** Reels: a caption line (see captions.ts), styled together with the others. */
+  caption?: boolean;
   rotation: number; // degrees
   /** Stacking order shared with stickers; higher draws on top. */
   z: number;
