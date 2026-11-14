@@ -113,6 +113,7 @@ npm run dev        # http://localhost:3000
 | `npm run dev` | Start the web app with hot reload |
 | `npm run build` | Production web build |
 | `npm run lint` | ESLint |
+| `npm run test:e2e` | End-to-end tests in Chromium (starts the dev server) |
 | `npm run desktop:dev` | Build the static app and open it in Electron |
 | `npm run desktop:dist` | Build the Windows installer into `dist-desktop/` |
 | `npm run desktop:dist:mac` | Build the macOS dmg and zip (run on a Mac) |
@@ -145,8 +146,9 @@ major and minor number (`1.3`), and the patch is the number of commits since it 
 Every push to `main` runs `.github/workflows/desktop-release.yml`:
 
 1. **Version:** the version is computed from `VERSION` and the commit count.
-2. **Build:** the Windows installer and the macOS dmg/zip are built in parallel.
-3. **Release:** both are published to [Releases](https://github.com/harindujayakody/bubble-studio/releases), with notes taken from [`changelog.json`](changelog.json).
+2. **Check:** types, lint and the end-to-end tests must pass, or nothing is built.
+3. **Build:** the Windows installer and the macOS dmg/zip are built in parallel.
+4. **Release:** both are published to [Releases](https://github.com/harindujayakody/bubble-studio/releases), with notes taken from [`changelog.json`](changelog.json).
 
 Installed apps check for updates at start and every four hours, install in the background, and
 offer **Restart now**. The workflow needs no secrets; the repo must stay public for apps to read releases.
@@ -169,7 +171,7 @@ Issues and pull requests are welcome. Please:
 
 - keep everything **on-device** (no new servers or accounts) and **MIT-compatible** (no AGPL code, no non-commercial models or fonts);
 - check the preview matches the export, in light and dark;
-- run `npm run lint` and `npx tsc --noEmit` before opening a PR;
+- run `npm run lint`, `npx tsc --noEmit` and `npm run test:e2e` before opening a PR;
 - add a line to `changelog.json`.
 
 ## Credits

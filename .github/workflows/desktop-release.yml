@@ -33,8 +33,33 @@ jobs:
           since=$(git log -1 --format=%H -- VERSION)
           echo "version=$base.$(git rev-list --count $since..HEAD)" >> "$GITHUB_OUTPUT"
 
+  # Nothing is built or published unless types, lint and the end-to-end tests pass.
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Types
+        run: npx tsc --noEmit -p .
+      - name: Lint
+        run: npm run lint
+      - name: End-to-end tests
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-results
+          path: test-results
+          retention-days: 7
+
   build:
-    needs: version
+    needs: [version, check]
     strategy:
       fail-fast: false
       matrix:
