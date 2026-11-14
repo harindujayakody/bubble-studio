@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Film, ImageIcon, Pause, Play, Smile, Trash2, Type, Volume2, VolumeX } from "lucide-react";
+import { Film, ImageIcon, Pause, Play, Scissors, Smile, Trash2, Type, Volume2, VolumeX } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -10,6 +11,10 @@ import { MusicSection, OriginalSound } from "./music-panel";
 import type { LibraryTrack } from "@/lib/editor/sticker-library";
 import { formatTime, seekVideo, setVideoMuted } from "@/lib/editor/video";
 import { layerName, stackOrder } from "@/lib/editor/layers";
+import { keptParts, reelAt, reelLength, removePart, speedOf, splitAt } from "@/lib/editor/segments";
+import { Segmented } from "./watermark-panel";
+
+const SPEEDS = ["0.5", "0.75", "1", "1.25", "1.5", "2"] as const;
 import type { PostState, Timing, VideoClip } from "@/lib/editor/types";
 
 type Update = (fn: (s: PostState) => PostState, key?: string) => void;
@@ -53,7 +58,13 @@ export function VideoPanel({
     );
   }
 
-  const length = clip.trimEnd - clip.trimStart;
+  const length = reelLength(clip);
+  const parts = keptParts(clip);
+  const split = () => {
+    const next = video && splitAt(clip, video.currentTime);
+    if (!next) return toast("Move the playhead inside a part to split it", { description: "Each side needs at least 0.2 seconds." });
+    setClip({ parts: next });
+  };
   return (
     <>
       <PanelSection title="Video">
@@ -102,6 +113,51 @@ export function VideoPanel({
         )}
       </PanelSection>
 
+      <PanelSection title="Cut and speed">
+        <p className="-mt-1 mb-3 text-[13px] text-pretty text-ink-soft">
+          Split at the playhead, then delete the parts you don&apos;t want. The rest plays back to back.
+        </p>
+        <Button variant="outline" size="sm" onClick={split} disabled={!video}>
+          <Scissors /> Split at playhead
+        </Button>
+        {parts.length > 1 && (
+          <ol className="mt-3 grid gap-1" aria-label="Parts">
+            {parts.map((p, i) => (
+              <li key={`${p.start}-${p.end}`} className="flex items-center gap-2 rounded-md border border-rule py-1 pr-1 pl-2">
+                <button
+                  type="button"
+                  onClick={() => video && seekVideo(video, p.start)}
+                  className="flex min-w-0 flex-1 items-baseline gap-2 text-left text-[13px] text-ink outline-none focus-visible:ring-2 focus-visible:ring-aqua"
+                >
+                  <span className="font-medium">Part {i + 1}</span>
+                  <span className="truncate font-mono text-xs text-ink-soft tabular">
+                    {formatTime(p.start)} – {formatTime(p.end)}
+                  </span>
+                </button>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={`Delete part ${i + 1}`}
+                  onClick={() => setClip({ parts: removePart(clip, i) ?? undefined })}
+                  className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                >
+                  <Trash2 />
+                </Button>
+              </li>
+            ))}
+          </ol>
+        )}
+        <div className="mt-4 grid gap-1.5">
+          <span className="text-[13px] text-ink-soft">Speed</span>
+          <Segmented
+            label="Playback speed"
+            value={String(speedOf(clip)) as (typeof SPEEDS)[number]}
+            onChange={(v) => setClip({ speed: Number(v) === 1 ? undefined : Number(v) })}
+            options={SPEEDS.map((s) => ({ id: s, label: `${s}×` }))}
+          />
+        </div>
+      </PanelSection>
+
       <OriginalSound clip={clip} update={update} />
       <MusicSection state={state} update={update} library={musicLibrary} onPick={onPickMusic} onUpload={onUploadMusic} onFromVideo={onMusicFromVideo} />
     </>
@@ -127,7 +183,7 @@ export function VideoBar({ video, clip }: { video: HTMLVideoElement; clip: Video
 
   const toggle = () => {
     if (video.paused) {
-      if (video.currentTime < clip.trimStart || video.currentTime >= clip.trimEnd) seekVideo(video, clip.trimStart);
+      if (video.currentTime < clip.trimStart || video.currentTime >= clip.trimEnd) seekVideo(video, keptParts(clip)[0].start);
       void video.play();
     } else {
       video.pause();
@@ -156,7 +212,7 @@ export function VideoBar({ video, clip }: { video: HTMLVideoElement; clip: Video
         }}
       />
       <span className="shrink-0 text-right font-mono text-xs whitespace-nowrap text-ink-soft tabular">
-        {formatTime(Math.max(0, time - clip.trimStart))} / {formatTime(clip.trimEnd - clip.trimStart)}
+        {formatTime(reelAt(clip, time))} / {formatTime(reelLength(clip))}
       </span>
       <Button
         variant="ghost"

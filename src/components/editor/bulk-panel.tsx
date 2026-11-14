@@ -16,6 +16,7 @@ import type { PostState } from "@/lib/editor/types";
 import type { LibraryTrack } from "@/lib/editor/sticker-library";
 import { canFastExport, fastExportReel, reelDesignFor } from "@/lib/editor/fast-export";
 import { formatTime } from "@/lib/editor/video";
+import { reelLength } from "@/lib/editor/segments";
 
 export type BulkPhoto = {
   id: string;
@@ -626,7 +627,7 @@ export function BulkReelPanel({
 
   const lengthOf = (c: BulkClip) => {
     const v = bulkReelDesign(state, c, separate).video;
-    return v ? Math.max(0.1, v.trimEnd - v.trimStart) : Math.min(c.duration, 90);
+    return v ? Math.max(0.1, reelLength(v)) : Math.min(c.duration, 90);
   };
   const editedCount = clips.filter((c) => c.design).length;
   const total = clips.reduce((sum, c) => sum + lengthOf(c), 0);

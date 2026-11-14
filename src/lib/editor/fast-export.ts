@@ -13,6 +13,7 @@ import {
 } from "mediabunny";
 import { ensureFonts, exportDims, fitExport, renderPost, type Assets } from "./render";
 import type { Orientation, PostState } from "./types";
+import { keptParts, reelAt, reelLength, sourceAt, speedOf } from "./segments";
 
 const FPS = 30;
 const SAMPLE_RATE = 48000;
@@ -47,12 +48,18 @@ async function mixAudio(file: Blob, state: PostState, length: number): Promise<A
   if (wantOriginal) {
     const buffer = await decode(await file.arrayBuffer());
     if (buffer) {
-      const src = ctx.createBufferSource();
-      src.buffer = buffer;
       const gain = ctx.createGain();
       gain.gain.value = clip.volume / 100;
-      src.connect(gain).connect(ctx.destination);
-      src.start(0, clip.trimStart, length);
+      gain.connect(ctx.destination);
+      // Each kept part plays where it lands in the reel.
+      // shortcut: speed changes the sound's pitch too; add a time-stretch if users ask for natural voices.
+      for (const p of keptParts(clip)) {
+        const src = ctx.createBufferSource();
+        src.buffer = buffer;
+        src.playbackRate.value = speedOf(clip);
+        src.connect(gain);
+        src.start(reelAt(clip, p.start), p.start, p.end - p.start);
+      }
       any = true;
     }
   }
@@ -100,7 +107,7 @@ export async function fastExportReel(opts: {
   const { file, orientation, assets, state, onProgress, signal } = opts;
   const clip = state.video;
   if (!clip) throw new Error("Add a video first.");
-  const length = Math.max(0.1, clip.trimEnd - clip.trimStart);
+  const length = Math.max(0.1, reelLength(clip));
 
   await ensureFonts(state);
   const { w, h } = exportDims(state);
@@ -149,7 +156,8 @@ export async function fastExportReel(opts: {
   onProgress(0.08);
 
   const total = Math.max(1, Math.round(length * FPS));
-  const times = Array.from({ length: total }, (_, i) => clip.trimStart + i / FPS);
+  // Source time of every reel frame: skips deleted parts and follows the speed.
+  const times = Array.from({ length: total }, (_, i) => sourceAt(clip, i / FPS));
   // Files often start their first frame a little after 0 s; earlier lookups would return nothing and
   // leave the reel's opening black, so clamp them to the first frame.
   const firstFrame = await track.getFirstTimestamp();
@@ -239,6 +247,8 @@ export function reelDesignFor(
       trimEnd: Math.min(clip.duration, 90),
       audio: state.video?.audio ?? true,
       volume: state.video?.volume ?? 100,
+      // Cuts belong to one clip; the speed carries over.
+      speed: state.video?.speed,
     },
     crop: null,
     orientation: { rotation: 0, flipX: false, flipY: false },

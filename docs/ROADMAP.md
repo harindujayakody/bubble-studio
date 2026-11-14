@@ -44,8 +44,9 @@ gantt
   section B · Content
   AI writer #22                     :b1, after a5, 3d
   More templates #23                :b2, after b1, 5d
+  Template sizes, sample photos #37 :b3, after b2, 2d
   section C · Editing power
-  Multi-select #5                   :c1, after b2, 3d
+  Multi-select #5                   :c1, after b3, 3d
   Smart guides #6                   :c2, after c1, 2d
   Copy and paste #9                 :c3, after c2, 1d
   Design files #10                  :c4, after c3, 2d
@@ -119,6 +120,13 @@ Small, low-risk features first, and tests, so the bigger work doesn't break what
   announcements, and 9:16 stories. Built only from our own shapes, frames, fonts, effects and
   stickers; new pieces where needed (a post-card frame, a dark gradient overlay).
 - **Outcome:** 60+ templates in total, in 1:1, 4:5 and 9:16, English and Sinhala, all restyled by the brand kit.
+
+### B3 · One size per gallery view, sample photos · [#37](https://github.com/harindujayakody/bubble-studio/issues/37) · 2 days
+- **How:** a size switch (1:1 · 4:5 · 9:16) above the gallery; every template is built at the chosen
+  size (the layouts already scale to the height), so all tiles share one shape. Photo slots show
+  bundled Unsplash sample photos (about 20, ~3 MB, credited, never fetched at run time) that one
+  click replaces.
+- **Outcome:** a calm, even gallery where every template looks finished, in every size.
 
 ## Phase C · Editing power (~1.5 weeks)
 

@@ -1,5 +1,6 @@
 import { ensureFonts, exportDims, renderPost, type Assets } from "./render";
 import type { MusicTrack, Orientation, PostState, VideoClip } from "./types";
+import { keptParts, playable, reelAt, reelLength, speedOf } from "./segments";
 
 /** Load a video file into a detached element ready for drawing. */
 export function loadVideo(file: Blob): Promise<HTMLVideoElement> {
@@ -131,7 +132,7 @@ export function loadAudio(src: string): Promise<HTMLAudioElement> {
  * tracks loop when `loop` is on, otherwise they stop. Null means silence.
  */
 export function musicTimeAt(music: MusicTrack, clip: VideoClip, videoTime: number): number | null {
-  const elapsed = Math.max(0, videoTime - clip.trimStart);
+  const elapsed = reelAt(clip, videoTime);
   const playable = Math.max(0.1, music.duration - music.offset);
   if (elapsed < playable) return music.offset + elapsed;
   return music.loop ? music.offset + (elapsed % playable) : null;
@@ -142,7 +143,7 @@ export function musicVolumeAt(music: MusicTrack, clip: VideoClip, videoTime: num
   if (!music.on) return 0;
   const base = music.volume / 100;
   if (!music.fade) return base;
-  const remaining = clip.trimEnd - videoTime;
+  const remaining = reelLength(clip) - reelAt(clip, videoTime);
   const FADE = 1.5;
   return remaining < FADE ? base * Math.max(0, remaining / FADE) : base;
 }
@@ -240,12 +241,15 @@ export async function exportReel(opts: {
   }
 
   const wasLoop = video.loop;
+  const wasRate = video.playbackRate;
+  const begin = keptParts(clip)[0].start;
   video.pause();
   music?.pause();
   video.loop = false;
-  await nextSeek(video, clip.trimStart);
+  video.playbackRate = speedOf(clip);
+  await nextSeek(video, begin);
   if (track && music) {
-    const t = musicTimeAt(track, clip, clip.trimStart);
+    const t = musicTimeAt(track, clip, begin);
     if (t !== null) await nextSeek(music, t);
   }
   draw();
@@ -259,6 +263,7 @@ export async function exportReel(opts: {
     video.pause();
     music?.pause();
     video.loop = wasLoop;
+    video.playbackRate = wasRate;
     for (const r of routed) {
       r.el.muted = r.muted;
       r.el.volume = r.volume;
@@ -273,12 +278,15 @@ export async function exportReel(opts: {
     await video.play();
     if (track && music) syncMusic(music, track, clip, video);
     await new Promise<void>((resolve, reject) => {
-      const length = Math.max(0.1, clip.trimEnd - clip.trimStart);
+      const length = Math.max(0.1, reelLength(clip));
       const step = () => {
+        // Jump over deleted parts; stop after the last kept part.
+        const next = playable(clip, video.currentTime);
+        if (next === "end" || video.ended) return finish();
+        if (next !== null) video.currentTime = next;
         draw();
         if (track && music) syncMusic(music, track, clip, video);
-        onProgress(Math.min(1, (video.currentTime - clip.trimStart) / length));
-        if (video.currentTime >= clip.trimEnd || video.ended) finish();
+        onProgress(Math.min(1, reelAt(clip, video.currentTime) / length));
       };
       const stopFrames = onEachFrame(video, step);
       // Backup clock: frame callbacks can pause (for example while the window is covered); keep frames flowing.
@@ -313,6 +321,10 @@ export async function exportReel(opts: {
 /** Small setters so components don't write to the element they were handed. */
 export function seekVideo(video: HTMLVideoElement, t: number) {
   video.currentTime = t;
+}
+
+export function setPlaybackRate(video: HTMLVideoElement, rate: number) {
+  video.playbackRate = rate;
 }
 
 export function setVideoMuted(video: HTMLVideoElement, muted: boolean) {

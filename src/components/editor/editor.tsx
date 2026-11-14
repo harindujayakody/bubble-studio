@@ -102,7 +102,9 @@ import {
   reelFormat,
   setMediaMuted,
   syncMusic,
+  setPlaybackRate,
 } from "@/lib/editor/video";
+import { keptParts, playable, reelLength, speedOf } from "@/lib/editor/segments";
 import type { LibrarySticker } from "@/lib/editor/stickers";
 import type { LibraryTrack } from "@/lib/editor/sticker-library";
 import { BlurPanel, ElementsPanel, type NewSticker } from "./panels-extra";
@@ -259,10 +261,14 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
   const defaultInk = hasPicture || inkFor(bgMid) === "light" ? "#ffffff" : "#111111";
 
   // Copy each new video frame into the frame canvas and tell the stage to redraw.
-  const trim = useRef({ start: 0, end: 0 });
+  const clipNow = useRef(state.video);
   useEffect(() => {
-    trim.current = { start: state.video?.trimStart ?? 0, end: state.video?.trimEnd ?? 0 };
+    clipNow.current = state.video;
   });
+  const speed = state.video ? speedOf(state.video) : 1;
+  useEffect(() => {
+    if (video) setPlaybackRate(video, speed);
+  }, [video, speed]);
   useEffect(() => {
     if (!video || !frame) return;
     const o = { rotation, flipX, flipY };
@@ -270,9 +276,13 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
       paintFrame(frame, video, o);
       clock.dispatchEvent(new Event("frame"));
     };
-    // Preview loops inside the trim. Export turns looping off, which also switches this off.
+    // Preview loops over the kept parts, skipping deleted ones. Export turns looping off, which also switches this off.
     const keepInTrim = () => {
-      if (video.loop && video.currentTime >= trim.current.end) video.currentTime = trim.current.start;
+      const clip = clipNow.current;
+      if (!video.loop || !clip) return;
+      const next = playable(clip, video.currentTime);
+      if (next === "end") video.currentTime = keptParts(clip)[0].start;
+      else if (next !== null && !video.paused) video.currentTime = next;
     };
     const stop = onEachFrame(video, () => {
       keepInTrim();
@@ -339,7 +349,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
         ...s,
         music: { id, name, src, duration: el.duration, offset: 0, volume: lastMusicVolume(), on: true, loop: true, fade: true },
       }));
-      const reel = state.video ? state.video.trimEnd - state.video.trimStart : 0;
+      const reel = state.video ? reelLength(state.video) : 0;
       if (reel) {
         toast.success(`${name} added`, {
           description:
@@ -1924,7 +1934,7 @@ function ReelExportButton({
   const format = useMemo(() => (typeof window === "undefined" ? null : reelFormat()), []);
   const clip = state.video;
   const busy = progress !== null;
-  const length = clip ? clip.trimEnd - clip.trimStart : 0;
+  const length = clip ? reelLength(clip) : 0;
 
   const fileBase = () => name.trim().replace(/[\\/:*?"<>|]+/g, "-") || "facebook-reel";
   const save = (blob: Blob, filename: string, kind: ExportKind = "reels") => saveExport(blob, filename, kind);

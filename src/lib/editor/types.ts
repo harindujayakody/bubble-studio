@@ -201,6 +201,10 @@ export type VideoClip = {
   audio: boolean;
   /** Original sound level, 0..100. */
   volume: number;
+  /** Kept parts of the source after splits and deletes (see segments.ts). Unset = the whole trim. */
+  parts?: { start: number; end: number }[];
+  /** Playback speed, 0.5..2. Unset = 1. */
+  speed?: number;
 };
 
 /**

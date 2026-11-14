@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Toggle } from "@/components/ui/toggle";
 import { PanelSection, RangeField } from "./controls";
 import { formatTime } from "@/lib/editor/video";
+import { reelLength } from "@/lib/editor/segments";
 import type { LibraryTrack } from "@/lib/editor/sticker-library";
 import type { MusicTrack, PostState, VideoClip } from "@/lib/editor/types";
 
@@ -164,7 +165,7 @@ export function MusicSection({
 }
 
 function FitNote({ music, clip }: { music: MusicTrack; clip: VideoClip }) {
-  const reel = clip.trimEnd - clip.trimStart;
+  const reel = reelLength(clip);
   const playable = music.duration - music.offset;
   const text =
     playable >= reel
