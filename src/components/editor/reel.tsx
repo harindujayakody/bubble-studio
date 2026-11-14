@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Captions, Download, FileUp, Film, ImageIcon, Pause, Play, Plus, Scissors, Smile, Trash2, Type, Volume2, VolumeX } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { Textarea } from "@/components/ui/textarea";
@@ -35,6 +36,7 @@ export function CaptionsSection({
   video: HTMLVideoElement | undefined;
   onSelect: (id: string | null) => void;
 }) {
+  const t = useT();
   const clip = state.video!;
   const captions = state.texts.filter((t) => t.caption).sort((a, b) => (a.start ?? 0) - (b.start ?? 0));
   const [picked, setPicked] = useState<CaptionStyle>("box");
@@ -85,7 +87,7 @@ export function CaptionsSection({
   return (
     <PanelSection title="Captions">
       <p className="-mt-1 mb-3 text-[13px] text-pretty text-ink-soft">
-        Most reels are watched with the sound off. Add lines that show one after another.
+        {t("Most reels are watched with the sound off. Add lines that show one after another.")}
       </p>
       <div className="grid gap-3">
         <Segmented label="Caption style" value={style} onChange={setStyle} options={CAPTION_STYLES} />
@@ -191,6 +193,7 @@ export function VideoPanel({
   onUploadMusic: () => void;
   onMusicFromVideo: () => void;
 }) {
+  const t = useT();
   const clip = state.video;
   const setClip = (p: Partial<VideoClip>, key?: string) =>
     update((s) => (s.video ? { ...s, video: { ...s.video, ...p } } : s), key);
@@ -265,7 +268,7 @@ export function VideoPanel({
 
       <PanelSection title="Cut and speed">
         <p className="-mt-1 mb-3 text-[13px] text-pretty text-ink-soft">
-          Split at the playhead, then delete the parts you don&apos;t want. The rest plays back to back.
+          {t("Split at the playhead, then delete the parts you don't want. The rest plays back to back.")}
         </p>
         <Button variant="outline" size="sm" onClick={split} disabled={!video}>
           <Scissors /> Split at playhead

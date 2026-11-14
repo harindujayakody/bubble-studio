@@ -1,5 +1,6 @@
 "use client";
 
+import { useT } from "@/lib/i18n";
 import { useState } from "react";
 import { Copy, LoaderCircle, Sparkles } from "lucide-react";
 import { toast } from "sonner";
@@ -113,6 +114,7 @@ export function AISettingsSection() {
 
 /** Text → Write with AI: three suggestions that fill the design's text layers or copy a caption. */
 export function AIWriterSection({ state, update, onAdd }: { state: PostState; update: Update; onAdd: (style: TextStyleId, text?: string) => void }) {
+  const t = useT();
   const ai = useAIStatus();
   const [prompt, setPrompt] = useState("");
   const [language, setLanguage] = useState<AILanguage>("English");
@@ -126,7 +128,7 @@ export function AIWriterSection({ state, update, onAdd }: { state: PostState; up
     return (
       <PanelSection title="Write with AI">
         <p className="-mt-1 text-[13px] text-pretty text-ink-soft">
-          Describe your post and get ready-to-use text in English, Sinhala or Tamil. Add your OpenRouter key in <b className="font-medium text-ink">Settings → AI writer</b> to turn it on.
+          {t("Describe your post and get ready-to-use text in English, Sinhala or Tamil.")} {t("Add your OpenRouter key in")} <b className="font-medium text-ink">{t("Settings → AI writer")}</b> {t("to turn it on.")}
         </p>
       </PanelSection>
     );

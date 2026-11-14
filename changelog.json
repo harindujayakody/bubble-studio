@@ -35,6 +35,9 @@
         "What's new in Settings, and this changelog"
       ],
       "improved": [
+        "Copy and paste several layers at once (Ctrl/Cmd+C and V), keeping their order and groups",
+        "More of the interface in Sinhala: panel help, photo and caption tips, sizes",
+        "Smaller page thumbnails on phones, so the canvas keeps more room",
         "Releases are published on purpose (npm run release or Run workflow) instead of on every push; dependency updates arrive as weekly pull requests",
         "Template photo slots show fitting sample photos (bundled, from Unsplash) instead of grey boxes; click Use my photo to replace one",
         "Template gallery shows one size at a time (1:1, 4:5 or 9:16) so the grid is even, and every template is available in every size",

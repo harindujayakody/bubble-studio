@@ -332,7 +332,7 @@ function CreateCard({
             <PopoverTrigger
               className="inline-flex h-9 min-w-0 items-center gap-1.5 rounded-full border border-dashed border-brand/60 bg-sheet pr-2.5 pl-2 text-[13px] font-medium text-brand outline-none transition-colors hover:bg-brand-wash focus-visible:ring-2 focus-visible:ring-aqua aria-expanded:bg-brand-wash sm:gap-2 sm:pr-3.5 sm:pl-2.5"
             >
-              <Plus className="size-4" /> Custom size
+              <Plus className="size-4" /> {t("Custom size")}
             </PopoverTrigger>
             <PopoverContent align="start" className="w-80 p-4">
               <h3 className="mb-3 font-heading text-sm font-semibold text-ink">{t("Custom size")}</h3>

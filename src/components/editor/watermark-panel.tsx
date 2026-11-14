@@ -183,6 +183,7 @@ function SignaturePad({ value, onChange }: { value: string | null; onChange: (pn
  * off, so they live with the photo/video tool rather than in one design.
  */
 export function WatermarkSection() {
+  const t = useT();
   const wm = useWatermark();
   const brand = useBrand();
   const logoInput = useRef<HTMLInputElement>(null);
@@ -195,8 +196,8 @@ export function WatermarkSection() {
     >
       <p className="-mt-1 text-[13px] text-pretty text-ink-soft">
         {wm.on
-          ? "Added to every export until you turn it off, like “Shot on” on phone photos."
-          : "Sign your work with a “Shot on” line or your logo. It stays on for every export once turned on."}
+          ? t("Added to every export until you turn it off, like “Shot on” on phone photos.")
+          : t("Sign your work with a “Shot on” line or your logo. It stays on for every export once turned on.")}
       </p>
 
       {wm.on && (

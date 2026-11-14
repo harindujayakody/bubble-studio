@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { align, bounds, distribute, snap, type Align, type Box, type Snap } from "@/lib/editor/arrange";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import {
   clampCrop,
@@ -1221,10 +1222,11 @@ function sameBoxes(a: TextBox[], b: TextBox[]) {
 
 /** Floating readout under the canvas: what the pointer does now, the export size and the zoom. */
 function StatusPill({ zoom, label, dims }: { zoom: number; label: string; dims: string }) {
+  const t = useT();
   return (
     <div className="flex h-12 shrink-0 items-center justify-center px-3">
       <div className="flex h-8 max-w-full items-center gap-3 overflow-hidden rounded-full bg-raised px-3.5 text-[12px] text-ink-soft shadow-float">
-        <span className="truncate text-ink">{label}</span>
+        <span className="truncate text-ink">{t(label)}</span>
         <span aria-hidden className="h-3.5 w-px shrink-0 bg-rule" />
         <span className="hidden shrink-0 font-mono text-[11px] tabular sm:inline">{dims}</span>
         <span className="shrink-0 rounded-full bg-tile px-2 py-0.5 font-mono text-[11px] text-ink tabular">{zoom}%</span>

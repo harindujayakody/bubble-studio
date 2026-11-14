@@ -56,12 +56,15 @@ test("select several layers, align, group, lock, duplicate and snap", async ({ p
   await page.mouse.up();
   await expect(bar).toBeVisible();
 
-  // Ctrl+D duplicates the selection.
+  // Ctrl+D duplicates the selection; Ctrl+C / Ctrl+V copy and paste both layers at once.
   await page.keyboard.press("Control+d");
+  await page.keyboard.press("Control+c");
+  await expect(page.getByText("2 layers copied")).toBeVisible();
+  await page.keyboard.press("Control+v");
   await page.getByRole("button", { name: "Layers", exact: true }).click();
   const layers = page.getByRole("list", { name: "Layers" });
-  await expect(layers.getByRole("button", { name: "Grand opening", exact: true })).toHaveCount(2);
-  await expect(layers.getByRole("button", { name: "Add your details here", exact: true })).toHaveCount(2);
+  await expect(layers.getByRole("button", { name: "Grand opening", exact: true })).toHaveCount(3);
+  await expect(layers.getByRole("button", { name: "Add your details here", exact: true })).toHaveCount(3);
   await page.keyboard.press("Escape");
 
   // Smart guides: dragging one layer near the centre shows a guide line.

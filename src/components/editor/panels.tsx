@@ -21,6 +21,7 @@ import {
   Type,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AIWriterSection } from "./ai-writer";
@@ -84,6 +85,7 @@ export function PhotoPanel({
   onRefineBackground: () => void;
   removingBackground: boolean;
 }) {
+  const t = useT();
   const bg = state.background;
   const setBg = (patch: Partial<Background>, key: string) =>
     update((s) => ({ ...s, background: { ...s.background, ...patch } }), key);
@@ -126,10 +128,10 @@ export function PhotoPanel({
         ) : (
           <div className="grid gap-3">
             <p className="text-sm text-pretty text-ink-soft">
-              Add a photo of your shop, product or event. It stays on your computer.
+              {t("Add a photo of your shop, product or event. It stays on your computer.")}
             </p>
             <Button onClick={onPickPhoto} className="w-fit">
-              <ImagePlus /> Choose photo
+              <ImagePlus /> {t("Choose photo")}
             </Button>
           </div>
         )}
@@ -137,9 +139,9 @@ export function PhotoPanel({
 
       <PanelSection title="Background">
         <p className="-mt-1 mb-3 text-[13px] text-pretty text-ink-soft">
-          {state.photoId
+          {t(state.photoId
             ? "Shows behind the photo only where it doesn't reach."
-            : "Your post's base colour. Add text on top for a quick announcement."}
+            : "Your post's base colour. Add text on top for a quick announcement.")}
         </p>
         <div className="mb-4 grid grid-cols-2 gap-1 rounded-lg bg-tile p-1" role="tablist" aria-label="Background type">
           {(["solid", "gradient"] as const).map((k) => (

@@ -193,4 +193,22 @@ const SI: Record<string, string> = {
   Badge: "ලාංඡනය",
   Minimal: "සරල",
   Signature: "අත්සන",
+
+  // Help text in the main panels
+  "Add a photo of your shop, product or event. It stays on your computer.": "ඔබේ සාප්පුවේ, නිෂ්පාදනයේ හෝ සිදුවීමේ ඡායාරූපයක් එක් කරන්න. එය ඔබේ පරිගණකයේම පවතී.",
+  "Choose photo": "ඡායාරූපයක් තෝරන්න",
+  "Shows behind the photo only where it doesn't reach.": "ඡායාරූපය නොමැති තැන්වල පමණක් පිටුපසින් පෙනේ.",
+  "Your post's base colour. Add text on top for a quick announcement.": "ඔබේ පෝස්ට් එකේ මූලික වර්ණය. ඉක්මන් නිවේදනයක් සඳහා ඒ මත පෙළ එක් කරන්න.",
+  "Most reels are watched with the sound off. Add lines that show one after another.": "බොහෝ රීල්ස් ශබ්දය නැතිව නරඹයි. එකින් එක පෙනෙන පේළි එක් කරන්න.",
+  "Split at the playhead, then delete the parts you don't want. The rest plays back to back.": "වාදන ස්ථානයෙන් කපා, ඔබට අවශ්‍ය නැති කොටස් මකන්න. ඉතිරි කොටස් එකදිගට වාදනය වේ.",
+  "Describe your post and get ready-to-use text in English, Sinhala or Tamil.": "ඔබේ පෝස්ට් එක විස්තර කර ඉංග්‍රීසි, සිංහල හෝ දෙමළ භාෂාවෙන් භාවිතයට සූදානම් පෙළ ලබා ගන්න.",
+  "Add your OpenRouter key in": "සක්‍රිය කිරීමට ඔබේ OpenRouter යතුර",
+  "Settings → AI writer": "සැකසුම් → AI ලේඛක",
+  "to turn it on.": "තුළ එක් කරන්න.",
+  "Added to every export until you turn it off, like “Shot on” on phone photos.": "ඔබ එය අක්‍රිය කරන තුරු සෑම සුරැකීමකටම එක් වේ, දුරකථන ඡායාරූපවල “Shot on” මෙන්.",
+  "Sign your work with a “Shot on” line or your logo. It stays on for every export once turned on.": "“Shot on” පේළියකින් හෝ ඔබේ ලාංඡනයෙන් ඔබේ නිර්මාණය සලකුණු කරන්න. සක්‍රිය කළ පසු සෑම සුරැකීමකටම එය පවතී.",
+  "Square post": "සමචතුරස්‍ර පෝස්ට්",
+  "Portrait post": "සිරස් පෝස්ට්",
+  "Story or reel": "ස්ටෝරි හෝ රීල්",
+  "Original size": "මුල් ප්‍රමාණය",
 };

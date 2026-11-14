@@ -77,7 +77,7 @@ export function PageStrip({
               aria-current={i === current ? "page" : undefined}
               onClick={() => onGo(i)}
               className={cn(
-                "relative block h-14 overflow-hidden rounded-md bg-tile outline-none focus-visible:ring-2 focus-visible:ring-aqua",
+                "relative block h-10 overflow-hidden rounded-md bg-tile outline-none focus-visible:ring-2 focus-visible:ring-aqua sm:h-14",
                 i === current ? "ring-2 ring-brand" : "opacity-80 hover:opacity-100",
               )}
               style={{ aspectRatio: aspect }}
@@ -95,7 +95,7 @@ export function PageStrip({
             title="Add a blank page"
             disabled={full}
             onClick={() => onAdd(false)}
-            className="grid h-14 place-items-center rounded-md border border-dashed border-rule text-ink-soft outline-none hover:border-brand hover:text-brand focus-visible:ring-2 focus-visible:ring-aqua disabled:opacity-40"
+            className="grid h-10 place-items-center rounded-md border border-dashed border-rule sm:h-14 text-ink-soft outline-none hover:border-brand hover:text-brand focus-visible:ring-2 focus-visible:ring-aqua disabled:opacity-40"
             style={{ aspectRatio: aspect }}
           >
             <Plus className="size-4" />

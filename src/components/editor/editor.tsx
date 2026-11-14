@@ -209,7 +209,8 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
   const [selectedId, setSelectedId] = useState<string | null>(null);
   /** Layers selected together with `selectedId` (Shift-click, selection box, groups). */
   const [multi, setMulti] = useState<string[]>([]);
-  const layerClipboard = useRef<{ kind: "text"; layer: TextLayer } | { kind: "sticker"; layer: Sticker; images: Assets; blobs: Map<string, Blob> } | null>(null);
+  /** Copied layers (Ctrl/Cmd+C) with the images they use, so pasting works in another design too. */
+  const layerClipboard = useRef<{ texts: TextLayer[]; stickers: Sticker[]; images: Assets; blobs: Map<string, Blob> } | null>(null);
   /** Decoded images for the photo and uploaded stickers, keyed by id. Kept out of history. */
   const [photos, setPhotos] = useState<Assets>({});
   const [regionDefaults, setRegionDefaults] = useState<RegionDefaults>({ kind: "blur", shape: "rect", strength: 60 });
@@ -880,40 +881,44 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
       const el = e.target instanceof HTMLElement ? e.target : document.body;
       const typing = el.closest("input, textarea, select, [contenteditable=true]");
       const mod = e.ctrlKey || e.metaKey;
-      if (!typing && mod && !e.altKey && e.key.toLowerCase() === "c" && selected) {
-        const text = state.texts.find((item) => item.id === selected);
-        const sticker = state.stickers.find((item) => item.id === selected);
-        if (text) layerClipboard.current = { kind: "text", layer: structuredClone(text) };
-        else if (sticker) {
-          const ids = [sticker.value, sticker.original, sticker.photo].filter((id): id is string => !!id);
-          const images: Assets = {};
-          const blobs = new Map<string, Blob>();
-          for (const id of ids) {
-            if (photos[id]) images[id] = photos[id];
-            const blob = files.current.get(id);
-            if (blob) blobs.set(id, blob);
-          }
-          layerClipboard.current = { kind: "sticker", layer: structuredClone(sticker), images, blobs };
-        } else return;
+      if (!typing && mod && !e.altKey && e.key.toLowerCase() === "c" && selectedIds.length) {
+        // Every selected layer, with the images it uses.
+        const texts = state.texts.filter((t) => selectedIds.includes(t.id)).map((t) => structuredClone(t));
+        const stickers = state.stickers.filter((t) => selectedIds.includes(t.id)).map((t) => structuredClone(t));
+        if (!texts.length && !stickers.length) return;
+        const images: Assets = {};
+        const blobs = new Map<string, Blob>();
+        for (const id of stickers.flatMap((t) => [t.value, t.original, t.photo]).filter((id): id is string => !!id)) {
+          if (photos[id]) images[id] = photos[id];
+          const blob = files.current.get(id);
+          if (blob) blobs.set(id, blob);
+        }
+        layerClipboard.current = { texts, stickers, images, blobs };
         e.preventDefault();
-        toast.success("Layer copied");
+        const n = texts.length + stickers.length;
+        toast.success(n === 1 ? "Layer copied" : `${n} layers copied`);
         return;
       }
       if (!typing && mod && !e.altKey && e.key.toLowerCase() === "v" && layerClipboard.current) {
         e.preventDefault();
         const copied = layerClipboard.current;
-        const id = crypto.randomUUID();
-        const layer = { ...structuredClone(copied.layer), id, x: Math.min(0.95, copied.layer.x + 0.03), y: Math.min(0.95, copied.layer.y + 0.03) };
-        if (copied.kind === "text") {
-          update((s) => ({ ...s, texts: [...s.texts, { ...(layer as TextLayer), z: nextZ(s) }] }));
-          setTool("text");
-        } else {
-          for (const [assetId, blob] of copied.blobs) files.current.set(assetId, blob);
-          setPhotos((existing) => ({ ...existing, ...copied.images }));
-          update((s) => ({ ...s, stickers: [...s.stickers, { ...(layer as Sticker), z: nextZ(s) }] }));
-          setTool("elements");
-        }
-        setSelectedId(id);
+        // Fresh ids, a small offset, the same stacking order on top, and groups kept among the copies.
+        const groups = new Map<string, string>();
+        const fresh = <T extends { id: string; x: number; y: number; z: number; group?: string }>(l: T, z: number): T => {
+          if (l.group && !groups.has(l.group)) groups.set(l.group, crypto.randomUUID());
+          return { ...structuredClone(l), id: crypto.randomUUID(), x: Math.min(0.95, l.x + 0.03), y: Math.min(0.95, l.y + 0.03), z, group: l.group ? groups.get(l.group) : undefined };
+        };
+        const order = [...copied.texts, ...copied.stickers].sort((a, b) => a.z - b.z).map((l) => l.id);
+        const base = nextZ(state);
+        const texts = copied.texts.map((t) => fresh(t, base + order.indexOf(t.id)));
+        const stickers = copied.stickers.map((t) => fresh(t, base + order.indexOf(t.id)));
+        for (const [assetId, blob] of copied.blobs) files.current.set(assetId, blob);
+        setPhotos((existing) => ({ ...existing, ...copied.images }));
+        update((s) => ({ ...s, texts: [...s.texts, ...texts], stickers: [...s.stickers, ...stickers] }));
+        const ids = [...texts, ...stickers].map((l) => l.id);
+        setMulti(ids);
+        setSelectedId(ids.at(-1) ?? null);
+        setTool(stickers.length ? "elements" : "text");
         return;
       }
       if (mod && e.key.toLowerCase() === "z") {
@@ -1009,7 +1014,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [selected, selectedKind, selectedIds, arrange, state.texts, state.stickers, photos, undo, redo, update]);
+  }, [selected, selectedKind, selectedIds, arrange, state, photos, undo, redo, update]);
 
   // A collage has no single photo; its first cell stands in for filter previews.
   const firstCell = state.grid?.cells.find((c) => c && photos[c]) ?? null;
