@@ -10,7 +10,7 @@
   "main": "main.js",
   "private": true,
   "dependencies": {
-    "electron-updater": "^6.8.9"
+    "electron-updater": "^6.8.11"
   },
   "homepage": "https://infiax.com",
   "license": "MIT",
