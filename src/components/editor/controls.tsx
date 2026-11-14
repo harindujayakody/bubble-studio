@@ -5,6 +5,7 @@ import { Check, ChevronDown, Plus } from "lucide-react";
 import { SOLID_PALETTES } from "@/lib/editor/palettes";
 import { useBrand } from "@/lib/editor/brand";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 
@@ -50,10 +51,11 @@ export function PanelSection({
   children: ReactNode;
   className?: string;
 }) {
+  const t = useT();
   return (
     <section className={cn("border-b border-rule px-4 pt-4 pb-5 last:border-b-0", className)}>
       <div className="mb-3 flex min-h-6 items-center justify-between gap-2">
-        <h3 className="font-heading text-[14px] font-semibold text-ink">{title}</h3>
+        <h3 className="font-heading text-[14px] font-semibold text-ink">{t(title)}</h3>
         {action}
       </div>
       {children}
@@ -84,6 +86,7 @@ export function RangeField({
   /** Double-clicking the label resets to this. */
   defaultValue?: number;
 }) {
+  const t = useT();
   const id = useId();
   const shown = format ? format(value) : value > 0 && centered ? `+${value}` : `${value}`;
   const changed = defaultValue !== undefined && value !== defaultValue;
@@ -96,7 +99,7 @@ export function RangeField({
           onDoubleClick={() => defaultValue !== undefined && onChange(defaultValue)}
           title={defaultValue !== undefined ? "Double-click to reset" : undefined}
         >
-          {label}
+          {t(label)}
         </label>
         <span
           className={cn(
@@ -204,6 +207,7 @@ export function ColorField({
   swatches?: string[];
   palettes?: "open" | "closed";
 }) {
+  const t = useT();
   const id = useId();
   const [showPalettes, setShowPalettes] = useState(palettes === "open");
   const v = value.toLowerCase();
@@ -211,7 +215,7 @@ export function ColorField({
   return (
     <div className="grid gap-2.5">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[13px] text-ink-soft">{label}</span>
+        <span className="text-[13px] text-ink-soft">{t(label)}</span>
         <label
           htmlFor={id}
           className="inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-md border border-rule bg-sheet pr-2 pl-1 font-mono text-xs text-ink uppercase tabular hover:border-ink/30"

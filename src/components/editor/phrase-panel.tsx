@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { ChevronDown, ClipboardPaste, FileUp, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { fontStack, SINHALA_RE } from "@/lib/editor/fonts";
@@ -16,6 +17,7 @@ import type { TextStyleId } from "@/lib/editor/types";
  * collapsed until opened.
  */
 export function SavedPhrases({ onAdd }: { onAdd: (style: TextStyleId, text: string) => void }) {
+  const t = useT();
   const phrases = useSavedPhrases();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -48,7 +50,7 @@ export function SavedPhrases({ onAdd }: { onAdd: (style: TextStyleId, text: stri
         className="flex w-full items-center justify-between gap-2 px-4 py-4 text-left outline-none focus-visible:ring-2 focus-visible:ring-aqua focus-visible:ring-inset"
       >
         <span className="flex items-baseline gap-2">
-          <h3 className="text-[13px] font-semibold text-ink">Saved phrases</h3>
+          <h3 className="text-[13px] font-semibold text-ink">{t("Saved phrases")}</h3>
           {phrases.length > 0 && <span className="font-mono text-[11px] text-ink-soft tabular">{phrases.length}</span>}
         </span>
         <ChevronDown className={cn("size-4 text-ink-soft transition-transform", open && "rotate-180")} />

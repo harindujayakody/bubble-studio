@@ -123,6 +123,7 @@ import { isSample, loadSamples } from "@/lib/editor/samples";
 import { addPage, deletePage, goToPage, movePage, pageStates } from "@/lib/editor/pages";
 import { PageStrip } from "./page-strip";
 import { RefineDialog } from "./refine-dialog";
+import { setLang, useLang, useT } from "@/lib/i18n";
 import { inkFor, mix } from "@/lib/editor/color";
 import {
   defaultCrop,
@@ -214,6 +215,11 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
   const [regionDefaults, setRegionDefaults] = useState<RegionDefaults>({ kind: "blur", shape: "rect", strength: 60 });
   const stickerFileRef = useRef<HTMLInputElement>(null);
   const designFileRef = useRef<HTMLInputElement>(null);
+  const lang = useLang();
+  const tr = useT();
+  useEffect(() => {
+    document.documentElement.lang = lang;
+  }, [lang]);
   const videoFileRef = useRef<HTMLInputElement>(null);
   const musicFileRef = useRef<HTMLInputElement>(null);
   const musicVideoRef = useRef<HTMLInputElement>(null);
@@ -1357,7 +1363,16 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
           <span className="font-heading text-[15px] font-semibold tracking-[-0.01em]">Bubble Studio</span>
           <div className="ml-auto flex items-center gap-1">
             <Button variant="ghost" size="sm" className="gap-1.5" onClick={() => designFileRef.current?.click()}>
-              <FolderOpen /> <span className="hidden sm:inline">Open file</span>
+              <FolderOpen /> <span className="hidden sm:inline">{tr("Open file")}</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              lang={lang === "si" ? "en" : "si"}
+              aria-label={lang === "si" ? "Switch the interface to English" : "Switch the interface to Sinhala"}
+              onClick={() => setLang(lang === "si" ? "en" : "si")}
+            >
+              {lang === "si" ? "English" : "සිංහල"}
             </Button>
             <ThemeToggle />
           </div>
@@ -1872,8 +1887,15 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
 }
 
 function ToolRail({ tool, onTool, media }: { tool: ToolId; onTool: (t: ToolId) => void; media: "photo" | "video" }) {
+  const tr = useT();
+  const nav = useRef<HTMLElement>(null);
+  // Keep the active tool in view when it changes (not on every render, which would fight scrolling).
+  useEffect(() => {
+    nav.current?.querySelector("[data-active]")?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [tool]);
   return (
     <nav
+      ref={nav}
       aria-label="Tools"
       className="order-3 flex shrink-0 gap-0.5 overflow-x-auto border-t border-rule bg-sheet px-1.5 py-1 [scrollbar-width:none] md:order-1 md:w-[76px] md:flex-col md:gap-1 md:overflow-x-visible md:overflow-y-auto md:border-t-0 md:border-r md:px-1.5 md:py-2.5"
     >
@@ -1890,7 +1912,6 @@ function ToolRail({ tool, onTool, media }: { tool: ToolId; onTool: (t: ToolId) =
                   type="button"
                   aria-current={active ? "page" : undefined}
                   data-active={active || undefined}
-                  ref={active ? (el) => el?.scrollIntoView({ block: "nearest", inline: "nearest" }) : undefined}
                   onClick={() => onTool(t.id)}
                   className={cn(
                     t.id === "settings" && "md:mt-auto",
@@ -1908,10 +1929,10 @@ function ToolRail({ tool, onTool, media }: { tool: ToolId; onTool: (t: ToolId) =
               >
                 <Icon className="size-[22px]" />
               </span>
-              <span className={cn(active && "font-semibold")}>{t.label}</span>
+              <span className={cn("max-w-full px-0.5 text-center leading-tight", active && "font-semibold")}>{tr(t.label)}</span>
             </TooltipTrigger>
             <TooltipContent side="right" className="hidden md:inline-flex">
-              {t.label} <kbd className="font-mono text-[10px] opacity-70">{t.key}</kbd>
+              {tr(t.label)} <kbd className="font-mono text-[10px] opacity-70">{t.key}</kbd>
             </TooltipContent>
           </Tooltip>
         );
@@ -2082,6 +2103,7 @@ function ExportButton({
   const [name, setName] = useState(() => freshName("post"));
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
+  const tr = useT();
 
   const download = async () => {
     // Ask for the save folder now, while the click still counts as the user's.
@@ -2130,19 +2152,19 @@ function ExportButton({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger render={<Button className="cta h-9 px-3.5" />}>
-        <Download /> Export
+      <PopoverTrigger render={<Button className="cta h-9 px-3.5" aria-label="Export" />}>
+        <Download /> {tr("Export")}
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 gap-0 p-0">
         <div className="border-b border-rule px-4 py-3">
-          <h2 className="text-sm font-semibold text-ink">Export post</h2>
+          <h2 className="text-sm font-semibold text-ink">{tr("Export post")}</h2>
           <p className="mt-0.5 font-mono text-xs text-ink-soft tabular">
             {exportDims(state).w} × {exportDims(state).h} px · {POST_SIZES[state.size].label.toLowerCase()}
           </p>
         </div>
         <div className="grid gap-4 px-4 py-4">
           <div className="grid gap-2">
-            <span className="text-[13px] text-ink-soft">Format</span>
+            <span className="text-[13px] text-ink-soft">{tr("Format")}</span>
             <ToggleGroup
               variant="outline"
               spacing={0}
@@ -2163,7 +2185,7 @@ function ExportButton({
             <RangeField label="Quality" value={quality} min={60} max={100} format={(v) => `${v}%`} onChange={setQuality} />
           )}
           <div className="grid gap-2">
-            <label htmlFor="export-name" className="text-[13px] text-ink-soft">File name</label>
+            <label htmlFor="export-name" className="text-[13px] text-ink-soft">{tr("File name")}</label>
             <div className="flex items-center gap-1.5">
               <Input id="export-name" value={name} onChange={(e) => setName(e.target.value)} className="bg-sheet" />
               <span className="font-mono text-xs text-ink-soft">.{format === "jpeg" ? "jpg" : "png"}</span>
@@ -2425,31 +2447,32 @@ function NewMenu({
   onSaveFile: () => void;
   onOpenFile: () => void;
 }) {
+  const tr = useT();
   return (
     <DropdownMenu>
       <DropdownMenuTrigger render={<Button variant="ghost" size="sm" className="gap-1.5 px-2" aria-label="Create new" />}>
         <Plus />
-        <span className="hidden md:inline">New</span>
+        <span className="hidden md:inline">{tr("New")}</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-60 p-1">
         <DropdownMenuItem onClick={() => onNew("size")} className="gap-3 py-2">
           <ImageIcon className="text-brand" />
           <span className="flex flex-col">
-            <span className="text-sm font-medium text-ink">New photo post</span>
-            <span className="text-[11px] text-ink-soft">Choose a size, then add a photo</span>
+            <span className="text-sm font-medium text-ink">{tr("New photo post")}</span>
+            <span className="text-[11px] text-ink-soft">{tr("Choose a size, then add a photo")}</span>
           </span>
         </DropdownMenuItem>
         <DropdownMenuItem onClick={onSaveTemplate} className="gap-3 py-2">
           <LayoutTemplate className="text-brand" />
           <span className="flex flex-col">
-            <span className="text-sm font-medium text-ink">Save as template</span>
-            <span className="text-[11px] text-ink-soft">Reuse this layout from the start page</span>
+            <span className="text-sm font-medium text-ink">{tr("Save as template")}</span>
+            <span className="text-[11px] text-ink-soft">{tr("Reuse this layout from the start page")}</span>
           </span>
         </DropdownMenuItem>
         <DropdownMenuItem onClick={() => onNew("reel")} className="gap-3 py-2">
           <Film className="text-brand" />
           <span className="flex flex-col">
-            <span className="text-sm font-medium text-ink">New video reel</span>
+            <span className="text-sm font-medium text-ink">{tr("New video reel")}</span>
             <span className="text-[11px] text-ink-soft">9:16 or the video&apos;s own size</span>
           </span>
         </DropdownMenuItem>
@@ -2457,15 +2480,15 @@ function NewMenu({
         <DropdownMenuItem onClick={onSaveFile} className="gap-3 py-2">
           <Save className="text-brand" />
           <span className="flex flex-col">
-            <span className="text-sm font-medium text-ink">Save as file</span>
-            <span className="text-[11px] text-ink-soft">A .bubble file with its photos and videos</span>
+            <span className="text-sm font-medium text-ink">{tr("Save as file")}</span>
+            <span className="text-[11px] text-ink-soft">{tr("A .bubble file with its photos and videos")}</span>
           </span>
         </DropdownMenuItem>
         <DropdownMenuItem onClick={onOpenFile} className="gap-3 py-2">
           <FolderOpen className="text-brand" />
           <span className="flex flex-col">
-            <span className="text-sm font-medium text-ink">Open file</span>
-            <span className="text-[11px] text-ink-soft">Continue a design saved as .bubble</span>
+            <span className="text-sm font-medium text-ink">{tr("Open file")}</span>
+            <span className="text-[11px] text-ink-soft">{tr("Continue a design saved as .bubble")}</span>
           </span>
         </DropdownMenuItem>
       </DropdownMenuContent>

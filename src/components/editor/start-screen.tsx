@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ArrowRight, AudioLines, Film, ImageIcon, Images, Lock, MoreHorizontal, Play, Plus, Star, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n";
 import type { DraftSummary } from "@/lib/editor/draft";
 import { gradientCss, GRADIENT_PRESETS } from "@/lib/editor/palettes";
 import { POST_SIZES, type PostSizeId, type PostState, type ToolId } from "@/lib/editor/types";
@@ -52,16 +53,17 @@ export function StartScreen({
   onRemove?: (id: string) => Promise<void> | void;
 }) {
   const [opening, setOpening] = useState<string | null>(null);
+  const t = useT();
 
   return (
     <main className="min-h-0 flex-1 overflow-y-auto">
       <div className="mx-auto w-full max-w-6xl px-4 pt-5 pb-8 md:px-8 md:pt-8">
         <section className="app-header relative overflow-hidden rounded-2xl px-6 pt-9 pb-20 text-center md:px-10 md:pt-12 md:pb-24">
           <h1 className="font-heading text-[26px] leading-tight font-bold tracking-[0.01em] text-balance uppercase md:text-[42px]">
-            What will you make today?
+            {t("What will you make today?")}
           </h1>
           <p className="mx-auto mt-3 max-w-[52ch] text-[15px] text-pretty text-white/85 md:text-base">
-            Facebook posts from a photo, reels from a video. Pick a size to start; you can change it later.
+            {t("Facebook posts from a photo, reels from a video. Pick a size to start; you can change it later.")}
           </p>
         </section>
 
@@ -92,7 +94,7 @@ export function StartScreen({
         {recents.length > 0 && onOpen && (
           <section className="mt-10 md:mt-12 md:px-6" aria-labelledby="recent-heading">
             <h2 id="recent-heading" className="font-heading text-xl font-semibold text-ink md:text-2xl">
-              Continue designing
+              {t("Continue designing")}
             </h2>
             <ul className="mt-4 grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-3 lg:grid-cols-5">
               {recents.map((d) => (
@@ -117,7 +119,7 @@ export function StartScreen({
 
         <section className="mt-10 md:mt-12 md:px-6" aria-labelledby="tools-heading">
           <h2 id="tools-heading" className="font-heading text-xl font-semibold text-ink md:text-2xl">
-            More tools
+            {t("More tools")}
           </h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-5">
             <ToolTile
@@ -286,6 +288,7 @@ function CreateCard({
   /** Photos only: start at a typed width and height. */
   onCustom?: (dims: { w: number; h: number }) => void;
 }) {
+  const t = useT();
   return (
     <article className={cn("flex flex-col rounded-2xl bg-sheet p-4 shadow-float md:p-5", highlighted && "ring-2 ring-brand")}>
       <button
@@ -298,17 +301,17 @@ function CreateCard({
         </span>
         <span className="flex min-w-0 flex-col">
           <span className="flex items-center gap-1.5 font-heading text-lg font-semibold text-ink">
-            {title}
+            {t(title)}
             <ArrowRight className="size-4 text-brand opacity-0 transition-[opacity,translate] duration-200 group-hover:translate-x-0.5 group-hover:opacity-100" />
           </span>
-          <span className="mt-1 text-[14px] text-pretty text-ink-soft">{body}</span>
+          <span className="mt-1 text-[14px] text-pretty text-ink-soft">{t(body)}</span>
         </span>
       </button>
 
       <div className="mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap" role="group" aria-label={`${title} sizes`}>
         {sizes.map((id) => {
           const s = POST_SIZES[id];
-          const label = reel && id === "story" ? "Reel" : SHORT[id];
+          const label = t(reel && id === "story" ? "Reel" : SHORT[id]);
           return (
             <button
               key={id}
@@ -332,7 +335,7 @@ function CreateCard({
               <Plus className="size-4" /> Custom size
             </PopoverTrigger>
             <PopoverContent align="start" className="w-80 p-4">
-              <h3 className="mb-3 font-heading text-sm font-semibold text-ink">Custom size</h3>
+              <h3 className="mb-3 font-heading text-sm font-semibold text-ink">{t("Custom size")}</h3>
               <CustomSizeForm submitLabel="Create design" onSubmit={onCustom} />
             </PopoverContent>
           </Popover>
@@ -343,6 +346,7 @@ function CreateCard({
 }
 
 function ToolTile({ icon, title, body, onClick }: { icon: React.ReactNode; title: string; body: string; onClick: () => void }) {
+  const t = useT();
   return (
     <button
       type="button"
@@ -351,8 +355,8 @@ function ToolTile({ icon, title, body, onClick }: { icon: React.ReactNode; title
     >
       <span className="grid size-12 shrink-0 place-items-center rounded-lg bg-brand-wash text-brand">{icon}</span>
       <span className="flex min-w-0 flex-1 flex-col">
-        <span className="font-heading text-[15px] font-semibold text-ink">{title}</span>
-        <span className="text-[13px] leading-snug text-pretty text-ink-soft">{body}</span>
+        <span className="font-heading text-[15px] font-semibold text-ink">{t(title)}</span>
+        <span className="text-[13px] leading-snug text-pretty text-ink-soft">{t(body)}</span>
       </span>
       <ArrowRight className="size-4 shrink-0 text-ink-soft transition-[color,translate] group-hover:translate-x-0.5 group-hover:text-brand" />
     </button>

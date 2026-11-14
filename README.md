@@ -79,6 +79,7 @@ The installers aren't code-signed yet, so Windows may show *"Windows protected y
 - **Bulk edit** photos or reels: one design on many files, or each edited separately, with random looks, text per item and random music
 - **Continue designing:** your last 5 designs are kept on this computer
 - Light and dark mode, instant switch
+- The app in **English or සිංහල**
 - Export folder sorted into Reels, Photos, Audios and Merged Videos
 - Undo/redo, layers with drag to reorder
 - **Select several layers**: align, space evenly, group and lock, with **smart guides**

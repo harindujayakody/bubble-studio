@@ -3,6 +3,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n";
 import { Switch } from "@/components/ui/switch";
 import { ensureFonts, postDims, renderPost } from "@/lib/editor/render";
 import { loadSamples } from "@/lib/editor/samples";
@@ -50,6 +51,7 @@ export function TemplatesGallery({ onPick }: { onPick: (state: PostState) => voi
   const [useBrandKit, setUseBrandKit] = useState(true);
   const [category, setCategory] = useState<TemplateCategory | "all" | "mine">("all");
   const [showAll, setShowAll] = useState(false);
+  const t = useT();
   // One size at a time keeps the grid even; every template is built at the chosen size.
   const [size, setSize] = useState<TemplateSize>("square");
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
@@ -106,7 +108,7 @@ export function TemplatesGallery({ onPick }: { onPick: (state: PostState) => voi
     <section className="mt-10 md:mt-12 md:px-6" aria-labelledby="templates-heading">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <h2 id="templates-heading" className="font-heading text-xl font-semibold text-ink md:text-2xl">
-          Start from a template
+          {t("Start from a template")}
         </h2>
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
           {hasBrand && (
@@ -129,7 +131,7 @@ export function TemplatesGallery({ onPick }: { onPick: (state: PostState) => voi
                     size === s.id ? "bg-sheet text-ink shadow-float" : "text-ink-soft hover:text-ink",
                   )}
                 >
-                  {s.label}
+                  {t(s.label)}
                 </button>
               ))}
             </div>
@@ -149,7 +151,7 @@ export function TemplatesGallery({ onPick }: { onPick: (state: PostState) => voi
               category === id ? "bg-ink text-sheet" : "bg-sheet text-ink shadow-float hover:bg-brand-wash",
             )}
           >
-            {id === "all" ? "All" : id === "mine" ? "My templates" : TEMPLATE_CATEGORIES.find((c) => c.id === id)!.label}
+            {t(id === "all" ? "All" : id === "mine" ? "My templates" : TEMPLATE_CATEGORIES.find((c) => c.id === id)!.label)}
           </button>
         ))}
       </div>

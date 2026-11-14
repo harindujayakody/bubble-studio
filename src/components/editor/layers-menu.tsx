@@ -3,6 +3,7 @@
 import { createElement, useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Droplets, GripVertical, Grid3x3, ImageIcon, Layers, Palette, Trash2, Type } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { IconAction } from "./controls";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -36,6 +37,7 @@ export function LayersMenu({
   onMove: (id: string, index: number) => void;
   onDelete: (id: string) => void;
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const stack = stackOrder(state).reverse();
   const count = stack.length + state.regions.length;
@@ -90,12 +92,12 @@ export function LayersMenu({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger render={<Button variant="ghost" size="sm" className="gap-1.5 px-2" aria-label="Layers" />}>
         <Layers />
-        <span className="hidden md:inline">Layers</span>
+        <span className="hidden md:inline">{t("Layers")}</span>
         {count > 0 && <span className="dim font-mono text-[11px] tabular">{count}</span>}
       </PopoverTrigger>
       <PopoverContent align="end" className="w-[340px] gap-0 p-0">
         <div className="flex items-baseline justify-between border-b border-rule px-4 py-3">
-          <h2 className="font-heading text-sm font-semibold text-ink">Layers</h2>
+          <h2 className="font-heading text-sm font-semibold text-ink">{t("Layers")}</h2>
           <span className="text-xs text-ink-soft">{stack.length > 1 ? "Drag to reorder" : "Top of the post first"}</span>
         </div>
         <ul className="max-h-[60vh] overflow-y-auto p-1.5" aria-label="Layers">

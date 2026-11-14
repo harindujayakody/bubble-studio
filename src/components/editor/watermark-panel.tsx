@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { ImagePlus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -46,6 +47,7 @@ export function Segmented<T extends string>({
   onChange: (v: T) => void;
   label: string;
 }) {
+  const t = useT();
   return (
     <div className="grid gap-1 rounded-lg bg-tile p-1" style={{ gridTemplateColumns: `repeat(${options.length}, 1fr)` }} role="radiogroup" aria-label={label}>
       {options.map((o) => (
@@ -61,7 +63,7 @@ export function Segmented<T extends string>({
             value === o.id ? "bg-sheet text-ink shadow-float" : "text-ink-soft hover:text-ink",
           )}
         >
-          {o.label}
+          {t(o.label)}
         </button>
       ))}
     </div>

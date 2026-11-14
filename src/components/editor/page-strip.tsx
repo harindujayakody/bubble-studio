@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, Copy, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useT } from "@/lib/i18n";
 import { orientImage, postDims, renderPost, type Assets } from "@/lib/editor/render";
 import { MAX_PAGES, pageStates } from "@/lib/editor/pages";
 import type { PostState } from "@/lib/editor/types";
@@ -39,6 +40,7 @@ export function PageStrip({
   const pages = pageStates(state);
   const current = state.page ?? 0;
   const [thumbs, setThumbs] = useState<string[]>([]);
+  const t = useT();
 
   // Redraw the small pages shortly after edits settle.
   useEffect(() => {
@@ -58,7 +60,7 @@ export function PageStrip({
           onClick={() => onAdd(false)}
           className="flex h-8 items-center gap-1.5 rounded-full px-3 text-[12px] font-medium text-ink-soft outline-none hover:bg-tile hover:text-ink focus-visible:ring-2 focus-visible:ring-aqua"
         >
-          <Plus className="size-3.5" /> Add page (carousel)
+          <Plus className="size-3.5" /> {t("Add page (carousel)")}
         </button>
       </div>
     );

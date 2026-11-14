@@ -11,6 +11,7 @@ This file is generated from `changelog.json` with `npm run changelog`.
 
 ### Added
 
+- Sinhala interface: switch the app between English and සිංහල from the start page or Settings; menus, tools, panel titles and controls follow
 - Refine edges after removing a background: paint to erase leftover background or restore parts that were cut off, for the photo and for image stickers
 - Carousels: add pages to a photo post (up to 10) from the strip under the canvas, duplicate, reorder or delete them, and export all pages as numbered images in a ZIP
 - Charts, tables and QR codes (Elements → Charts): bar, line and pie charts from typed numbers, a table with a header row, and QR codes for a link, phone or WhatsApp number, made on this computer
@@ -53,6 +54,7 @@ This file is generated from `changelog.json` with `npm run changelog`.
 
 ### Fixed
 
+- The tool bar no longer jumps back to the active tool while you scroll it on short screens
 - A newly uploaded watermark logo now shows in the preview straight away
 - The previous clip's sound no longer keeps playing after switching clips
 

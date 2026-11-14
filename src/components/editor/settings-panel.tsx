@@ -9,6 +9,8 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { PanelSection } from "./controls";
 import { BrandKitSection } from "./brand-panel";
+import { Segmented } from "./watermark-panel";
+import { setLang, useLang } from "@/lib/i18n";
 import { AISettingsSection } from "./ai-writer";
 import changelog from "../../../changelog.json";
 import { GithubMark, REPO_URL } from "./start-screen";
@@ -52,6 +54,7 @@ export function SettingsPanel() {
 
   return (
     <>
+      <LanguageSection />
       <BrandKitSection />
       <AppearanceSection />
       <AISettingsSection />
@@ -99,6 +102,27 @@ const THEMES: { value: ThemePref; label: string; icon: typeof Monitor }[] = [
   { value: "light", label: "Light", icon: Sun },
   { value: "dark", label: "Dark", icon: Moon },
 ];
+
+/** Interface language. Designs keep their own text; this only changes the app's menus and labels. */
+function LanguageSection() {
+  const lang = useLang();
+  return (
+    <PanelSection title="Language">
+      <Segmented
+        label="Interface language"
+        value={lang}
+        onChange={setLang}
+        options={[
+          { id: "en", label: "English" },
+          { id: "si", label: "සිංහල" },
+        ]}
+      />
+      <p className="mt-2.5 text-xs text-pretty text-ink-soft">
+        {lang === "si" ? "මෙනු සහ ලේබල සිංහලෙන්. ඔබේ නිර්මාණවල පෙළ වෙනස් නොවේ." : "Menus and labels in Sinhala or English. The text in your designs doesn't change."}
+      </p>
+    </PanelSection>
+  );
+}
 
 function AppearanceSection() {
   const pref = useThemePref();
