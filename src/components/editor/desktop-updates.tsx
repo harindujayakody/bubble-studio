@@ -29,7 +29,7 @@ export type DesktopBridge = {
   showInFolder: (file: string) => Promise<void>;
   onDownloadDone: (cb: (f: SavedFile) => void) => () => void;
   /** Which subfolder of the master folder the next download goes to. Missing before 1.1. */
-  setDownloadKind?: (kind: "photos" | "reels" | "audios" | "merged") => Promise<void>;
+  setDownloadKind?: (kind: "photos" | "reels" | "audios" | "merged" | "designs") => Promise<void>;
   clearCache: () => Promise<{ updates: number }>;
   resetAll: () => Promise<void>;
   /** AI writer (missing before 1.3.7): the key is encrypted and used only by the main process. */

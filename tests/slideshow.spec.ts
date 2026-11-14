@@ -8,10 +8,10 @@ test("make a photo slideshow and export it as a reel", async ({ page }) => {
   await page.goto("/", { waitUntil: "networkidle" });
   await expect(async () => {
     await page.getByRole("button", { name: /Photo slideshow/ }).click({ timeout: 2_000 });
-    await expect(page.locator('input[type="file"]')).toBeAttached({ timeout: 2_000 });
+    await expect(page.locator('input[type="file"][multiple]')).toBeAttached({ timeout: 2_000 });
   }).toPass({ timeout: 60_000 });
 
-  await page.locator('input[type="file"]').setInputFiles(["tests/fixtures/photo1.jpg", "tests/fixtures/photo2.jpg"]);
+  await page.locator('input[type="file"][multiple]').setInputFiles(["tests/fixtures/photo1.jpg", "tests/fixtures/photo2.jpg"]);
   await expect(page.getByText("2 photos · 0:05.4")).toBeVisible();
   await page.getByRole("button", { name: "Create slideshow" }).click();
 

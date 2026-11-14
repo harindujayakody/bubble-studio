@@ -102,6 +102,10 @@ export type TextLayer = {
   effect?: TextEffect;
   /** Reels: a caption line (see captions.ts), styled together with the others. */
   caption?: boolean;
+  /** Layers sharing a group id select and move together. */
+  group?: string;
+  /** Can't be moved or resized on the canvas until unlocked. */
+  locked?: boolean;
   rotation: number; // degrees
   /** Stacking order shared with stickers; higher draws on top. */
   z: number;
@@ -167,6 +171,10 @@ export type Sticker = {
   strokes?: { pts: number[]; color: string; brush: "pen" | "marker" | "highlighter"; width: number }[];
   /** Stacking order shared with text layers; higher draws on top. */
   z: number;
+  /** Layers sharing a group id select and move together. */
+  group?: string;
+  /** Can't be moved or resized on the canvas until unlocked. */
+  locked?: boolean;
 } & Timing;
 
 /** An area of the photo to blur or pixelate, e.g. a face, number plate or price. */

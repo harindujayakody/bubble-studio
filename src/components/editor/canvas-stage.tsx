@@ -1,7 +1,27 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import { Film, ImagePlus, Move, Palette } from "lucide-react";
+import {
+  AlignCenterHorizontal,
+  AlignCenterVertical,
+  AlignEndHorizontal,
+  AlignEndVertical,
+  AlignHorizontalDistributeCenter,
+  AlignStartHorizontal,
+  AlignStartVertical,
+  AlignVerticalDistributeCenter,
+  Copy,
+  Film,
+  Group,
+  ImagePlus,
+  Lock,
+  LockOpen,
+  Move,
+  Palette,
+  Trash2,
+  Ungroup,
+} from "lucide-react";
+import { align, bounds, distribute, snap, type Align, type Box, type Snap } from "@/lib/editor/arrange";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,6 +49,7 @@ import { CropView } from "./crop-view";
 import { useWatermark } from "@/lib/editor/watermark";
 
 export type RegionDefaults = Pick<Region, "kind" | "shape" | "strength">;
+export type LayerPatch = { id: string; patch: Partial<Pick<TextLayer, "x" | "y" | "fontSize" | "width">> & Partial<Pick<Sticker, "size">> };
 
 type Props = {
   source: Source | null;
@@ -43,7 +64,14 @@ type Props = {
   /** Current playback time in a reel, so layers show only inside their timing. */
   getTime?: () => number;
   regionDefaults: RegionDefaults;
-  onSelect: (id: string | null) => void;
+  /** Every selected layer (several after Shift-click, a selection box or a group). */
+  selectedIds: string[];
+  /** `additive`: Shift-click adds or removes the layer instead of replacing the selection. */
+  onSelect: (id: string | null, additive?: boolean) => void;
+  onSelectMany: (ids: string[]) => void;
+  /** Change several layers at once (moving or scaling a selection, align, distribute). */
+  onPatchMany: (patches: LayerPatch[], key: string) => void;
+  onArrange: (action: "group" | "ungroup" | "lock" | "unlock" | "duplicate" | "delete") => void;
   onTextChange: (id: string, patch: Partial<TextLayer>, key: string) => void;
   onStickerChange: (id: string, patch: Partial<Sticker>, key: string) => void;
   onRegions: (fn: (regions: Region[]) => Region[], key?: string) => void;
@@ -59,7 +87,10 @@ type Props = {
 
 /** Breathing room between the post and the edges of the workspace. */
 const GUTTER = 28;
-const SNAP = 0.012;
+/** How close, in screen pixels, a dragged layer must come to a guide to snap to it. */
+const SNAP_PX = 6;
+/** Smart guide colour: a pink that stands out on photos and on the brand purple. */
+const GUIDE = "#ff3d9a";
 
 export function CanvasStage(props: Props) {
   const { source, assets, state, tool, selectedId, fontsVersion, showEmpty, clock, getTime } = props;
@@ -70,7 +101,9 @@ export function CanvasStage(props: Props) {
   /** Room available for the sheet, before the gutter. */
   const [avail, setAvail] = useState({ w: 0, h: 0 });
   const [boxes, setBoxes] = useState<TextBox[]>([]);
-  const [guides, setGuides] = useState<{ v: boolean; h: boolean }>({ v: false, h: false });
+  const [guides, setGuides] = useState<Snap | null>(null);
+  /** Selection box being dragged on empty space, in fractions of the post. */
+  const [marquee, setMarquee] = useState<{ x0: number; y0: number; x1: number; y1: number; add: boolean } | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   /** The tool that was active when the photo went into reposition mode. */
@@ -203,8 +236,32 @@ export function CanvasStage(props: Props) {
               <div
                 className="relative size-full bg-white shadow-sheet"
                 onPointerDown={(e) => {
-                  if (e.target === e.currentTarget || e.target === canvasRef.current) props.onSelect(null);
+                  if (e.target !== e.currentTarget && e.target !== canvasRef.current) return;
+                  // Empty space: a click clears the selection, a drag draws a selection box.
+                  if (!showHandles) return props.onSelect(null);
+                  e.currentTarget.setPointerCapture(e.pointerId);
+                  const r = e.currentTarget.getBoundingClientRect();
+                  const x = (e.clientX - r.left) / r.width;
+                  const y = (e.clientY - r.top) / r.height;
+                  setMarquee({ x0: x, y0: y, x1: x, y1: y, add: e.shiftKey });
                 }}
+                onPointerMove={(e) => {
+                  if (!marquee) return;
+                  const r = e.currentTarget.getBoundingClientRect();
+                  setMarquee({ ...marquee, x1: clamp01((e.clientX - r.left) / r.width), y1: clamp01((e.clientY - r.top) / r.height) });
+                }}
+                onPointerUp={() => {
+                  if (!marquee) return;
+                  const l = Math.min(marquee.x0, marquee.x1), rt = Math.max(marquee.x0, marquee.x1);
+                  const t = Math.min(marquee.y0, marquee.y1), b = Math.max(marquee.y0, marquee.y1);
+                  setMarquee(null);
+                  if ((rt - l) * side < 4 && (b - t) * sideY < 4) return props.onSelect(null);
+                  const hit = boxes
+                    .filter((x) => x.cx + x.w / 2 > l && x.cx - x.w / 2 < rt && x.cy + x.h / 2 > t && x.cy - x.h / 2 < b)
+                    .map((x) => x.id);
+                  props.onSelectMany(marquee.add ? [...new Set([...props.selectedIds, ...hit])] : hit);
+                }}
+                onPointerCancel={() => setMarquee(null)}
                 onDoubleClick={(e) => {
                   if (source && e.target === canvasRef.current && !blurring) {
                     props.onSelect(null);
@@ -221,11 +278,40 @@ export function CanvasStage(props: Props) {
                   role="img"
                 />
 
-                {guides.v && (
-                  <span aria-hidden className="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-brand" />
-                )}
-                {guides.h && (
-                  <span aria-hidden className="pointer-events-none absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-brand" />
+                {guides?.xs.map((x) => (
+                  <span key={`x${x}`} aria-hidden data-guide className="pointer-events-none absolute inset-y-0 w-px -translate-x-1/2" style={{ left: `${x * 100}%`, background: GUIDE }} />
+                ))}
+                {guides?.ys.map((y) => (
+                  <span key={`y${y}`} aria-hidden data-guide className="pointer-events-none absolute inset-x-0 h-px -translate-y-1/2" style={{ top: `${y * 100}%`, background: GUIDE }} />
+                ))}
+                {guides?.gaps.map((g) => (
+                  <span
+                    key={`${g.axis}${g.from}${g.to}`}
+                    aria-hidden
+                    data-guide
+                    className={cn("pointer-events-none absolute grid place-items-center", g.axis === "x" ? "h-px -translate-y-1/2" : "w-px -translate-x-1/2")}
+                    style={
+                      g.axis === "x"
+                        ? { left: `${g.from * 100}%`, width: `${(g.to - g.from) * 100}%`, top: `${g.at * 100}%`, background: GUIDE }
+                        : { top: `${g.from * 100}%`, height: `${(g.to - g.from) * 100}%`, left: `${g.at * 100}%`, background: GUIDE }
+                    }
+                  >
+                    <span className="rounded px-1 font-mono text-[10px] leading-4 text-white tabular" style={{ background: GUIDE }}>
+                      {Math.round((g.to - g.from) * (g.axis === "x" ? post.w : post.h))}
+                    </span>
+                  </span>
+                ))}
+                {marquee && (
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute border border-aqua bg-aqua/10"
+                    style={{
+                      left: `${Math.min(marquee.x0, marquee.x1) * 100}%`,
+                      top: `${Math.min(marquee.y0, marquee.y1) * 100}%`,
+                      width: `${Math.abs(marquee.x1 - marquee.x0) * 100}%`,
+                      height: `${Math.abs(marquee.y1 - marquee.y0) * 100}%`,
+                    }}
+                  />
                 )}
 
                 {showHandles &&
@@ -240,11 +326,15 @@ export function CanvasStage(props: Props) {
                           side={side}
                           sideY={sideY}
                           label={`${s.kind === "emoji" ? `Emoji ${s.value}` : s.kind === "icon" ? "Icon" : s.kind === "shape" ? "Shape" : s.kind === "frame" ? "Frame" : s.kind === "animated" ? "Animated sticker" : s.kind === "gif" ? "GIF" : "Sticker"}`}
-                          selected={selectedId === box.id}
+                          selected={props.selectedIds.includes(box.id)}
+                          single={props.selectedIds.length <= 1}
+                          locked={!!s.locked}
+                          others={boxes.filter((o) => o.id !== box.id)}
+                          threshold={{ x: SNAP_PX / side, y: SNAP_PX / sideY }}
                           resizeValue={s.size}
                           min={24}
                           max={1400}
-                          onSelect={() => props.onSelect(box.id)}
+                          onSelect={(add) => props.onSelect(box.id, add)}
                           onMove={(x, y) => props.onStickerChange(s.id, { x, y }, `move:${s.id}`)}
                           onResize={(size) => props.onStickerChange(s.id, { size }, `size:${s.id}`)}
                           stretch={s.kind === "shape" || s.kind === "frame" ? { size: s.size, aspect: s.aspect ?? 1 } : undefined}
@@ -274,11 +364,15 @@ export function CanvasStage(props: Props) {
                         side={side}
                         sideY={sideY}
                         label={`Text: ${layer.text || "empty"}. Double-click to edit.`}
-                        selected={selectedId === box.id}
+                        selected={props.selectedIds.includes(box.id)}
+                        single={props.selectedIds.length <= 1}
+                        locked={!!layer.locked}
+                        others={boxes.filter((o) => o.id !== box.id)}
+                        threshold={{ x: SNAP_PX / side, y: SNAP_PX / sideY }}
                         resizeValue={layer.fontSize}
                         min={12}
                         max={400}
-                        onSelect={() => props.onSelect(box.id)}
+                        onSelect={(add) => props.onSelect(box.id, add)}
                         onEdit={() => {
                           props.onSelect(box.id);
                           setEditingId(box.id);
@@ -289,6 +383,20 @@ export function CanvasStage(props: Props) {
                       />
                     );
                   })}
+
+                {showHandles && props.selectedIds.length > 1 && (
+                  <GroupBox
+                    boxes={boxes.filter((b) => props.selectedIds.includes(b.id))}
+                    all={boxes}
+                    state={state}
+                    side={side}
+                    sideY={sideY}
+                    threshold={{ x: SNAP_PX / side, y: SNAP_PX / sideY }}
+                    onPatchMany={props.onPatchMany}
+                    onGuides={setGuides}
+                    onToggle={(id) => props.onSelect(id, true)}
+                  />
+                )}
 
                 {drawing && (
                   <div
@@ -368,6 +476,16 @@ export function CanvasStage(props: Props) {
           </div>
         )}
       </div>
+
+      {showHandles && !editing && props.selectedIds.length > 0 && boxes.some((b) => props.selectedIds.includes(b.id)) && (
+        <ArrangeBar
+          state={state}
+          ids={props.selectedIds}
+          boxes={boxes}
+          onPatchMany={props.onPatchMany}
+          onArrange={props.onArrange}
+        />
+      )}
 
       <StatusPill
         zoom={zoom}
@@ -701,6 +819,10 @@ function LayerHandle({
   sideY,
   label,
   selected,
+  single,
+  locked,
+  others,
+  threshold,
   resizeValue,
   min,
   max,
@@ -717,18 +839,25 @@ function LayerHandle({
   sideY: number;
   label: string;
   selected: boolean;
+  /** Only one layer is selected, so this one shows its own resize handles. */
+  single: boolean;
+  locked: boolean;
+  /** The other layers, for smart guides. */
+  others: Box[];
+  threshold: { x: number; y: number };
   resizeValue: number;
   min: number;
   max: number;
-  onSelect: () => void;
+  onSelect: (additive: boolean) => void;
   onEdit?: () => void;
   onMove: (x: number, y: number) => void;
   onResize: (value: number) => void;
   /** Shapes: width and width/height, changed by the edge handles. */
   stretch?: { size: number; aspect: number };
   onStretch?: (size: number, aspect: number) => void;
-  onGuides: (g: { v: boolean; h: boolean }) => void;
+  onGuides: (g: Snap | null) => void;
 }) {
+  const handles = selected && single && !locked;
   const drag = useRef<{ px: number; py: number; x: number; y: number } | null>(null);
   const edgeDrag = useRef<{ left: number; top: number; axis: "x" | "y"; dist: number; size: number; aspect: number } | null>(null);
   // Distance from the centre along the shape's own (rotated) axis.
@@ -750,35 +879,34 @@ function LayerHandle({
       <div
         role="button"
         tabIndex={0}
-        aria-label={label}
+        aria-label={locked ? `${label} Locked.` : label}
         aria-pressed={selected}
         onPointerDown={(e) => {
           e.preventDefault();
           e.stopPropagation();
           e.currentTarget.focus();
-          onSelect();
+          onSelect(e.shiftKey);
+          if (e.shiftKey || locked) return;
           e.currentTarget.setPointerCapture(e.pointerId);
           drag.current = { px: e.clientX, py: e.clientY, x: box.cx, y: box.cy };
         }}
         onPointerMove={(e) => {
           const d = drag.current;
           if (!d) return;
-          let x = d.x + (e.clientX - d.px) / side;
-          let y = d.y + (e.clientY - d.py) / sideY;
-          const v = Math.abs(x - 0.5) < SNAP;
-          const h = Math.abs(y - 0.5) < SNAP;
-          if (v) x = 0.5;
-          if (h) y = 0.5;
-          onGuides({ v, h });
-          onMove(clamp01(x), clamp01(y));
+          const x = d.x + (e.clientX - d.px) / side;
+          const y = d.y + (e.clientY - d.py) / sideY;
+          // Smart guides: snap to the page and to the other layers' edges and centres.
+          const s = snap({ id: box.id, cx: x, cy: y, w: box.w, h: box.h }, others, threshold);
+          onGuides(s);
+          onMove(clamp01(x + s.dx), clamp01(y + s.dy));
         }}
         onPointerUp={() => {
           drag.current = null;
-          onGuides({ v: false, h: false });
+          onGuides(null);
         }}
         onPointerCancel={() => {
           drag.current = null;
-          onGuides({ v: false, h: false });
+          onGuides(null);
         }}
         onDoubleClick={(e) => {
           // Keep the photo's own double-click (reposition) from firing underneath.
@@ -789,7 +917,8 @@ function LayerHandle({
           if (e.key === "Enter" && onEdit) onEdit();
         }}
         className={cn(
-          "pointer-events-auto absolute cursor-move touch-none outline-none",
+          "pointer-events-auto absolute touch-none outline-none",
+          locked ? "cursor-default" : "cursor-move",
           selected
             ? "ring-[1.5px] ring-aqua"
             : "hover:ring-1 hover:ring-aqua/70 focus-visible:ring-[1.5px] focus-visible:ring-aqua",
@@ -802,7 +931,7 @@ function LayerHandle({
           transform: `rotate(${box.rotation}deg)`,
         }}
       >
-        {selected &&
+        {handles &&
           CORNERS.map((c) => (
             <span
               key={c.pos}
@@ -830,7 +959,7 @@ function LayerHandle({
               )}
             />
           ))}
-        {selected &&
+        {handles &&
           stretch &&
           onStretch &&
           EDGES.map((edge) => (
@@ -873,6 +1002,202 @@ function LayerHandle({
             />
           ))}
       </div>
+    </div>
+  );
+}
+
+const layerById = (state: PostState, id: string): TextLayer | Sticker | undefined =>
+  state.texts.find((t) => t.id === id) ?? state.stickers.find((s) => s.id === id);
+
+/** Several selected layers: drag inside to move them all (with smart guides), corners scale them all. */
+function GroupBox({
+  boxes,
+  all,
+  state,
+  side,
+  sideY,
+  threshold,
+  onPatchMany,
+  onGuides,
+  onToggle,
+}: {
+  boxes: TextBox[];
+  all: TextBox[];
+  state: PostState;
+  side: number;
+  sideY: number;
+  threshold: { x: number; y: number };
+  onPatchMany: (patches: LayerPatch[], key: string) => void;
+  onGuides: (g: Snap | null) => void;
+  onToggle: (id: string) => void;
+}) {
+  const u = bounds(boxes);
+  const drag = useRef<{ px: number; py: number; start: TextBox[]; u: ReturnType<typeof bounds> } | null>(null);
+  const scale = useRef<{ left: number; top: number; dist: number; start: TextBox[]; u: ReturnType<typeof bounds>; layers: (TextLayer | Sticker)[] } | null>(null);
+  const movable = (b: TextBox) => !layerById(state, b.id)?.locked;
+  const others = all.filter((b) => !boxes.some((s) => s.id === b.id));
+
+  return (
+    <div data-sheet className="pointer-events-none absolute inset-0">
+      <div
+        role="group"
+        aria-label={`${boxes.length} layers selected. Drag to move them, drag a corner to resize them.`}
+        className="pointer-events-auto absolute cursor-move touch-none outline-[1.5px] outline-aqua outline-dashed"
+        style={{ left: `${u.l * 100}%`, top: `${u.t * 100}%`, width: `${u.w * 100}%`, height: `${u.h * 100}%` }}
+        onPointerDown={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (e.shiftKey) {
+            // Shift-click inside the selection adds or removes the layer under the pointer.
+            const r = e.currentTarget.closest("[data-sheet]")!.getBoundingClientRect();
+            const x = (e.clientX - r.left) / side;
+            const y = (e.clientY - r.top) / sideY;
+            const hit = [...all].reverse().find((b) => Math.abs(x - b.cx) <= b.w / 2 && Math.abs(y - b.cy) <= b.h / 2);
+            if (hit) onToggle(hit.id);
+            return;
+          }
+          e.currentTarget.setPointerCapture(e.pointerId);
+          drag.current = { px: e.clientX, py: e.clientY, start: boxes, u };
+        }}
+        onPointerMove={(e) => {
+          const d = drag.current;
+          if (!d) return;
+          const dx = (e.clientX - d.px) / side;
+          const dy = (e.clientY - d.py) / sideY;
+          const s = snap({ id: "selection", cx: d.u.cx + dx, cy: d.u.cy + dy, w: d.u.w, h: d.u.h }, others, threshold);
+          onGuides(s);
+          onPatchMany(
+            d.start.filter(movable).map((b) => ({ id: b.id, patch: { x: clamp01(b.cx + dx + s.dx), y: clamp01(b.cy + dy + s.dy) } })),
+            "move:selection",
+          );
+        }}
+        onPointerUp={() => {
+          drag.current = null;
+          onGuides(null);
+        }}
+        onPointerCancel={() => {
+          drag.current = null;
+          onGuides(null);
+        }}
+      >
+        {CORNERS.map((c) => (
+          <span
+            key={c.pos}
+            aria-label="Drag to resize the selection"
+            onPointerDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              e.currentTarget.setPointerCapture(e.pointerId);
+              const rect = e.currentTarget.closest("[data-sheet]")!.getBoundingClientRect();
+              const dist = Math.hypot(e.clientX - rect.left - u.cx * side, e.clientY - rect.top - u.cy * sideY);
+              scale.current = { left: rect.left, top: rect.top, dist: Math.max(1, dist), start: boxes, u, layers: boxes.map((b) => layerById(state, b.id)!) };
+            }}
+            onPointerMove={(e) => {
+              const s = scale.current;
+              if (!s) return;
+              const k = Math.min(10, Math.max(0.1, Math.hypot(e.clientX - s.left - s.u.cx * side, e.clientY - s.top - s.u.cy * sideY) / s.dist));
+              const patches: LayerPatch[] = [];
+              s.start.forEach((b, i) => {
+                const layer = s.layers[i];
+                if (!layer || layer.locked) return;
+                const x = clamp01(s.u.cx + (b.cx - s.u.cx) * k);
+                const y = clamp01(s.u.cy + (b.cy - s.u.cy) * k);
+                patches.push(
+                  "fontSize" in layer
+                    ? { id: b.id, patch: { x, y, fontSize: Math.round(Math.min(400, Math.max(12, layer.fontSize * k))), width: Math.min(1, layer.width * k) } }
+                    : { id: b.id, patch: { x, y, size: Math.round(Math.min(1400, Math.max(24, layer.size * k))) } },
+                );
+              });
+              onPatchMany(patches, "scale:selection");
+            }}
+            onPointerUp={() => (scale.current = null)}
+            onPointerCancel={() => (scale.current = null)}
+            className={cn("absolute size-2.5 touch-none bg-white ring-[1.5px] ring-aqua after:absolute after:-inset-2 hover:bg-aqua", c.pos, c.cursor)}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const ALIGNS: { id: Align; label: string; Icon: typeof AlignStartVertical }[] = [
+  { id: "left", label: "Align left", Icon: AlignStartVertical },
+  { id: "center", label: "Align centre", Icon: AlignCenterVertical },
+  { id: "right", label: "Align right", Icon: AlignEndVertical },
+  { id: "top", label: "Align top", Icon: AlignStartHorizontal },
+  { id: "middle", label: "Align middle", Icon: AlignCenterHorizontal },
+  { id: "bottom", label: "Align bottom", Icon: AlignEndHorizontal },
+];
+
+/** Floating bar over the canvas for the selection: align, distribute, group, lock, duplicate, delete. */
+function ArrangeBar({
+  state,
+  ids,
+  boxes,
+  onPatchMany,
+  onArrange,
+}: {
+  state: PostState;
+  ids: string[];
+  boxes: TextBox[];
+  onPatchMany: (patches: LayerPatch[], key: string) => void;
+  onArrange: (action: "group" | "ungroup" | "lock" | "unlock" | "duplicate" | "delete") => void;
+}) {
+  const layers = ids.map((id) => layerById(state, id)).filter((l): l is TextLayer | Sticker => !!l);
+  const sel = boxes.filter((b) => ids.includes(b.id));
+  const free = sel.filter((b) => !layerById(state, b.id)?.locked);
+  const locked = layers.length > 0 && layers.every((l) => l.locked);
+  const grouped = layers.some((l) => l.group);
+  const oneGroup = grouped && layers.every((l) => l.group === layers[0].group);
+  const apply = (moves: { id: string; x: number; y: number }[], key: string) =>
+    onPatchMany(
+      moves.filter((m) => free.some((b) => b.id === m.id)).map((m) => ({ id: m.id, patch: { x: m.x, y: m.y } })),
+      key,
+    );
+  const btn = "grid size-8 place-items-center rounded-full text-ink outline-none hover:bg-tile focus-visible:ring-2 focus-visible:ring-aqua disabled:opacity-35 disabled:hover:bg-transparent";
+
+  return (
+    <div
+      role="toolbar"
+      aria-label={ids.length > 1 ? `Arrange ${ids.length} layers` : "Arrange layer"}
+      onPointerDown={(e) => e.stopPropagation()}
+      className="absolute top-2 left-1/2 z-10 flex max-w-[calc(100%-16px)] -translate-x-1/2 items-center gap-0.5 overflow-x-auto rounded-full bg-raised p-1 shadow-float"
+    >
+      {ALIGNS.map(({ id, label, Icon }) => (
+        <button key={id} type="button" className={btn} aria-label={ids.length > 1 ? label : `${label} on the page`} title={label} onClick={() => apply(align(sel, id), `align:${id}`)}>
+          <Icon className="size-4" />
+        </button>
+      ))}
+      {ids.length > 2 && (
+        <>
+          <button type="button" className={btn} aria-label="Space evenly across" title="Space evenly across" onClick={() => apply(distribute(sel, "x"), "distribute:x")}>
+            <AlignHorizontalDistributeCenter className="size-4" />
+          </button>
+          <button type="button" className={btn} aria-label="Space evenly down" title="Space evenly down" onClick={() => apply(distribute(sel, "y"), "distribute:y")}>
+            <AlignVerticalDistributeCenter className="size-4" />
+          </button>
+        </>
+      )}
+      <span aria-hidden className="mx-1 h-5 w-px shrink-0 bg-rule" />
+      {ids.length > 1 && !oneGroup && (
+        <button type="button" className={btn} aria-label="Group" title="Group (move together)" onClick={() => onArrange("group")}>
+          <Group className="size-4" />
+        </button>
+      )}
+      {grouped && (
+        <button type="button" className={btn} aria-label="Ungroup" title="Ungroup" onClick={() => onArrange("ungroup")}>
+          <Ungroup className="size-4" />
+        </button>
+      )}
+      <button type="button" className={cn(btn, locked && "bg-brand-wash text-brand")} aria-label={locked ? "Unlock" : "Lock"} aria-pressed={locked} title={locked ? "Unlock" : "Lock position"} onClick={() => onArrange(locked ? "unlock" : "lock")}>
+        {locked ? <Lock className="size-4" /> : <LockOpen className="size-4" />}
+      </button>
+      <button type="button" className={btn} aria-label="Duplicate" title="Duplicate (Ctrl+D)" onClick={() => onArrange("duplicate")}>
+        <Copy className="size-4" />
+      </button>
+      <button type="button" className={cn(btn, "text-destructive")} aria-label="Delete" title="Delete" onClick={() => onArrange("delete")}>
+        <Trash2 className="size-4" />
+      </button>
     </div>
   );
 }

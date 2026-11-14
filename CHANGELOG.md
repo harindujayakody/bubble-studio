@@ -11,6 +11,9 @@ This file is generated from `changelog.json` with `npm run changelog`.
 
 ### Added
 
+- Save as file and Open file: a .bubble file with the design and its photos, videos and music, to back up or move to another computer (also drop it on the canvas)
+- Smart guides: layers snap to the page edges, centre and margins and to other layers, with pink guide lines and distances
+- Select several layers (Shift-click or drag a box): move, resize, align, space evenly, group, lock, duplicate (Ctrl+D) or delete them together
 - Photo slideshow (start page): turn photos into a reel with a slow zoom and transitions, in 9:16, 4:5, 1:1 or 16:9, then add music, text and captions in the editor
 - Captions for reels (Text → Captions): add at the playhead, paste a script to spread over the reel, or import an .srt; box, outline or highlight style; download an .srt for Facebook
 - Reel cuts and speed: split a clip at the playhead, delete the parts you don't want, and play it at 0.5x to 2x; preview and export skip the deleted parts

@@ -9,10 +9,10 @@ test("merge two clips with a crossfade", async ({ page }) => {
   await page.goto("/", { waitUntil: "networkidle" });
   await expect(async () => {
     await page.getByRole("button", { name: /Merge videos/ }).click({ timeout: 2_000 });
-    await expect(page.locator('input[type="file"]')).toBeAttached({ timeout: 2_000 });
+    await expect(page.locator('input[type="file"][multiple]')).toBeAttached({ timeout: 2_000 });
   }).toPass({ timeout: 60_000 });
 
-  await page.locator('input[type="file"]').setInputFiles(["tests/fixtures/red.mp4", "tests/fixtures/blue.mp4"]);
+  await page.locator('input[type="file"][multiple]').setInputFiles(["tests/fixtures/red.mp4", "tests/fixtures/blue.mp4"]);
   await page.getByRole("radio", { name: "Crossfade" }).click();
   await expect(page.getByText("2 clips · 0:02")).toBeVisible();
 

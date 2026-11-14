@@ -80,6 +80,8 @@ The installers aren't code-signed yet, so Windows may show *"Windows protected y
 - Light and dark mode, instant switch
 - Export folder sorted into Reels, Photos, Audios and Merged Videos
 - Undo/redo, layers with drag to reorder
+- **Select several layers**: align, space evenly, group and lock, with **smart guides**
+- **Save as file** (`.bubble`) to back up a design or move it to another computer
 
 </td>
 </tr>

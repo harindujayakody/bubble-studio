@@ -11,13 +11,14 @@ import { useSyncExternalStore } from "react";
  * subfolder. Web (Chrome, Edge): the folder is picked with the File System Access API and
  * remembered in this browser. Anywhere else, files download as usual.
  */
-export type ExportKind = "photos" | "reels" | "audios" | "merged";
+export type ExportKind = "photos" | "reels" | "audios" | "merged" | "designs";
 
 export const EXPORT_FOLDERS: Record<ExportKind, string> = {
   reels: "Reels",
   photos: "Photos",
   audios: "Audios",
   merged: "Merged Videos",
+  designs: "Designs",
 };
 
 /* ------------------------------------------------------- web folder handle */

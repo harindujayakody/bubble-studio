@@ -17,6 +17,8 @@ import {
   Ruler,
   Wand2,
   LayoutTemplate,
+  Save,
+  FolderOpen,
   Sun,
   Undo2,
 } from "lucide-react";
@@ -65,9 +67,10 @@ import {
   type DraftAsset,
   type DraftSummary,
 } from "@/lib/editor/draft";
+import { DESIGN_EXT, packDesign, unpackDesign } from "@/lib/editor/design-file";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { CanvasStage, type RegionDefaults } from "./canvas-stage";
+import { CanvasStage, type LayerPatch, type RegionDefaults } from "./canvas-stage";
 import { SizePreview, StartScreen, type StartStep, type StartTool } from "./start-screen";
 import { ExtractAudioScreen, MergeVideosScreen, SlideshowScreen } from "./media-tool-screens";
 import { WatermarkSection } from "./watermark-panel";
@@ -199,11 +202,14 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
   const designId = useRef<string>("");
   const [tool, setTool] = useState<ToolId>("photo");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  /** Layers selected together with `selectedId` (Shift-click, selection box, groups). */
+  const [multi, setMulti] = useState<string[]>([]);
   const layerClipboard = useRef<{ kind: "text"; layer: TextLayer } | { kind: "sticker"; layer: Sticker; images: Assets; blobs: Map<string, Blob> } | null>(null);
   /** Decoded images for the photo and uploaded stickers, keyed by id. Kept out of history. */
   const [photos, setPhotos] = useState<Assets>({});
   const [regionDefaults, setRegionDefaults] = useState<RegionDefaults>({ kind: "blur", shape: "rect", strength: 60 });
   const stickerFileRef = useRef<HTMLInputElement>(null);
+  const designFileRef = useRef<HTMLInputElement>(null);
   const videoFileRef = useRef<HTMLInputElement>(null);
   const musicFileRef = useRef<HTMLInputElement>(null);
   const musicVideoRef = useRef<HTMLInputElement>(null);
@@ -308,6 +314,16 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
         ? "region"
         : null;
   const selected = selectedKind ? selectedId : null;
+  // The multi-selection only counts while it holds the current layer; any other selection replaces it.
+  const selectedIds = useMemo(
+    () =>
+      selected
+        ? multi.includes(selected)
+          ? multi.filter((id) => state.texts.some((t) => t.id === id) || state.stickers.some((t) => t.id === id))
+          : [selected]
+        : [],
+    [selected, multi, state.texts, state.stickers],
+  );
 
   // Redraw once the typefaces used on the post have arrived.
   const fontKey =
@@ -652,6 +668,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
   };
 
   const loadFile = (file: File) => {
+    if (file.name.toLowerCase().endsWith(DESIGN_EXT)) return void openDesignFile(file);
     if (state.media === "video") {
       if (file.type.startsWith("video/")) return void loadVideoFile(file);
       // Dropped images in a reel become stickers.
@@ -741,13 +758,90 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
   });
 
   /** Select from the canvas and bring up the matching panel. */
-  const selectLayer = (id: string | null) => {
+  /** A layer and the rest of its group. */
+  const unitOf = (id: string) => {
+    const group = (state.texts.find((t) => t.id === id) ?? state.stickers.find((t) => t.id === id))?.group;
+    return group ? [...state.texts, ...state.stickers].filter((l) => l.group === group).map((l) => l.id) : [id];
+  };
+
+  const selectLayer = (id: string | null, additive = false) => {
+    if (!id) {
+      setSelectedId(null);
+      setMulti([]);
+      return;
+    }
+    const unit = unitOf(id);
+    if (additive && selectedIds.length) {
+      const has = unit.every((u) => selectedIds.includes(u));
+      const next = has ? selectedIds.filter((x) => !unit.includes(x)) : [...new Set([...selectedIds, ...unit])];
+      setMulti(next);
+      setSelectedId(has ? (next.at(-1) ?? null) : id);
+      return;
+    }
+    setMulti(unit);
     setSelectedId(id);
-    if (!id) return;
     if (state.texts.some((t) => t.id === id)) setTool("text");
     else if (state.stickers.some((t) => t.id === id)) setTool("elements");
     else if (state.regions.some((t) => t.id === id)) setTool("blur");
   };
+
+  const selectMany = (ids: string[]) => {
+    const all = [...new Set(ids.flatMap(unitOf))];
+    setMulti(all);
+    setSelectedId(all.at(-1) ?? null);
+  };
+
+  const patchMany = (patches: LayerPatch[], key: string) => {
+    if (!patches.length) return;
+    const byId = new Map(patches.map((p) => [p.id, p.patch]));
+    update(
+      (s) => ({
+        ...s,
+        texts: s.texts.map((t) => (byId.has(t.id) ? { ...t, ...byId.get(t.id) } : t)),
+        stickers: s.stickers.map((t) => (byId.has(t.id) ? { ...t, ...byId.get(t.id) } : t)),
+      }),
+      key,
+    );
+  };
+
+  /** Group, ungroup, lock, duplicate or delete the selected layers. */
+  const arrange = useCallback((action: "group" | "ungroup" | "lock" | "unlock" | "duplicate" | "delete") => {
+    const ids = new Set(selectedIds);
+    const pick = <T extends { id: string }>(list: T[]) => list.filter((l) => ids.has(l.id));
+    if (action === "delete") {
+      update((s) => ({ ...s, texts: s.texts.filter((t) => !ids.has(t.id)), stickers: s.stickers.filter((t) => !ids.has(t.id)), regions: s.regions.filter((r) => !ids.has(r.id)) }));
+      setSelectedId(null);
+      setMulti([]);
+      return;
+    }
+    if (action === "duplicate") {
+      // Copies keep their grouping among themselves, under a new group id.
+      const groups = new Map<string, string>();
+      const copy = <T extends { id: string; x: number; y: number; z: number; group?: string }>(l: T, z: number): T => {
+        if (l.group && !groups.has(l.group)) groups.set(l.group, crypto.randomUUID());
+        return { ...structuredClone(l), id: crypto.randomUUID(), x: Math.min(0.97, l.x + 0.03), y: Math.min(0.97, l.y + 0.03), z, group: l.group ? groups.get(l.group) : undefined };
+      };
+      const z = nextZ(state);
+      const texts = pick(state.texts).map((t, i) => copy(t, z + i));
+      const stickers = pick(state.stickers).map((t, i) => copy(t, z + texts.length + i));
+      update((s) => ({ ...s, texts: [...s.texts, ...texts], stickers: [...s.stickers, ...stickers] }));
+      const fresh = [...texts, ...stickers].map((l) => l.id);
+      setMulti(fresh);
+      setSelectedId(fresh.at(-1) ?? null);
+      return;
+    }
+    const group = action === "group" ? crypto.randomUUID() : undefined;
+    const change = <T extends { id: string; group?: string; locked?: boolean }>(l: T): T => {
+      if (!ids.has(l.id)) return l;
+      if (action === "group") return { ...l, group };
+      if (action === "ungroup") return { ...l, group: undefined };
+      return { ...l, locked: action === "lock" };
+    };
+    update((s) => ({ ...s, texts: s.texts.map(change), stickers: s.stickers.map(change) }));
+    toast.success(
+      { group: "Grouped: they move together", ungroup: "Ungrouped", lock: "Locked in place", unlock: "Unlocked" }[action],
+    );
+  }, [selectedIds, state, update]);
 
   // Keyboard: undo/redo, delete, nudge, tool keys.
   useEffect(() => {
@@ -804,6 +898,11 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
         update((s) => restack(s, selected, to));
         return;
       }
+      if (!typing && mod && !e.altKey && e.key.toLowerCase() === "d" && selectedIds.length) {
+        e.preventDefault();
+        arrange("duplicate");
+        return;
+      }
       if (mod && e.key.toLowerCase() === "y") {
         if (typing) return;
         e.preventDefault();
@@ -841,6 +940,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
       if (e.altKey) return;
       if (selected && (e.key === "Delete" || e.key === "Backspace")) {
         e.preventDefault();
+        if (selectedIds.length > 1) return arrange("delete");
         update((s) => ({
           ...s,
           texts: s.texts.filter((t) => t.id !== selected),
@@ -855,8 +955,9 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
         const step = e.shiftKey ? 0.02 : 0.004;
         const d = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[e.key];
         if (!d) return;
-        const nudge = <T extends { id: string; x: number; y: number }>(t: T): T =>
-          t.id === selected ? { ...t, x: Math.min(1, Math.max(0, t.x + d[0])), y: Math.min(1, Math.max(0, t.y + d[1])) } : t;
+        // Every selected layer moves, except locked ones.
+        const nudge = <T extends { id: string; x: number; y: number; locked?: boolean }>(t: T): T =>
+          selectedIds.includes(t.id) && !t.locked ? { ...t, x: Math.min(1, Math.max(0, t.x + d[0])), y: Math.min(1, Math.max(0, t.y + d[1])) } : t;
         update(
           (s) => ({ ...s, texts: s.texts.map(nudge), stickers: s.stickers.map(nudge) }),
           `nudge:${selected}`,
@@ -877,7 +978,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [selected, selectedKind, state.texts, state.stickers, photos, undo, redo, update]);
+  }, [selected, selectedKind, selectedIds, arrange, state.texts, state.stickers, photos, undo, redo, update]);
 
   // A collage has no single photo; its first cell stands in for filter previews.
   const firstCell = state.grid?.cells.find((c) => c && photos[c]) ?? null;
@@ -931,7 +1032,15 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
         toast.error("There's no saved post to continue");
         return;
       }
-      const { draft, files: stored } = saved;
+      await openSaved(saved.draft, saved.files);
+    } catch {
+      toast.error("The saved post couldn't be opened", { description: "Your browser may have cleared its storage." });
+    }
+  };
+
+  /** Open a design (a recent one or a .bubble file) with its stored files. */
+  const openSaved = async (draft: Draft & { id: string }, stored: Map<string, Blob>) => {
+    {
       let next = draft.state;
       const nextPhotos: Assets = {};
       const nextVideos: Record<string, HTMLVideoElement> = {};
@@ -1015,8 +1124,29 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
       if (missing.length) {
         toast("Some files weren't saved", { description: `Add the ${missing.join(" and ")} again.` });
       }
+    }
+  };
+
+  /** Save as file: the design and its media in one .bubble file, to back up or move to another computer. */
+  const saveDesignFile = async () => {
+    try {
+      const draft = buildDraft(state, designId.current ?? crypto.randomUUID());
+      const name = (draft.name ?? "design").replace(/[\/:*?"<>|]+/g, "-").trim() || "design";
+      await ensureExportFolder();
+      const where = await saveExport(await packDesign(draft, files.current), `${name}${DESIGN_EXT}`, "designs");
+      if (!window.bubbleDesktop) toast.success("Design saved", { description: where ?? `${name}${DESIGN_EXT}` });
     } catch {
-      toast.error("The saved post couldn't be opened", { description: "Your browser may have cleared its storage." });
+      toast.error("The design file couldn't be saved");
+    }
+  };
+
+  const openDesignFile = async (file: File) => {
+    try {
+      const { draft, files: stored } = await unpackDesign(file);
+      await openSaved(draft, stored);
+      toast.success("Design opened", { description: file.name });
+    } catch (err) {
+      toast.error("This file couldn't be opened", { description: err instanceof Error ? err.message : undefined });
     }
   };
 
@@ -1197,11 +1327,28 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
         <header className="app-header flex h-14 shrink-0 items-center gap-2.5 px-3 md:px-4">
           <BrandMark />
           <span className="font-heading text-[15px] font-semibold tracking-[-0.01em]">Bubble Studio</span>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-1">
+            <Button variant="ghost" size="sm" className="gap-1.5" onClick={() => designFileRef.current?.click()}>
+              <FolderOpen /> <span className="hidden sm:inline">Open file</span>
+            </Button>
             <ThemeToggle />
           </div>
           <DesktopUpdateListener />
         </header>
+        <input
+          ref={designFileRef}
+          type="file"
+          accept={`${DESIGN_EXT},application/zip`}
+          className="sr-only"
+          tabIndex={-1}
+          aria-hidden
+          aria-label="Open a design file"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            e.target.value = "";
+            if (f) void openDesignFile(f);
+          }}
+        />
         {startTool === "merge" ? (
           <MergeVideosScreen onBack={() => setStartTool(null)} />
         ) : startTool === "extract" ? (
@@ -1254,6 +1401,8 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
     <div className="flex h-full min-h-0 flex-col">
       <DesktopUpdateListener />
       <TopBar
+        onSaveFile={() => void saveDesignFile()}
+        onOpenFile={() => designFileRef.current?.click()}
         canUndo={canUndo}
         canRedo={canRedo}
         onUndo={undo}
@@ -1310,12 +1459,16 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
             state={state}
             tool={tool}
             selectedId={selected}
+            selectedIds={selectedIds}
             fontsVersion={fontsVersion}
             showEmpty={showEmpty}
             clock={clock}
             getTime={state.media === "video" && video ? getTime : undefined}
             regionDefaults={regionDefaults}
             onSelect={selectLayer}
+            onSelectMany={selectMany}
+            onPatchMany={patchMany}
+            onArrange={arrange}
             onTextChange={(id, patch, key) =>
               update((s) => ({ ...s, texts: s.texts.map((t) => (t.id === id ? { ...t, ...patch } : t)) }), key)
             }
@@ -1514,7 +1667,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
           <AlertDialogHeader>
             <AlertDialogTitle>Start a new {pendingNew === "reel" ? "reel" : "post"}?</AlertDialogTitle>
             <AlertDialogDescription>
-              Your current design will be cleared and can&apos;t be brought back. Export it first if you want to keep it.
+              Your current design will be cleared and can&apos;t be brought back. To keep it, use New → Save as file first.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -1648,6 +1801,20 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
           e.target.value = "";
         }}
       />
+      <input
+        ref={designFileRef}
+        type="file"
+        accept={`${DESIGN_EXT},application/zip`}
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden
+        aria-label="Open a design file"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          e.target.value = "";
+          if (f) void openDesignFile(f);
+        }}
+      />
     </div>
   );
 }
@@ -1720,6 +1887,8 @@ function ThemeToggle() {
 }
 
 function TopBar({
+  onSaveFile,
+  onOpenFile,
   canUndo,
   canRedo,
   onUndo,
@@ -1756,6 +1925,8 @@ function TopBar({
   layers: React.ReactNode;
   /** Replace the design, e.g. with a Magic resize result. */
   onApply: (state: typeof DEFAULT_STATE) => void;
+  onSaveFile: () => void;
+  onOpenFile: () => void;
 }) {
   const [magicOpen, setMagicOpen] = useState(false);
   return (
@@ -1797,6 +1968,8 @@ function TopBar({
 
       <NewMenu
         onNew={onNew}
+        onSaveFile={onSaveFile}
+        onOpenFile={onOpenFile}
         onSaveTemplate={() => {
           const name = state.texts.find((t) => t.text.trim())?.text.trim().slice(0, 40) ?? "My template";
           if (saveMyTemplate(state, name)) {
@@ -2154,7 +2327,17 @@ function AutosaveMenu({ on, status, onToggle }: { on: boolean; status: SaveStatu
 }
 
 /** "New" in the top bar: start a photo post or a reel without hunting for the way back. */
-function NewMenu({ onNew, onSaveTemplate }: { onNew: (step: StartStep) => void; onSaveTemplate: () => void }) {
+function NewMenu({
+  onNew,
+  onSaveTemplate,
+  onSaveFile,
+  onOpenFile,
+}: {
+  onNew: (step: StartStep) => void;
+  onSaveTemplate: () => void;
+  onSaveFile: () => void;
+  onOpenFile: () => void;
+}) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger render={<Button variant="ghost" size="sm" className="gap-1.5 px-2" aria-label="Create new" />}>
@@ -2181,6 +2364,21 @@ function NewMenu({ onNew, onSaveTemplate }: { onNew: (step: StartStep) => void; 
           <span className="flex flex-col">
             <span className="text-sm font-medium text-ink">New video reel</span>
             <span className="text-[11px] text-ink-soft">9:16 or the video&apos;s own size</span>
+          </span>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={onSaveFile} className="gap-3 py-2">
+          <Save className="text-brand" />
+          <span className="flex flex-col">
+            <span className="text-sm font-medium text-ink">Save as file</span>
+            <span className="text-[11px] text-ink-soft">A .bubble file with its photos and videos</span>
+          </span>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={onOpenFile} className="gap-3 py-2">
+          <FolderOpen className="text-brand" />
+          <span className="flex flex-col">
+            <span className="text-sm font-medium text-ink">Open file</span>
+            <span className="text-[11px] text-ink-soft">Continue a design saved as .bubble</span>
           </span>
         </DropdownMenuItem>
       </DropdownMenuContent>

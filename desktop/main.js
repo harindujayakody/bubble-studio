@@ -129,13 +129,14 @@ function writeSettings(next) {
 }
 
 /** Subfolders of the master export folder. Keep in sync with EXPORT_FOLDERS in src/lib/editor/save.ts. */
-const EXPORT_FOLDERS = { reels: "Reels", photos: "Photos", audios: "Audios", merged: "Merged Videos" };
+const EXPORT_FOLDERS = { reels: "Reels", photos: "Photos", audios: "Audios", merged: "Merged Videos", designs: "Designs" };
 
 /** Fallback when the page didn't say: sort by file type. */
 function kindFromName(name) {
   const ext = path.extname(name).toLowerCase();
   if ([".mp3", ".m4a", ".wav", ".aac", ".ogg", ".opus"].includes(ext)) return "audios";
   if ([".mp4", ".webm", ".mov"].includes(ext)) return /merged/i.test(name) ? "merged" : "reels";
+  if (ext === ".bubble") return "designs";
   if (ext === ".zip") return /reel/i.test(name) ? "reels" : "photos";
   return "photos";
 }
