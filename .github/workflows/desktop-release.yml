@@ -146,7 +146,7 @@ jobs:
           } > notes.md
 
       - name: Publish release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3 # v3.0.4, pinned: this step can publish releases
         with:
           tag_name: v${{ needs.version.outputs.version }}
           name: Bubble Studio ${{ needs.version.outputs.version }}

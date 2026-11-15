@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import { zipSync, strToU8 } from "fflate";
-import { packDesign, unpackDesign } from "../src/lib/editor/design-file";
+import { isAppPath, packDesign, unpackDesign } from "../src/lib/editor/design-file";
 import { DEFAULT_STATE } from "../src/lib/editor/types";
 
 test("a design and its media survive a round trip", async () => {
@@ -26,4 +26,10 @@ test("other files are refused with a plain message", async () => {
   await expect(unpackDesign(newer)).rejects.toThrow(/newer Bubble Studio/);
   const broken = new Blob([zipSync({ "design.json": strToU8(JSON.stringify({ format: "bubble-studio-design", version: 1, state: { media: "photo" } })) }) as BlobPart]);
   await expect(unpackDesign(broken)).rejects.toThrow("This isn't a Bubble Studio design file.");
+});
+
+// A shared design must not make the app load music from someone else's server.
+test("only the app's own music paths are trusted from a design file", () => {
+  expect(isAppPath("/music/audio_03.mp3")).toBe(true);
+  for (const src of ["//evil.example/a.mp3", "/\\evil.example/a.mp3", "https://evil.example/a.mp3", "blob:x", ""]) expect(isAppPath(src), src).toBe(false);
 });

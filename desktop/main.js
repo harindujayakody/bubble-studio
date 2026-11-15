@@ -82,7 +82,7 @@ function resolveFile(url) {
   }
   if (rel.endsWith("/")) rel += "index.html";
   const file = path.normalize(path.join(WEB_ROOT, rel));
-  if (!file.startsWith(WEB_ROOT)) return null;
+  if (file !== WEB_ROOT && !file.startsWith(WEB_ROOT + path.sep)) return null;
   if (fs.existsSync(file) && fs.statSync(file).isFile()) return file;
   if (!path.extname(file) && fs.existsSync(`${file}.html`)) return `${file}.html`;
   return null;
@@ -295,7 +295,8 @@ function setupDownloads() {
     if (master && fs.existsSync(master)) {
       const dir = path.join(master, EXPORT_FOLDERS[kind]);
       fs.mkdirSync(dir, { recursive: true });
-      item.setSavePath(uniquePath(dir, item.getFilename()));
+      // The page names the file; keep it inside the folder whatever it says.
+      item.setSavePath(uniquePath(dir, path.basename(item.getFilename())));
     }
     item.once("done", (_e, state) => {
       if (state !== "completed") return;

@@ -77,3 +77,6 @@ export async function unpackDesign(file: Blob): Promise<{ draft: Draft & { id: s
     files,
   };
 }
+
+/** A path on this app's own site, e.g. "/music/a.mp3". Not "//host/…", which browsers treat as another site. */
+export const isAppPath = (src: string) => src.startsWith("/") && !src.startsWith("//") && !src.startsWith("/\\");

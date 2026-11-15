@@ -67,7 +67,7 @@ import {
   type DraftAsset,
   type DraftSummary,
 } from "@/lib/editor/draft";
-import { DESIGN_EXT, packDesign, unpackDesign } from "@/lib/editor/design-file";
+import { DESIGN_EXT, isAppPath, packDesign, unpackDesign } from "@/lib/editor/design-file";
 import { zipSync } from "fflate";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -1141,7 +1141,7 @@ export function Editor({ stickers, music: musicLibrary }: { stickers: LibrarySti
       }
       if (next.music) {
         const blob = stored.get(next.music.id);
-        const src = blob ? URL.createObjectURL(blob) : next.music.src.startsWith("/") ? next.music.src : null;
+        const src = blob ? URL.createObjectURL(blob) : isAppPath(next.music.src) ? next.music.src : null;
         if (src) {
           nextTracks[next.music.id] = await loadAudio(src);
           next = { ...next, music: { ...next.music, src } };
