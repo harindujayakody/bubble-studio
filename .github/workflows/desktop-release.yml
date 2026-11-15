@@ -1,4 +1,4 @@
-# Every push to main runs the checks. A release is published only when asked for: pushing a
+# Every push to main and every pull request runs the checks. A release is published only when asked for: pushing a
 # version tag (`npm run release` tags and pushes v<version>) or "Run workflow" on GitHub. Then
 # the installers are built and published together as one GitHub Release:
 #   - Windows: Bubble-Studio-Setup-<version>.exe (+ latest.yml, read by installed apps to update)
@@ -9,6 +9,7 @@ on:
   push:
     branches: [main]
     tags: ["v*"]
+  pull_request:
   workflow_dispatch:
 
 permissions:
