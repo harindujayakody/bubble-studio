@@ -72,7 +72,7 @@ src/
       templates.ts, resize.ts, bg-remove.ts        Templates, magic resize, background removal
 desktop/                  Electron main + preload; desktop/web is the static build (generated)
 scripts/                  desktop-build.mjs, copy-ort.mjs (ONNX runtime files), changelog.mjs
-public/                   custom_icons/ (sticker library), music/, models/u2netp.onnx, favicon
+public/                   custom_icons/ (sticker library), music/, favicon
 .github/workflows/        desktop-release.yml: check on every push; version → build → release for tags
 ```
 

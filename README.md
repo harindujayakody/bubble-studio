@@ -101,8 +101,10 @@ The installers aren't code-signed yet, so Windows may show *"Windows protected y
 - The desktop app connects to the internet to check GitHub Releases for updates and, only if you add an
   OpenRouter key, to send your AI writer prompt and the design's words to OpenRouter. The key stays on your computer
   (encrypted in the desktop app).
-- Turning on **Best edges** for background removal downloads the IS-Net model (179 MB) once from the rembg
-  project's GitHub releases; it's checked against a fixed checksum and then works offline. Your photos never leave the device.
+- Background removal isn't in the installer. The first time you use it, the app downloads it once: ONNX Runtime
+  (29 MB, from jsDelivr) and the U²-Netp model (4.5 MB), plus the IS-Net model (179 MB) if you turn on **Best edges**
+  (models from the rembg project's GitHub releases). Each file is checked against a fixed checksum and then works
+  offline. Your photos never leave the device.
 
 ## Develop
 
@@ -198,7 +200,7 @@ Made by **Harindu Jayakody**. A product of [Infiax.com](https://infiax.com).
 
 Fonts are from Google Fonts via [Fontsource](https://fontsource.org) (SIL Open Font License).
 Background removal uses [U²-Net](https://github.com/xuebinqin/U-2-Net) and, for Best edges,
-[IS-Net / DIS](https://github.com/xuebinqin/DIS) (both Apache-2.0, IS-Net as published by
+[IS-Net / DIS](https://github.com/xuebinqin/DIS) (both Apache-2.0, as published by
 [rembg](https://github.com/danielgatis/rembg), MIT) on
 [ONNX Runtime](https://onnxruntime.ai) (MIT). Template sample photos are from [Unsplash](https://unsplash.com)
 (Unsplash License); photographers are listed in [`public/samples/CREDITS.md`](public/samples/CREDITS.md).

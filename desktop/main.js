@@ -58,18 +58,23 @@ const TYPES = {
 };
 
 /*
- * Optional models, downloaded on first use into the user data folder and checked against a pinned
- * SHA-256 before use. Served to the page at app://bubble/user-models/<file>.
+ * Background removal files, downloaded on first use into the user data folder and checked against a
+ * pinned SHA-256 before use, so the installer stays small. Served at app://bubble/user-models/<file>.
+ * BUBBLE_STUDIO_MODEL_BASE points every download at one folder (tests use a local server).
  */
-const MODELS = {
-  isnet: {
-    file: "isnet-general-use.onnx",
-    // IS-Net general use (Apache-2.0), as published by the rembg project (MIT).
-    url: process.env.BUBBLE_STUDIO_MODEL_URL || "https://github.com/danielgatis/rembg/releases/download/v0.0.0/isnet-general-use.onnx",
-    size: 178648008,
-    sha256: "60920e99c45464f2ba57bee2ad08c919a52bbf852739e96947fbb4358c0d964a",
-  },
+const ORT = "1.31.1"; // must match the installed onnxruntime-web (tests/model-files.spec.ts checks)
+const source = (url) => (process.env.BUBBLE_STUDIO_MODEL_BASE ? `${process.env.BUBBLE_STUDIO_MODEL_BASE}/${url.split("/").pop()}` : url);
+const REMBG = "https://github.com/danielgatis/rembg/releases/download/v0.0.0";
+const ORT_CDN = `https://cdn.jsdelivr.net/npm/onnxruntime-web@${ORT}/dist`;
+const FILES = {
+  // ONNX Runtime Web (MIT): the engine both models run on.
+  ortMjs: { file: `ort-${ORT}/ort-wasm-simd-threaded.asyncify.mjs`, url: `${ORT_CDN}/ort-wasm-simd-threaded.asyncify.mjs`, size: 53457, sha256: "59cf781530e1a16df2a291d78798e3ec1152467edaec402d6f9599d85047c302" },
+  ortWasm: { file: `ort-${ORT}/ort-wasm-simd-threaded.asyncify.wasm`, url: `${ORT_CDN}/ort-wasm-simd-threaded.asyncify.wasm`, size: 28747738, sha256: "ca319e9539cd0f1e291cf56074760121eaf39650f5dbf84b6e52c07f4b2944ec" },
+  // U²-Netp and IS-Net general use (Apache-2.0), as published by the rembg project (MIT).
+  u2netp: { file: "u2netp.onnx", url: `${REMBG}/u2netp.onnx`, size: 4574861, sha256: "309c8469258dda742793dce0ebea8e6dd393174f89934733ecc8b14c76f4ddd8" },
+  isnet: { file: "isnet-general-use.onnx", url: `${REMBG}/isnet-general-use.onnx`, size: 178648008, sha256: "60920e99c45464f2ba57bee2ad08c919a52bbf852739e96947fbb4358c0d964a" },
 };
+const MODELS = { quick: [FILES.ortMjs, FILES.ortWasm, FILES.u2netp], isnet: [FILES.ortMjs, FILES.ortWasm, FILES.isnet] };
 const modelsDir = () => path.join(app.getPath("userData"), "models");
 
 /** Map an app:// URL to a file inside the web build (or a downloaded model), refusing anything outside it. */
@@ -355,47 +360,56 @@ function setupDownloads() {
     win?.webContents.reload();
   });
 
-  // Optional models: status, download (with progress and a checksum check) and removal.
-  const modelReady = (m) => {
-    const file = path.join(modelsDir(), m.file);
-    return fs.existsSync(file) && fs.statSync(file).size === m.size;
+  // Background removal files: status, download (with progress and a checksum check) and removal.
+  const fileReady = (f) => {
+    const file = path.join(modelsDir(), f.file);
+    return fs.existsSync(file) && fs.statSync(file).size === f.size;
   };
+  const missing = (name) => (MODELS[name] ?? []).filter((f) => !fileReady(f));
   let downloading = null;
   ipcMain.handle("model:status", (_e, name) => {
-    const m = MODELS[name];
-    return { ready: !!m && modelReady(m), size: m?.size ?? 0 };
+    const todo = missing(name);
+    return { ready: !!MODELS[name] && !todo.length, size: todo.reduce((n, f) => n + f.size, 0) };
   });
   ipcMain.handle("model:download", async (event, name) => {
-    const m = MODELS[name];
-    if (!m) return { error: "Unknown model." };
-    if (modelReady(m)) return { ok: true };
+    if (!MODELS[name]) return { error: "Unknown model." };
+    const todo = missing(name);
+    if (!todo.length) return { ok: true };
     if (downloading) return { error: "A download is already running." };
     downloading = new AbortController();
-    fs.mkdirSync(modelsDir(), { recursive: true });
-    const part = path.join(modelsDir(), `${m.file}.part`);
+    const total = todo.reduce((n, f) => n + f.size, 0);
+    let received = 0;
+    let part = null;
     try {
-      const res = await fetch(m.url, { signal: downloading.signal });
-      if (!res.ok || !res.body) throw new Error(`The download failed (${res.status}).`);
-      const hash = crypto.createHash("sha256");
-      const out = fs.createWriteStream(part);
-      let received = 0;
-      let last = 0;
-      for await (const chunk of res.body) {
-        hash.update(chunk);
-        received += chunk.length;
-        if (!out.write(chunk)) await new Promise((r) => out.once("drain", r));
-        if (Date.now() - last > 200) {
-          last = Date.now();
-          event.sender.send("model:progress", { name, received, total: m.size });
+      for (const f of todo) {
+        const dest = path.join(modelsDir(), f.file);
+        fs.mkdirSync(path.dirname(dest), { recursive: true });
+        part = `${dest}.part`;
+        const res = await fetch(source(f.url), { signal: downloading.signal });
+        if (!res.ok || !res.body) throw new Error(`The download failed (${res.status}).`);
+        const hash = crypto.createHash("sha256");
+        const out = fs.createWriteStream(part);
+        let got = 0;
+        let last = 0;
+        for await (const chunk of res.body) {
+          hash.update(chunk);
+          got += chunk.length;
+          if (!out.write(chunk)) await new Promise((r) => out.once("drain", r));
+          if (Date.now() - last > 200) {
+            last = Date.now();
+            event.sender.send("model:progress", { name, received: received + got, total });
+          }
         }
+        await new Promise((resolve, reject) => out.end((err) => (err ? reject(err) : resolve())));
+        if (got !== f.size || hash.digest("hex") !== f.sha256) throw new Error("The downloaded file didn't match. Try again.");
+        fs.renameSync(part, dest);
+        part = null;
+        received += got;
       }
-      await new Promise((resolve, reject) => out.end((err) => (err ? reject(err) : resolve())));
-      if (received !== m.size || hash.digest("hex") !== m.sha256) throw new Error("The downloaded file didn't match. Try again.");
-      fs.renameSync(part, path.join(modelsDir(), m.file));
       log("model ready", name);
       return { ok: true };
     } catch (err) {
-      fs.rmSync(part, { force: true });
+      if (part) fs.rmSync(part, { force: true });
       return { error: downloading?.signal.aborted ? "cancelled" : err instanceof Error ? err.message : "The download failed." };
     } finally {
       downloading = null;
@@ -403,8 +417,9 @@ function setupDownloads() {
   });
   ipcMain.handle("model:cancel", () => downloading?.abort());
   ipcMain.handle("model:remove", (_e, name) => {
-    const m = MODELS[name];
-    if (m) fs.rmSync(path.join(modelsDir(), m.file), { force: true });
+    // Only the model itself; the runtime is shared with the other model.
+    const f = MODELS[name]?.at(-1);
+    if (f) fs.rmSync(path.join(modelsDir(), f.file), { force: true });
   });
 
   // AI writer: the OpenRouter key is encrypted with the OS keychain and never sent to the page.

@@ -4,15 +4,16 @@ import type { InferenceSession } from "onnxruntime-web";
 
 /**
  * On-device background removal on ONNX Runtime Web (MIT). Nothing leaves the device.
- * - "quick": U²-Netp (Apache-2.0), 4.5 MB, shipped with the desktop app (/models).
- * - "best": IS-Net general use (Apache-2.0), cleaner hair and edges; the desktop app downloads it
- *   once on request and serves it from the user data folder (/user-models).
+ * - "quick": U²-Netp (Apache-2.0), 4.5 MB.
+ * - "best": IS-Net general use (Apache-2.0), 178 MB, cleaner hair and edges.
+ * The desktop app downloads the runtime and each model once, on first use, and serves them from the
+ * user data folder (/user-models).
  * Runs on the GPU with WebGPU when the computer has one, otherwise on the CPU (WASM).
  */
 export type BgModel = "quick" | "best";
 
 const MODELS: Record<BgModel, { url: string; size: number; mean: number[]; std: number[] }> = {
-  quick: { url: "/models/u2netp.onnx", size: 320, mean: [0.485, 0.456, 0.406], std: [0.229, 0.224, 0.225] },
+  quick: { url: "/user-models/u2netp.onnx", size: 320, mean: [0.485, 0.456, 0.406], std: [0.229, 0.224, 0.225] },
   best: { url: "/user-models/isnet-general-use.onnx", size: 1024, mean: [0.5, 0.5, 0.5], std: [1, 1, 1] },
 };
 
@@ -24,7 +25,8 @@ const sessions: Partial<Record<BgModel, Promise<InferenceSession>>> = {};
 function getRuntime() {
   runtime ??= (async () => {
     const ort = await import("onnxruntime-web/webgpu");
-    ort.env.wasm.wasmPaths = "/ort/";
+    // Downloaded with the model into a folder named after this runtime's version (desktop/main.js).
+    ort.env.wasm.wasmPaths = `/user-models/ort-${ort.env.versions.web}/`;
     // Threads need cross-origin isolation, which the app doesn't use; one thread is plenty here.
     ort.env.wasm.numThreads = 1;
     const nav = navigator as Navigator & { gpu?: { requestAdapter(): Promise<unknown> } };
