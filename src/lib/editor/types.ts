@@ -194,6 +194,8 @@ export type Region = {
   w: number;
   h: number;
   strength: number; // 0..100
+  /** Degrees clockwise around the area's centre. */
+  rotation?: number;
 };
 
 export type Background = {

@@ -624,7 +624,7 @@ function RegionLayer({
   const ref = useRef<HTMLDivElement>(null);
   const action = useRef<
     | { type: "draw"; id: string | null; x: number; y: number }
-    | { type: "move" | "resize"; id: string; corner: number; px: number; py: number; start: Region }
+    | { type: "move" | "resize"; id: string; hx: number; hy: number; px: number; py: number; start: Region }
     | null
   >(null);
 
@@ -659,15 +659,23 @@ function RegionLayer({
       patch(a.id, { x: Math.min(1 - s.w, Math.max(0, s.x + dx)), y: Math.min(1 - s.h, Math.max(0, s.y + dy)) }, `region:move:${a.id}`);
       return;
     }
-    const left = a.corner === 0 || a.corner === 2;
-    const top = a.corner === 0 || a.corner === 1;
-    let x0 = s.x, y0 = s.y, x1 = s.x + s.w, y1 = s.y + s.h;
-    if (left) x0 = clamp01(x0 + dx); else x1 = clamp01(x1 + dx);
-    if (top) y0 = clamp01(y0 + dy); else y1 = clamp01(y1 + dy);
-    const min = 0.02;
-    if (x1 - x0 < min) { if (left) x0 = x1 - min; else x1 = x0 + min; }
-    if (y1 - y0 < min) { if (top) y0 = y1 - min; else y1 = y0 + min; }
-    patch(a.id, { x: x0, y: y0, w: x1 - x0, h: y1 - y0 }, `region:resize:${a.id}`);
+    // Resize in the area's own (rotated) frame, in pixels; the opposite edge or corner stays put.
+    const t = ((s.rotation ?? 0) * Math.PI) / 180;
+    const c = Math.cos(t);
+    const sn = Math.sin(t);
+    const ddx = e.clientX - a.px;
+    const ddy = e.clientY - a.py;
+    const lx = ddx * c + ddy * sn;
+    const ly = -ddx * sn + ddy * c;
+    const minPx = 0.02 * side;
+    const w = a.hx ? Math.max(minPx, s.w * side + a.hx * lx) : s.w * side;
+    const h = a.hy ? Math.max(0.02 * sideY, s.h * sideY + a.hy * ly) : s.h * sideY;
+    // The centre moves half the growth, towards the dragged handle.
+    const gx = (a.hx * (w - s.w * side)) / 2;
+    const gy = (a.hy * (h - s.h * sideY)) / 2;
+    const cx = (s.x + s.w / 2) * side + gx * c - gy * sn;
+    const cy = (s.y + s.h / 2) * sideY + gx * sn + gy * c;
+    patch(a.id, { x: (cx - w / 2) / side, y: (cy - h / 2) / sideY, w: w / side, h: h / sideY }, `region:resize:${a.id}`);
   };
   const end = () => (action.current = null);
 
@@ -705,28 +713,29 @@ function RegionLayer({
                 ? "ring-[1.5px] ring-aqua"
                 : "ring-1 ring-white/80 [box-shadow:0_0_0_2px_oklch(0.2_0.012_260/0.35)] hover:ring-aqua focus-visible:ring-aqua",
             )}
-            style={{ left: `${r.x * 100}%`, top: `${r.y * 100}%`, width: `${r.w * 100}%`, height: `${r.h * 100}%` }}
+            style={{ left: `${r.x * 100}%`, top: `${r.y * 100}%`, width: `${r.w * 100}%`, height: `${r.h * 100}%`, transform: r.rotation ? `rotate(${r.rotation}deg)` : undefined }}
             onPointerDown={(e) => {
               e.preventDefault();
               e.stopPropagation();
               e.currentTarget.focus();
               ref.current!.setPointerCapture(e.pointerId);
               onSelect(r.id);
-              action.current = { type: "move", id: r.id, corner: -1, px: e.clientX, py: e.clientY, start: r };
+              action.current = { type: "move", id: r.id, hx: 0, hy: 0, px: e.clientX, py: e.clientY, start: r };
             }}
           >
             {selected &&
-              CORNERS.map((c, i) => (
+              REGION_HANDLES.map((c) => (
                 <span
                   key={c.pos}
+                  data-handle={c.name}
                   aria-hidden
                   onPointerDown={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     ref.current!.setPointerCapture(e.pointerId);
-                    action.current = { type: "resize", id: r.id, corner: i, px: e.clientX, py: e.clientY, start: r };
+                    action.current = { type: "resize", id: r.id, hx: c.hx, hy: c.hy, px: e.clientX, py: e.clientY, start: r };
                   }}
-                  className={cn("absolute size-2.5 bg-white ring-[1.5px] ring-aqua after:absolute after:-inset-2", c.pos, c.cursor)}
+                  className={cn("absolute bg-white ring-[1.5px] ring-aqua after:absolute after:-inset-2", c.pos, c.cursor)}
                 />
               ))}
           </div>
@@ -735,6 +744,18 @@ function RegionLayer({
     </div>
   );
 }
+
+/** Corners resize both ways; the side handles only up and down or left and right. */
+const REGION_HANDLES = [
+  { name: "top-left", hx: -1, hy: -1, pos: "size-2.5 -left-1.5 -top-1.5", cursor: "cursor-nwse-resize" },
+  { name: "top-right", hx: 1, hy: -1, pos: "size-2.5 -right-1.5 -top-1.5", cursor: "cursor-nesw-resize" },
+  { name: "bottom-left", hx: -1, hy: 1, pos: "size-2.5 -left-1.5 -bottom-1.5", cursor: "cursor-nesw-resize" },
+  { name: "bottom-right", hx: 1, hy: 1, pos: "size-2.5 -right-1.5 -bottom-1.5", cursor: "cursor-nwse-resize" },
+  { name: "top", hx: 0, hy: -1, pos: "h-1.5 w-4 left-1/2 -translate-x-1/2 -top-1 rounded-full", cursor: "cursor-ns-resize" },
+  { name: "bottom", hx: 0, hy: 1, pos: "h-1.5 w-4 left-1/2 -translate-x-1/2 -bottom-1 rounded-full", cursor: "cursor-ns-resize" },
+  { name: "left", hx: -1, hy: 0, pos: "w-1.5 h-4 top-1/2 -translate-y-1/2 -left-1 rounded-full", cursor: "cursor-ew-resize" },
+  { name: "right", hx: 1, hy: 0, pos: "w-1.5 h-4 top-1/2 -translate-y-1/2 -right-1 rounded-full", cursor: "cursor-ew-resize" },
+] as const;
 
 const CORNERS = [
   { pos: "-left-1.5 -top-1.5", cursor: "cursor-nwse-resize" },

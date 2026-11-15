@@ -536,12 +536,21 @@ function applyRegions(
     const h = r.h * height;
     if (w < 1 || h < 1) continue;
     const radius = (4 + (r.strength / 100) * 36) * scale;
+    const a = ((r.rotation ?? 0) * Math.PI) / 180;
+    const cx = x + w / 2;
+    const cy = y + h / 2;
+    // The rotated area's bounding box; pixel blocks stay upright inside it.
+    const bw = Math.abs(w * Math.cos(a)) + Math.abs(h * Math.sin(a));
+    const bh = Math.abs(w * Math.sin(a)) + Math.abs(h * Math.cos(a));
+    const bx = cx - bw / 2;
+    const by = cy - bh / 2;
     // Copy just the area, plus the margin a blur pulls pixels from, instead of the whole post on every frame.
     const m = r.kind === "blur" ? radius * 3 : 0;
-    const sx = Math.max(0, Math.floor(x - m));
-    const sy = Math.max(0, Math.floor(y - m));
-    const sw = Math.min(width, Math.ceil(x + w + m)) - sx;
-    const sh = Math.min(height, Math.ceil(y + h + m)) - sy;
+    const sx = Math.max(0, Math.floor(bx - m));
+    const sy = Math.max(0, Math.floor(by - m));
+    const sw = Math.min(width, Math.ceil(bx + bw + m)) - sx;
+    const sh = Math.min(height, Math.ceil(by + bh + m)) - sy;
+    if (sw < 1 || sh < 1) continue;
     const copy = document.createElement("canvas");
     copy.width = sw;
     copy.height = sh;
@@ -549,8 +558,18 @@ function applyRegions(
 
     ctx.save();
     ctx.beginPath();
-    if (r.shape === "ellipse") ctx.ellipse(x + w / 2, y + h / 2, w / 2, h / 2, 0, 0, Math.PI * 2);
-    else ctx.rect(x, y, w, h);
+    if (r.shape === "ellipse") ctx.ellipse(cx, cy, w / 2, h / 2, a, 0, Math.PI * 2);
+    else {
+      // The four corners, turned around the centre.
+      const c = Math.cos(a);
+      const s = Math.sin(a);
+      for (const [px, py] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
+        const lx = (px * w) / 2;
+        const ly = (py * h) / 2;
+        ctx.lineTo(cx + lx * c - ly * s, cy + lx * s + ly * c);
+      }
+      ctx.closePath();
+    }
     ctx.clip();
 
     if (r.kind === "blur") {
@@ -560,14 +579,14 @@ function applyRegions(
     } else {
       // Pixel blocks are sized in post px, so the effect looks the same at every zoom.
       const block = Math.max(2, (6 + (r.strength / 100) * 54) * scale);
-      const cols = Math.max(1, Math.round(w / block));
-      const rows = Math.max(1, Math.round(h / block));
+      const cols = Math.max(1, Math.round(bw / block));
+      const rows = Math.max(1, Math.round(bh / block));
       const small = document.createElement("canvas");
       small.width = cols;
       small.height = rows;
-      small.getContext("2d")!.drawImage(copy, x - sx, y - sy, w, h, 0, 0, cols, rows);
+      small.getContext("2d")!.drawImage(copy, bx - sx, by - sy, bw, bh, 0, 0, cols, rows);
       ctx.imageSmoothingEnabled = false;
-      ctx.drawImage(small, 0, 0, cols, rows, x, y, w, h);
+      ctx.drawImage(small, 0, 0, cols, rows, bx, by, bw, bh);
     }
     ctx.restore();
   }

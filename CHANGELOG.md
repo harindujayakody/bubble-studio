@@ -11,6 +11,7 @@ This file is generated from `changelog.json` with `npm run changelog`.
 
 ### Added
 
+- Blur areas: resize from the top, bottom and sides as well as the corners, and turn them with Rotation
 - Background removal downloads its model on first use (4.5 MB, checked), with a note before and a progress bar; Best edges adds 179 MB only if you turn it on
 - Best edges for background removal (desktop): downloads the IS-Net model once (179 MB, checked) for cleaner hair and edges; removal runs on the GPU with WebGPU when available
 - Sinhala interface: switch the app between English and සිංහල from the start page or Settings; menus, tools, panel titles and controls follow

@@ -828,7 +828,7 @@ export function BlurPanel({
           Drag over the post to hide a face, a number plate or an old price. Text and stickers stay sharp.
         </p>
         <p className="-mt-2 mb-4 text-xs text-pretty text-ink-soft">
-          Drag an area to move it, or pull a corner to resize. With an area selected, use the arrow keys to move it
+          Drag an area to move it, pull a corner or side to resize, and turn it with Rotation. With an area selected, use the arrow keys to move it
           and <kbd className="font-mono">Alt</kbd> + arrows to resize. Hold <kbd className="font-mono">Shift</kbd> for
           bigger steps.
         </p>
@@ -851,6 +851,10 @@ export function BlurPanel({
           </div>
           <RangeField label="Strength" value={current.strength} min={0} max={100} format={(v) => `${v}%`}
             onChange={(v) => set({ strength: v }, region ? `region:strength:${region.id}` : undefined)} />
+          {region && (
+            <RangeField label="Rotation" value={region.rotation ?? 0} min={-180} max={180} defaultValue={0} centered format={(v) => `${v}°`}
+              onChange={(v) => update((s) => ({ ...s, regions: s.regions.map((r) => (r.id === region.id ? { ...r, rotation: v } : r)) }), `region:rotation:${region.id}`)} />
+          )}
         </div>
       </PanelSection>
 
