@@ -101,10 +101,9 @@ The installers aren't code-signed yet, so Windows may show *"Windows protected y
 - The desktop app connects to the internet to check GitHub Releases for updates and, only if you add an
   OpenRouter key, to send your AI writer prompt and the design's words to OpenRouter. The key stays on your computer
   (encrypted in the desktop app).
-- Background removal isn't in the installer. The first time you use it, the app downloads it once: ONNX Runtime
-  (29 MB, from jsDelivr) and the U²-Netp model (4.5 MB), plus the IS-Net model (179 MB) if you turn on **Best edges**
-  (models from the rembg project's GitHub releases). Each file is checked against a fixed checksum and then works
-  offline. Your photos never leave the device.
+- Background removal models aren't in the installer. The first time you use it, the app downloads the U²-Netp
+  model (4.5 MB) once, plus the IS-Net model (179 MB) if you turn on **Best edges**, from the rembg project's GitHub
+  releases. Each is checked against a fixed checksum and then works offline. Your photos never leave the device.
 
 ## Develop
 

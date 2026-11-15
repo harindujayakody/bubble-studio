@@ -4,9 +4,8 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { _electron as electron, expect, test, type Page } from "@playwright/test";
 
-// The desktop app for real: the first "Remove background" downloads the runtime and U²-Netp, then
-// "Best edges" downloads only IS-Net (from a local server standing in for GitHub and jsDelivr), and
-// each one removes the background.
+// The desktop app for real: the first "Remove background" downloads U²-Netp, then "Best edges"
+// downloads IS-Net (from a local server standing in for GitHub), and each one removes the background.
 // Needs the desktop build (npm run desktop:web) and desktop-assets/isnet-general-use.onnx, so it
 // only runs on a machine that has both; CI skips it.
 const MODEL = "desktop-assets/isnet-general-use.onnx";
@@ -24,8 +23,6 @@ test("remove a background with the built-in model and with Best edges", async ()
   const files: Record<string, string> = {
     "isnet-general-use.onnx": MODEL,
     "u2netp.onnx": "desktop-assets/u2netp.onnx",
-    "ort-wasm-simd-threaded.asyncify.wasm": "node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.asyncify.wasm",
-    "ort-wasm-simd-threaded.asyncify.mjs": "node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.asyncify.mjs",
   };
   const served: string[] = [];
   const server = createServer((req, res) => {
@@ -55,11 +52,11 @@ test("remove a background with the built-in model and with Best edges", async ()
     await expect.poll(() => lum(page, 0.05, 0.05)).toBeLessThan(740);
 
     // First use says it will download, then downloads and removes: the post's white background shows.
-    await expect(page.getByText(/The first time, this downloads the background remover \(3\d MB\)/)).toBeVisible();
+    await expect(page.getByText(/The first time, this downloads the background remover \(4 MB\)/)).toBeVisible();
     await page.getByRole("button", { name: "Remove background" }).click();
     await expect(page.getByText("Background removed")).toBeVisible({ timeout: 120_000 });
     await expect.poll(() => lum(page, 0.05, 0.05)).toBeGreaterThan(740);
-    expect(served.sort()).toEqual(["ort-wasm-simd-threaded.asyncify.mjs", "ort-wasm-simd-threaded.asyncify.wasm", "u2netp.onnx"]);
+    expect(served).toEqual(["u2netp.onnx"]);
     await expect(page.getByText(/The first time/)).toHaveCount(0);
     await page.getByRole("button", { name: "Restore original background" }).click();
 
@@ -67,7 +64,7 @@ test("remove a background with the built-in model and with Best edges", async ()
     await page.getByRole("switch", { name: "Best edges" }).click();
     await expect(page.getByText("Best edges is ready")).toBeVisible({ timeout: 120_000 });
     expect(statSync(path.join(userData, "models", "isnet-general-use.onnx")).size).toBe(statSync(MODEL).size);
-    expect(served.filter((n) => n.startsWith("ort-")).length, "the runtime is downloaded once").toBe(2);
+    expect(served).toEqual(["u2netp.onnx", "isnet-general-use.onnx"]);
     await page.getByRole("button", { name: "Remove background" }).click();
     await expect(page.getByText("Background removed").first()).toBeVisible({ timeout: 180_000 });
     await expect.poll(() => lum(page, 0.05, 0.05), { timeout: 30_000 }).toBeGreaterThan(740);

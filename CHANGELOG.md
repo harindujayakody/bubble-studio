@@ -11,7 +11,7 @@ This file is generated from `changelog.json` with `npm run changelog`.
 
 ### Added
 
-- Smaller installer: background removal downloads on first use (about 33 MB, checked), with a note before and a progress bar; Best edges adds 179 MB only if you turn it on
+- Background removal downloads its model on first use (4.5 MB, checked), with a note before and a progress bar; Best edges adds 179 MB only if you turn it on
 - Best edges for background removal (desktop): downloads the IS-Net model once (179 MB, checked) for cleaner hair and edges; removal runs on the GPU with WebGPU when available
 - Sinhala interface: switch the app between English and සිංහල from the start page or Settings; menus, tools, panel titles and controls follow
 - Refine edges after removing a background: paint to erase leftover background or restore parts that were cut off, for the photo and for image stickers

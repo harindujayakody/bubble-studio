@@ -6,8 +6,8 @@ import type { InferenceSession } from "onnxruntime-web";
  * On-device background removal on ONNX Runtime Web (MIT). Nothing leaves the device.
  * - "quick": U²-Netp (Apache-2.0), 4.5 MB.
  * - "best": IS-Net general use (Apache-2.0), 178 MB, cleaner hair and edges.
- * The desktop app downloads the runtime and each model once, on first use, and serves them from the
- * user data folder (/user-models).
+ * The desktop app downloads each model once, on first use, and serves it from the user data folder
+ * (/user-models). The runtime's .wasm is bundled by Next.js next to the page.
  * Runs on the GPU with WebGPU when the computer has one, otherwise on the CPU (WASM).
  */
 export type BgModel = "quick" | "best";
@@ -25,8 +25,6 @@ const sessions: Partial<Record<BgModel, Promise<InferenceSession>>> = {};
 function getRuntime() {
   runtime ??= (async () => {
     const ort = await import("onnxruntime-web/webgpu");
-    // Downloaded with the model into a folder named after this runtime's version (desktop/main.js).
-    ort.env.wasm.wasmPaths = `/user-models/ort-${ort.env.versions.web}/`;
     // Threads need cross-origin isolation, which the app doesn't use; one thread is plenty here.
     ort.env.wasm.numThreads = 1;
     const nav = navigator as Navigator & { gpu?: { requestAdapter(): Promise<unknown> } };

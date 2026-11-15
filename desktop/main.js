@@ -58,23 +58,18 @@ const TYPES = {
 };
 
 /*
- * Background removal files, downloaded on first use into the user data folder and checked against a
+ * Background removal models, downloaded on first use into the user data folder and checked against a
  * pinned SHA-256 before use, so the installer stays small. Served at app://bubble/user-models/<file>.
  * BUBBLE_STUDIO_MODEL_BASE points every download at one folder (tests use a local server).
  */
-const ORT = "1.31.1"; // must match the installed onnxruntime-web (tests/model-files.spec.ts checks)
 const source = (url) => (process.env.BUBBLE_STUDIO_MODEL_BASE ? `${process.env.BUBBLE_STUDIO_MODEL_BASE}/${url.split("/").pop()}` : url);
 const REMBG = "https://github.com/danielgatis/rembg/releases/download/v0.0.0";
-const ORT_CDN = `https://cdn.jsdelivr.net/npm/onnxruntime-web@${ORT}/dist`;
 const FILES = {
-  // ONNX Runtime Web (MIT): the engine both models run on.
-  ortMjs: { file: `ort-${ORT}/ort-wasm-simd-threaded.asyncify.mjs`, url: `${ORT_CDN}/ort-wasm-simd-threaded.asyncify.mjs`, size: 53457, sha256: "59cf781530e1a16df2a291d78798e3ec1152467edaec402d6f9599d85047c302" },
-  ortWasm: { file: `ort-${ORT}/ort-wasm-simd-threaded.asyncify.wasm`, url: `${ORT_CDN}/ort-wasm-simd-threaded.asyncify.wasm`, size: 28747738, sha256: "ca319e9539cd0f1e291cf56074760121eaf39650f5dbf84b6e52c07f4b2944ec" },
   // U²-Netp and IS-Net general use (Apache-2.0), as published by the rembg project (MIT).
   u2netp: { file: "u2netp.onnx", url: `${REMBG}/u2netp.onnx`, size: 4574861, sha256: "309c8469258dda742793dce0ebea8e6dd393174f89934733ecc8b14c76f4ddd8" },
   isnet: { file: "isnet-general-use.onnx", url: `${REMBG}/isnet-general-use.onnx`, size: 178648008, sha256: "60920e99c45464f2ba57bee2ad08c919a52bbf852739e96947fbb4358c0d964a" },
 };
-const MODELS = { quick: [FILES.ortMjs, FILES.ortWasm, FILES.u2netp], isnet: [FILES.ortMjs, FILES.ortWasm, FILES.isnet] };
+const MODELS = { quick: [FILES.u2netp], isnet: [FILES.isnet] };
 const modelsDir = () => path.join(app.getPath("userData"), "models");
 
 /** Map an app:// URL to a file inside the web build (or a downloaded model), refusing anything outside it. */
@@ -417,7 +412,6 @@ function setupDownloads() {
   });
   ipcMain.handle("model:cancel", () => downloading?.abort());
   ipcMain.handle("model:remove", (_e, name) => {
-    // Only the model itself; the runtime is shared with the other model.
     const f = MODELS[name]?.at(-1);
     if (f) fs.rmSync(path.join(modelsDir(), f.file), { force: true });
   });
