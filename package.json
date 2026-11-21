@@ -80,7 +80,7 @@
     "@types/node": "^26.6.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "electron": "^44.11.3",
+    "electron": "^45.3.4",
     "electron-builder": "^26.18.0",
     "eslint": "^9",
     "eslint-config-next": "16.4.6",
